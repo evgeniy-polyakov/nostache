@@ -96,9 +96,5 @@ test("Arguments", () => {
     expect(Nostache("<{if (true) {<p>={ _a }></p>} }>")({_a: 'bb'})).toBe("<p>bb</p>");
     expect(Nostache("={a}> ={b}>")({a: 'aa', b: 'bb'})).toBe("aa bb");
     expect(() => Nostache("={ c }>")({a: 'aa', b: 'bb'})).toThrow(ReferenceError);
-
-    const a = {a: 'aa', b: 'bb'};
-    const b = Object.create(a);
-    expect(Nostache("={a}> ={b}>")(a)).toBe("aa bb");
-    expect(Nostache("={a}> ={b}>")(b)).toBe("aa bb");
+    expect(Nostache("={a}> ={b}>")(Object.create({a: 'aa', b: 'bb'}))).toBe("aa bb");
 });
