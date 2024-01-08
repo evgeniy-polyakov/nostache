@@ -3,7 +3,7 @@ export function Nostache(template: string): (context?: unknown) => string {
     let index = 0;
     let startIndex = 0;
     const length = template.length;
-    const result = "_";
+    const result = "__var__";
     let funcBody = `let ${result}='';\n`;
 
     const isWhitespace = {
