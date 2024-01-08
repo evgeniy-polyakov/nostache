@@ -1,6 +1,7 @@
 const Nostache = require("../dist/index").Nostache;
 
 test("Simple text", () => {
+    expect(Nostache("")()).toBe("");
     expect(Nostache("simple text")()).toBe("simple text");
 });
 
