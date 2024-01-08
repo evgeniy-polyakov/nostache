@@ -1,6 +1,3 @@
-const baseObject = {};
-const validArgRe = /^[_a-zA-Z]\w+$/;
-
 export function Nostache(template: string): (context?: unknown) => string {
 
     let index = 0;
@@ -24,7 +21,7 @@ export function Nostache(template: string): (context?: unknown) => string {
 
     function appendResult() {
         if (index > startIndex) {
-            funcBody += `${result}+="${sliceTemplate()
+            funcBody += `${result}+="${sliceHtml()
                 .replace(/\\/g, '\\\\')
                 .replace(/"/g, '\\"')
             }";\n`;
@@ -33,21 +30,28 @@ export function Nostache(template: string): (context?: unknown) => string {
 
     function appendOutput() {
         if (index > startIndex) {
-            funcBody += `${result}+=${sliceTemplate()}\n`;
+            funcBody += `${result}+=${sliceCode()}\n`;
         }
     }
 
     function appendLogic() {
         if (index > startIndex) {
-            funcBody += `${sliceTemplate()}\n`;
+            funcBody += `${sliceCode()}\n`;
         }
     }
 
-    function sliceTemplate() {
+    function sliceCode() {
         return template
             .slice(startIndex, index)
             .replace(/^\s+/, '')
             .replace(/\s+$/, '');
+    }
+
+    function sliceHtml() {
+        return template
+            .slice(startIndex, index)
+            .replace(/^\s+</, '<')
+            .replace(/>\s+$/, '>');
     }
 
     function parseOpenBlock(c: number) {
@@ -168,9 +172,10 @@ export function Nostache(template: string): (context?: unknown) => string {
 
     return (context?: unknown) => {
         const args = [];
+        const baseObject = {};
         if (context && typeof context === "object") {
             for (const p in context) {
-                if (!(p in baseObject) && validArgRe.test(p)) {
+                if (!(p in baseObject) && /^[_a-zA-Z]\w+$/.test(p)) {
                     args.push(p);
                 }
             }
