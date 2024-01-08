@@ -55,9 +55,14 @@ test("Output expressions", () => {
     expect(Nostache("={ 10 }>")()).toBe("10");
     expect(Nostache("={ 5 + 5 }>")()).toBe("10");
     expect(Nostache("={ 'aa' }>")()).toBe("aa");
+    expect(Nostache("={ {a:'aa'}.a }>")()).toBe("aa");
+    expect(Nostache("={ (()=> 'aa')() }>")()).toBe("aa");
     expect(Nostache("={ 10 }> ={ 'aa' }>")()).toBe("10 aa");
     expect(Nostache("<p>={ 10 }></p>")()).toBe("<p>10</p>");
     expect(Nostache("<p>={ 5 + 5 }></p>")()).toBe("<p>10</p>");
+    expect(Nostache("<p>={ 'aa' }></p>")()).toBe("<p>aa</p>");
+    expect(Nostache("<p>={ {a:'aa'}.a }></p>")()).toBe("<p>aa</p>");
+    expect(Nostache("<p>={ (() => 'aa')() }></p>")()).toBe("<p>aa</p>");
     expect(Nostache("<p>={ 10 }></p> ={ 'aa' }>")()).toBe("<p>10</p>aa");
     expect(Nostache("<{ if (true) {<p>={ 10 }></p>}}>")()).toBe("<p>10</p>");
     expect(Nostache("<{ if (true) {<p>={ 5 + 5 }></p>}}>")()).toBe("<p>10</p>");
