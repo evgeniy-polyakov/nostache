@@ -1,10 +1,13 @@
+const baseObject = {};
+const validArgRe = /^[_a-zA-Z]\w+$/;
+
 export function Nostache(template: string): (context?: unknown) => string {
 
     let index = 0;
     let startIndex = 0;
     const length = template.length;
     const result = "_";
-    let funcBody = `let ${result}="";`;
+    let funcBody = `let ${result}="";\n`;
 
     const isWhitespace = {
         [" ".charCodeAt(0)]: true,
@@ -26,19 +29,19 @@ export function Nostache(template: string): (context?: unknown) => string {
                 .slice(startIndex, endIndex)
                 .replace('\\', '\\\\')
                 .replace('"', '\\"')
-            }";`;
+            }";\n`;
         }
     }
 
     function appendOutput() {
         if (index > startIndex) {
-            funcBody += `${result}+=${template.slice(startIndex, index)}`;
+            funcBody += `${result}+=${template.slice(startIndex, index)}\n`;
         }
     }
 
     function appendLogic() {
         if (index > startIndex) {
-            funcBody += template.slice(startIndex, index);
+            funcBody += `${template.slice(startIndex, index)}\n`;
         }
     }
 
@@ -80,7 +83,7 @@ export function Nostache(template: string): (context?: unknown) => string {
 
     function parseLogicBlock() {
         startIndex = index;
-        let isPotentialHtml = false;
+        let isPotentialHtml = true; // We can start html block right away
         for (; index < length;) {
             const c = template.charCodeAt(index);
             if (c === OPEN_BRACE) {
@@ -151,14 +154,27 @@ export function Nostache(template: string): (context?: unknown) => string {
     parseStart();
     funcBody += `return ${result};`;
 
+    try {
+        Function(funcBody);
+    } catch (error) {
+        error.message += `\nat function () {\n${funcBody}\n}`;
+        throw error;
+    }
+
     return (context?: unknown) => {
         const args = [];
         if (context && typeof context === "object") {
             for (const p in context) {
-                args.push(p);
+                if (!(p in baseObject) && validArgRe.test(p)) {
+                    args.push(p);
+                }
             }
         }
-        const func = Function(...args, funcBody);
-        return func.apply(context, args);
+        try {
+            return Function(...args, funcBody).apply(context, args);
+        } catch (error) {
+            error.message += `\nat function (${args.join(', ')}) {\n${funcBody}\n}`;
+            throw error;
+        }
     };
 }
