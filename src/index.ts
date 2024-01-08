@@ -4,7 +4,7 @@ export function Nostache(template: string): (context?: unknown) => string {
     let startIndex = 0;
     const length = template.length;
     const result = "_";
-    let funcBody = `let ${result}="";\n`;
+    let funcBody = `let ${result}='';\n`;
 
     const isWhitespace = {
         [" ".charCodeAt(0)]: true,
@@ -163,27 +163,22 @@ export function Nostache(template: string): (context?: unknown) => string {
     parseStart();
     funcBody += `return ${result};`;
 
-    try {
-        Function(funcBody);
-    } catch (error) {
-        error.message += `\nat function () {\n${funcBody}\n}`;
-        throw error;
-    }
-
     return (context?: unknown) => {
-        const args = [];
+        const argNames = [];
+        const argValues = [];
         const baseObject = {};
         if (context && typeof context === "object") {
             for (const p in context) {
-                if (!(p in baseObject) && /^[_a-zA-Z]\w+$/.test(p)) {
-                    args.push(p);
+                if (!(p in baseObject) && /^[_a-z]\w*$/i.test(p)) {
+                    argNames.push(p);
+                    argValues.push(context[p]);
                 }
             }
         }
         try {
-            return Function(...args, funcBody).apply(context, args);
+            return Function(...argNames, funcBody).apply(context, argValues);
         } catch (error) {
-            error.message += `\nat function (${args.join(', ')}) {\n${funcBody}\n}`;
+            error.message += `\nat function (${argNames.join(', ')}) {\n${funcBody}\n}`;
             throw error;
         }
     };

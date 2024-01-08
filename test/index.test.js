@@ -68,3 +68,32 @@ test("Output expressions", () => {
     expect(Nostache("<{ if (true) {<p>={ 5 + 5 }></p>}}>")()).toBe("<p>10</p>");
     expect(Nostache("<{ if (true) {<p>={ 5 + 5 }></p> ={'aa'}>}}>")()).toBe("<p>10</p>aa");
 });
+
+test("This argument", () => {
+    expect(Nostache("={ this }>")(10)).toBe("10");
+    expect(Nostache("={ this }>")(true)).toBe("true");
+    expect(Nostache("={ this }>")("")).toBe("");
+    expect(Nostache("={ this.a }>")({a: 'aa'})).toBe("aa");
+    expect(Nostache("<p>={ this }></p>")(10)).toBe("<p>10</p>");
+    expect(Nostache("<p>={ this }></p>")(true)).toBe("<p>true</p>");
+    expect(Nostache("<p>={ this }></p>")("")).toBe("<p></p>");
+    expect(Nostache("<p>={ this.a }></p>")({a: 'aa'})).toBe("<p>aa</p>");
+    expect(Nostache("<{if (true) {<p>={ this }></p>} }>")(10)).toBe("<p>10</p>");
+    expect(Nostache("<{if (true) {<p>={ this }></p>} }>")(true)).toBe("<p>true</p>");
+    expect(Nostache("<{if (true) {<p>={ this }></p>} }>")("")).toBe("<p></p>");
+    expect(Nostache("<{if (true) {<p>={ this.a }></p>} }>")({a: 'aa'})).toBe("<p>aa</p>");
+});
+
+test("Arguments", () => {
+    expect(Nostache("={ a }>")({a: 'bb'})).toBe("bb");
+    expect(Nostache("={ A }>")({A: 'bb'})).toBe("bb");
+    expect(Nostache("={ _a }>")({_a: 'bb'})).toBe("bb");
+    expect(Nostache("<p>={ a }></p>")({a: 'bb'})).toBe("<p>bb</p>");
+    expect(Nostache("<p>={ A }></p>")({A: 'bb'})).toBe("<p>bb</p>");
+    expect(Nostache("<p>={ _a }></p>")({_a: 'bb'})).toBe("<p>bb</p>");
+    expect(Nostache("<{if (true) {<p>={ a }></p>} }>")({a: 'bb'})).toBe("<p>bb</p>");
+    expect(Nostache("<{if (true) {<p>={ A }></p>} }>")({A: 'bb'})).toBe("<p>bb</p>");
+    expect(Nostache("<{if (true) {<p>={ _a }></p>} }>")({_a: 'bb'})).toBe("<p>bb</p>");
+    expect(Nostache("={a}> ={b}>")({a: 'aa', b: 'bb'})).toBe("aa bb");
+    expect(() => Nostache("={ c }>")({a: 'aa', b: 'bb'})).toThrow(ReferenceError);
+});
