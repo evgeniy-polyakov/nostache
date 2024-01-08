@@ -21,10 +21,10 @@ export function Nostache(template: string): (context?: unknown) => string {
 
     function appendResult() {
         if (index > startIndex) {
-            funcBody += `${result}+="${sliceHtml()
-                .replace(/\\/g, '\\\\')
-                .replace(/"/g, '\\"')
-            }";\n`;
+            funcBody += `${result}+='${sliceHtml()
+                .replace(/\\/g, "\\\\")
+                .replace(/'/g, "\\'")
+            }';\n`;
         }
     }
 
