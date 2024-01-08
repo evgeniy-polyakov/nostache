@@ -30,7 +30,7 @@ export function Nostache(template: string): (context?: unknown) => string {
 
     function appendOutput() {
         if (index > startIndex) {
-            funcBody += `${result}+=${sliceCode()}\n`;
+            funcBody += `${result}+=${sliceCode()};\n`;
         }
     }
 

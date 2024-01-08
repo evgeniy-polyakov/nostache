@@ -50,3 +50,16 @@ test("Nested blocks", () => {
 test("Javascript strings escaped", () => {
     expect(Nostache(`<p>"'\\"'\\<{ if (true) { <b>simple"'\\"'\\text</b> }}>\\'"\\'"</p>`)()).toBe(`<p>"'\\"'\\<b>simple"'\\"'\\text</b>\\'"\\'"</p>`);
 });
+
+test("Output expressions", () => {
+    expect(Nostache("={ 10 }>")()).toBe("10");
+    expect(Nostache("={ 5 + 5 }>")()).toBe("10");
+    expect(Nostache("={ 'aa' }>")()).toBe("aa");
+    expect(Nostache("={ 10 }> ={ 'aa' }>")()).toBe("10 aa");
+    expect(Nostache("<p>={ 10 }></p>")()).toBe("<p>10</p>");
+    expect(Nostache("<p>={ 5 + 5 }></p>")()).toBe("<p>10</p>");
+    expect(Nostache("<p>={ 10 }></p> ={ 'aa' }>")()).toBe("<p>10</p>aa");
+    expect(Nostache("<{ if (true) {<p>={ 10 }></p>}}>")()).toBe("<p>10</p>");
+    expect(Nostache("<{ if (true) {<p>={ 5 + 5 }></p>}}>")()).toBe("<p>10</p>");
+    expect(Nostache("<{ if (true) {<p>={ 5 + 5 }></p> ={'aa'}>}}>")()).toBe("<p>10</p>aa");
+});
