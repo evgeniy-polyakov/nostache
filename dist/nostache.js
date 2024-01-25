@@ -1,21 +1,26 @@
-(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?f(exports):typeof define==='function'&&define.amd?define(['exports'],f):(g=typeof globalThis!=='undefined'?globalThis:g||self,f(g.Nostache={}));})(this,(function(exports){'use strict';function Nostache(template) {
+(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?f(exports):typeof define==='function'&&define.amd?define(['exports'],f):(g=typeof globalThis!=='undefined'?globalThis:g||self,f(g.Nostache={}));})(this,(function(exports){'use strict';function charCode(char) {
+    if (char.length > 0) {
+        const map = {};
+        for (let i = 0; i < char.length; i++) {
+            map[char.charCodeAt(0)] = true;
+        }
+        return map;
+    }
+    return char.charCodeAt(0);
+}
+const isWhitespace = charCode(" \t\r\n");
+const OPEN_ANGLE = charCode("<");
+const CLOSE_ANGLE = charCode(">");
+const OPEN_BRACE = charCode("{");
+const CLOSE_BRACE = charCode("}");
+const SEMICOLON = charCode(";");
+const EQUAL = charCode("=");
+function Nostache(template) {
     let index = 0;
     let startIndex = 0;
     const length = template.length;
     const result = "__var__";
     let funcBody = `let ${result}='';\n`;
-    const isWhitespace = {
-        [" ".charCodeAt(0)]: true,
-        ["\t".charCodeAt(0)]: true,
-        ["\r".charCodeAt(0)]: true,
-        ["\n".charCodeAt(0)]: true,
-    };
-    const OPEN_ANGLE = "<".charCodeAt(0);
-    const CLOSE_ANGLE = ">".charCodeAt(0);
-    const OPEN_BRACE = "{".charCodeAt(0);
-    const CLOSE_BRACE = "}".charCodeAt(0);
-    const SEMICOLON = ";".charCodeAt(0);
-    const EQUAL = "=".charCodeAt(0);
     function appendResult() {
         if (index > startIndex) {
             funcBody += `${result}+='${sliceHtml()

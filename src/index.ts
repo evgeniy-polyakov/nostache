@@ -1,3 +1,22 @@
+function charCode(char: string) {
+    if (char.length > 0) {
+        const map: Record<number, boolean> = {};
+        for (let i = 0; i < char.length; i++) {
+            map[char.charCodeAt(0)] = true;
+        }
+        return map;
+    }
+    return char.charCodeAt(0);
+}
+
+const isWhitespace = charCode(" \t\r\n") as Record<number, boolean>;
+const OPEN_ANGLE = charCode("<");
+const CLOSE_ANGLE = charCode(">");
+const OPEN_BRACE = charCode("{");
+const CLOSE_BRACE = charCode("}");
+const SEMICOLON = charCode(";");
+const EQUAL = charCode("=");
+
 export function Nostache(template: string): (context?: unknown) => string {
 
     let index = 0;
@@ -5,19 +24,6 @@ export function Nostache(template: string): (context?: unknown) => string {
     const length = template.length;
     const result = "__var__";
     let funcBody = `let ${result}='';\n`;
-
-    const isWhitespace = {
-        [" ".charCodeAt(0)]: true,
-        ["\t".charCodeAt(0)]: true,
-        ["\r".charCodeAt(0)]: true,
-        ["\n".charCodeAt(0)]: true,
-    };
-    const OPEN_ANGLE = "<".charCodeAt(0);
-    const CLOSE_ANGLE = ">".charCodeAt(0);
-    const OPEN_BRACE = "{".charCodeAt(0);
-    const CLOSE_BRACE = "}".charCodeAt(0);
-    const SEMICOLON = ";".charCodeAt(0);
-    const EQUAL = "=".charCodeAt(0);
 
     function appendResult() {
         if (index > startIndex) {
