@@ -1,25 +1,25 @@
-function charCode(char: string) {
-    if (char.length > 1) {
-        const map: Record<number, boolean> = {};
-        for (let i = 0; i < char.length; i++) {
-            map[char.charCodeAt(i)] = true;
+function parseTemplate(template: string) {
+
+    function charCode(char: string) {
+        if (char.length > 1) {
+            const map: Record<number, boolean> = {};
+            for (let i = 0; i < char.length; i++) {
+                map[char.charCodeAt(i)] = true;
+            }
+            return map;
         }
-        return map;
+        return char.charCodeAt(0);
     }
-    return char.charCodeAt(0);
-}
 
-const isWhitespace = charCode(" \t\r\n") as Record<number, boolean>;
-const OPEN_ANGLE = charCode("<");
-const CLOSE_ANGLE = charCode(">");
-const OPEN_BRACE = charCode("{");
-const CLOSE_BRACE = charCode("}");
-const SEMICOLON = charCode(";");
-const EQUAL = charCode("=");
-const BACKSLASH = charCode("\\");
-const QUOTE = charCode("'");
-
-export default function Nostache(template: string): (context?: unknown) => string {
+    const isWhitespace = charCode(" \t\r\n") as Record<number, boolean>;
+    const OPEN_ANGLE = charCode("<");
+    const CLOSE_ANGLE = charCode(">");
+    const OPEN_BRACE = charCode("{");
+    const CLOSE_BRACE = charCode("}");
+    const SEMICOLON = charCode(";");
+    const EQUAL = charCode("=");
+    const BACKSLASH = charCode("\\");
+    const QUOTE = charCode("'");
 
     let index = 0;
     let startIndex = 0;
@@ -84,18 +84,6 @@ export default function Nostache(template: string): (context?: unknown) => strin
             return true;
         }
         return false;
-    }
-
-    function parseStart() {
-        for (; index < length;) {
-            const c = template.charCodeAt(index);
-            if (parseOpenBlock(c)) {
-                // continue
-            } else {
-                index++;
-            }
-        }
-        appendResult();
     }
 
     function parseLogicBlock() {
@@ -170,9 +158,22 @@ export default function Nostache(template: string): (context?: unknown) => strin
         startIndex = index;
     }
 
-    parseStart();
+    for (; index < length;) {
+        const c = template.charCodeAt(index);
+        if (parseOpenBlock(c)) {
+            // continue
+        } else {
+            index++;
+        }
+    }
+    appendResult();
     funcBody += `return ${result};`;
 
+    return funcBody;
+}
+
+export default function Nostache(template: string): (context?: unknown) => string {
+    const funcBody = parseTemplate(template);
     return (context?: unknown) => {
         const argNames = [];
         const argValues = [];

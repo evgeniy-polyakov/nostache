@@ -1,23 +1,23 @@
-(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';function charCode(char) {
-    if (char.length > 1) {
-        const map = {};
-        for (let i = 0; i < char.length; i++) {
-            map[char.charCodeAt(i)] = true;
+(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';function parseTemplate(template) {
+    function charCode(char) {
+        if (char.length > 1) {
+            const map = {};
+            for (let i = 0; i < char.length; i++) {
+                map[char.charCodeAt(i)] = true;
+            }
+            return map;
         }
-        return map;
+        return char.charCodeAt(0);
     }
-    return char.charCodeAt(0);
-}
-const isWhitespace = charCode(" \t\r\n");
-const OPEN_ANGLE = charCode("<");
-const CLOSE_ANGLE = charCode(">");
-const OPEN_BRACE = charCode("{");
-const CLOSE_BRACE = charCode("}");
-const SEMICOLON = charCode(";");
-const EQUAL = charCode("=");
-const BACKSLASH = charCode("\\");
-const QUOTE = charCode("'");
-function Nostache(template) {
+    const isWhitespace = charCode(" \t\r\n");
+    const OPEN_ANGLE = charCode("<");
+    const CLOSE_ANGLE = charCode(">");
+    const OPEN_BRACE = charCode("{");
+    const CLOSE_BRACE = charCode("}");
+    const SEMICOLON = charCode(";");
+    const EQUAL = charCode("=");
+    const BACKSLASH = charCode("\\");
+    const QUOTE = charCode("'");
     let index = 0;
     let startIndex = 0;
     const length = template.length;
@@ -80,16 +80,6 @@ function Nostache(template) {
             return true;
         }
         return false;
-    }
-    function parseStart() {
-        for (; index < length;) {
-            const c = template.charCodeAt(index);
-            if (parseOpenBlock(c)) ;
-            else {
-                index++;
-            }
-        }
-        appendResult();
     }
     function parseLogicBlock() {
         startIndex = index;
@@ -167,8 +157,19 @@ function Nostache(template) {
         }
         startIndex = index;
     }
-    parseStart();
+    for (; index < length;) {
+        const c = template.charCodeAt(index);
+        if (parseOpenBlock(c)) ;
+        else {
+            index++;
+        }
+    }
+    appendResult();
     funcBody += `return ${result};`;
+    return funcBody;
+}
+function Nostache(template) {
+    const funcBody = parseTemplate(template);
     return (context) => {
         const argNames = [];
         const argValues = [];
