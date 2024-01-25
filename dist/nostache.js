@@ -1,4 +1,5 @@
-(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';function parseTemplate(template) {
+(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const templateCache = {};
+function parseTemplate(template) {
     function charCode(char) {
         if (char.length > 1) {
             const map = {};
@@ -21,7 +22,7 @@
     let index = 0;
     let startIndex = 0;
     const length = template.length;
-    const result = "__var__";
+    const result = "__nostache__";
     let funcBody = `let ${result}='';\n`;
     function appendResult(endIndex = index, extra = "") {
         if (endIndex > startIndex || extra) {
@@ -169,7 +170,8 @@
     return funcBody;
 }
 function Nostache(template) {
-    const funcBody = parseTemplate(template);
+    var _a;
+    const funcBody = (_a = templateCache[template]) !== null && _a !== void 0 ? _a : (templateCache[template] = parseTemplate(template));
     return (context) => {
         const argNames = [];
         const argValues = [];

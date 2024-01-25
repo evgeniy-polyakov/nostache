@@ -1,3 +1,5 @@
+const templateCache: Record<string, string> = {};
+
 function parseTemplate(template: string) {
 
     function charCode(char: string) {
@@ -24,7 +26,7 @@ function parseTemplate(template: string) {
     let index = 0;
     let startIndex = 0;
     const length = template.length;
-    const result = "__var__";
+    const result = "__nostache__";
     let funcBody = `let ${result}='';\n`;
 
     function appendResult(endIndex = index, extra = "") {
@@ -173,7 +175,7 @@ function parseTemplate(template: string) {
 }
 
 export default function Nostache(template: string): (context?: unknown) => string {
-    const funcBody = parseTemplate(template);
+    const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
     return (context?: unknown) => {
         const argNames = [];
         const argValues = [];

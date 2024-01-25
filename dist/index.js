@@ -1,3 +1,4 @@
+const templateCache = {};
 function parseTemplate(template) {
     function charCode(char) {
         if (char.length > 1) {
@@ -21,7 +22,7 @@ function parseTemplate(template) {
     let index = 0;
     let startIndex = 0;
     const length = template.length;
-    const result = "__var__";
+    const result = "__nostache__";
     let funcBody = `let ${result}='';\n`;
     function appendResult(endIndex = index, extra = "") {
         if (endIndex > startIndex || extra) {
@@ -169,7 +170,8 @@ function parseTemplate(template) {
     return funcBody;
 }
 function Nostache(template) {
-    const funcBody = parseTemplate(template);
+    var _a;
+    const funcBody = (_a = templateCache[template]) !== null && _a !== void 0 ? _a : (templateCache[template] = parseTemplate(template));
     return (context) => {
         const argNames = [];
         const argValues = [];
