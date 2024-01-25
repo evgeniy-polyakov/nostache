@@ -39,6 +39,7 @@
   "scripts": {
     "jest": "jest",
     "lint": "eslint src --ext .ts --fix",
-    "build": "eslint src --ext .ts && rollup -c"
+    "build": "eslint src --ext .ts && rollup -c",
+    "watch": "rollup -c -w"
   }
 }
