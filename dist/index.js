@@ -15,15 +15,17 @@ const OPEN_BRACE = charCode("{");
 const CLOSE_BRACE = charCode("}");
 const SEMICOLON = charCode(";");
 const EQUAL = charCode("=");
+const BACKSLASH = charCode("\\");
+const QUOTE = charCode("'");
 function Nostache(template) {
     let index = 0;
     let startIndex = 0;
     const length = template.length;
     const result = "__var__";
     let funcBody = `let ${result}='';\n`;
-    function appendResult(endIndex = index) {
-        if (endIndex > startIndex) {
-            funcBody += `${result}+='${template.slice(startIndex, endIndex)}';\n`;
+    function appendResult(endIndex = index, extra = "") {
+        if (endIndex > startIndex || extra) {
+            funcBody += `${result}+='${template.slice(startIndex, endIndex)}${extra}';\n`;
         }
     }
     function appendOutput() {
@@ -35,6 +37,21 @@ function Nostache(template) {
         if (index > startIndex) {
             funcBody += `${template.slice(startIndex, index)}\n`;
         }
+    }
+    function escapeChar(c) {
+        if (c === BACKSLASH) {
+            appendResult(index, "\\\\");
+            index++;
+            startIndex = index;
+            return true;
+        }
+        else if (c === QUOTE) {
+            appendResult(index, "\\'");
+            index++;
+            startIndex = index;
+            return true;
+        }
+        return false;
     }
     function parseOpenBlock(c) {
         if (c === OPEN_ANGLE && template.charCodeAt(index + 1) === OPEN_BRACE) {
@@ -57,6 +74,9 @@ function Nostache(template) {
             appendLogic();
             index++;
             startIndex = index;
+            return true;
+        }
+        else if (escapeChar(c)) {
             return true;
         }
         return false;
@@ -117,6 +137,7 @@ function Nostache(template) {
                 appendResult(potentialEnd);
                 break;
             }
+            else if (escapeChar(c)) ;
             else {
                 index++;
                 potentialEnd = -1;

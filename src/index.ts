@@ -16,6 +16,8 @@ const OPEN_BRACE = charCode("{");
 const CLOSE_BRACE = charCode("}");
 const SEMICOLON = charCode(";");
 const EQUAL = charCode("=");
+const BACKSLASH = charCode("\\");
+const QUOTE = charCode("'");
 
 export default function Nostache(template: string): (context?: unknown) => string {
 
@@ -25,9 +27,9 @@ export default function Nostache(template: string): (context?: unknown) => strin
     const result = "__var__";
     let funcBody = `let ${result}='';\n`;
 
-    function appendResult(endIndex = index) {
-        if (endIndex > startIndex) {
-            funcBody += `${result}+='${template.slice(startIndex, endIndex)}';\n`;
+    function appendResult(endIndex = index, extra = "") {
+        if (endIndex > startIndex || extra) {
+            funcBody += `${result}+='${template.slice(startIndex, endIndex)}${extra}';\n`;
         }
     }
 
@@ -41,6 +43,21 @@ export default function Nostache(template: string): (context?: unknown) => strin
         if (index > startIndex) {
             funcBody += `${template.slice(startIndex, index)}\n`;
         }
+    }
+
+    function escapeChar(c: number) {
+        if (c === BACKSLASH) {
+            appendResult(index, "\\\\");
+            index++;
+            startIndex = index;
+            return true;
+        } else if (c === QUOTE) {
+            appendResult(index, "\\'");
+            index++;
+            startIndex = index;
+            return true;
+        }
+        return false;
     }
 
     function parseOpenBlock(c: number) {
@@ -63,6 +80,8 @@ export default function Nostache(template: string): (context?: unknown) => strin
             index++;
             startIndex = index;
             return true;
+        } else if (escapeChar(c)) {
+            return true;
         }
         return false;
     }
@@ -71,7 +90,7 @@ export default function Nostache(template: string): (context?: unknown) => strin
         for (; index < length;) {
             const c = template.charCodeAt(index);
             if (parseOpenBlock(c)) {
-                // no action
+                // continue
             } else {
                 index++;
             }
@@ -111,7 +130,7 @@ export default function Nostache(template: string): (context?: unknown) => strin
         for (; index < length;) {
             const c = template.charCodeAt(index);
             if (parseOpenBlock(c)) {
-                // no action
+                // continue
             } else if (c === CLOSE_ANGLE) {
                 index++;
                 potentialEnd = index;
@@ -120,6 +139,8 @@ export default function Nostache(template: string): (context?: unknown) => strin
             } else if (potentialEnd && c === CLOSE_BRACE) {
                 appendResult(potentialEnd);
                 break;
+            } else if (escapeChar(c)) {
+                // continue
             } else {
                 index++;
                 potentialEnd = -1;
