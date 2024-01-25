@@ -21,7 +21,7 @@ test("HTML in logic block", () => {
     <p>simple text</p>
     } }>`)()).toBe("<p>simple text</p>");
     expect(Nostache("<{ if (true) {<p><b>simple</b> text</p>} }>")()).toBe("<p><b>simple</b> text</p>");
-    expect(Nostache("<{ if (true) }> <p>simple text</p> <;>")()).toBe("<p>simple text</p>");
+    expect(Nostache("<{ if (true) }><p>simple text</p><;>")()).toBe("<p>simple text</p>");
     expect(Nostache("<{ if (false) {<p>error</p>} else {<p>simple text</p>} }>")()).toBe("<p>simple text</p>");
     expect(Nostache(`<{ if (false) {
     <p>error</p>
@@ -42,10 +42,20 @@ test("Mixed blocks", () => {
 });
 
 test("Nested blocks", () => {
-    expect(Nostache("<{ if (true) { <p> <{ if (true) { <b>simple text</b> }}> </p> }}>")()).toBe("<p><b>simple text</b></p>");
-    expect(Nostache("<{ if (true) { <p> <{ if (true) { <b> <{ if (true) {<i>simple</i>}}> text</b> }}> </p> }}>")()).toBe("<p><b><i>simple</i> text</b></p>");
-    expect(Nostache("<{ if (true) { <p> <{ if (true) { <b> <{ if (true) {<i>simple</i>}}> text</b> }}> </p> }}>")()).toBe("<p><b><i>simple</i> text</b></p>");
-    expect(Nostache("<{ if (true) { <p> <{ if (true) { <b> <{ if (true) }><i>simple</i><;> text</b> }}> </p> }}>")()).toBe("<p><b><i>simple</i> text</b></p>");
+    expect(Nostache("<{ if (true) { <p><{ if (true) { <b>simple text</b> }}></p> }}>")()).toBe("<p><b>simple text</b></p>");
+    expect(Nostache("<{ if (true) { <p><{ if (true) { <b><{ if (true) {<i>simple</i>}}> text</b> }}></p> }}>")()).toBe("<p><b><i>simple</i> text</b></p>");
+    expect(Nostache("<{ if (true) { <p><{ if (true) { <b><{ if (true) {<i>simple</i>}}> text</b> }}></p> }}>")()).toBe("<p><b><i>simple</i> text</b></p>");
+    expect(Nostache("<{ if (true) { <p><{ if (true) { <b><{ if (true) }><i>simple</i><;> text</b> }}></p> }}>")()).toBe("<p><b><i>simple</i> text</b></p>");
+});
+
+test("Whitespace", () => {
+    expect(Nostache(" <{ }> ")()).toBe("  ");
+    expect(Nostache(" <{ <p>simple text</p> }> ")()).toBe(" <p>simple text</p> ");
+    expect(Nostache(" <{ if (true) { <p>simple text</p> } }> ")()).toBe(" <p>simple text</p> ");
+    expect(Nostache(" <{ if (true) }> <p>simple text</p> <;> ")()).toBe("  <p>simple text</p>  ");
+    expect(Nostache("<div> <{ if (true) { <p>simple text</p> } }> </div>")()).toBe("<div> <p>simple text</p> </div>");
+    expect(Nostache(" <div> <{ if (true) { <p>simple text</p> } }> </div> ")()).toBe(" <div> <p>simple text</p> </div> ");
+    expect(Nostache(" <{ if (true) { <div> <{ if (true) { <p>simple text</p> }}> </div> }}> ")()).toBe(" <div> <p>simple text</p> </div> ");
 });
 
 test("Javascript strings escaped", () => {
@@ -64,10 +74,10 @@ test("Output expressions", () => {
     expect(Nostache("<p>={ 'aa' }></p>")()).toBe("<p>aa</p>");
     expect(Nostache("<p>={ {a:'aa'}.a }></p>")()).toBe("<p>aa</p>");
     expect(Nostache("<p>={ (() => 'aa')() }></p>")()).toBe("<p>aa</p>");
-    expect(Nostache("<p>={ 10 }></p> ={ 'aa' }>")()).toBe("<p>10</p>aa");
+    expect(Nostache("<p>={ 10 }></p>={ 'aa' }>")()).toBe("<p>10</p>aa");
     expect(Nostache("<{ if (true) {<p>={ 10 }></p>}}>")()).toBe("<p>10</p>");
     expect(Nostache("<{ if (true) {<p>={ 5 + 5 }></p>}}>")()).toBe("<p>10</p>");
-    expect(Nostache("<{ if (true) {<p>={ 5 + 5 }></p> ={'aa'}>}}>")()).toBe("<p>10</p>aa");
+    expect(Nostache("<{ if (true) {<p>={ 5 + 5 }></p>={'aa'}>}}>")()).toBe("<p>10</p>aa");
 });
 
 test("This argument", () => {

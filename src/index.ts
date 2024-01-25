@@ -25,39 +25,22 @@ export default function Nostache(template: string): (context?: unknown) => strin
     const result = "__var__";
     let funcBody = `let ${result}='';\n`;
 
-    function appendResult() {
-        if (index > startIndex) {
-            funcBody += `${result}+='${sliceHtml()
-                .replace(/\\/g, "\\\\")
-                .replace(/'/g, "\\'")
-            }';\n`;
+    function appendResult(endIndex = index) {
+        if (endIndex > startIndex) {
+            funcBody += `${result}+='${template.slice(startIndex, endIndex)}';\n`;
         }
     }
 
     function appendOutput() {
         if (index > startIndex) {
-            funcBody += `${result}+=${sliceCode()};\n`;
+            funcBody += `${result}+=${template.slice(startIndex, index)};\n`;
         }
     }
 
     function appendLogic() {
         if (index > startIndex) {
-            funcBody += `${sliceCode()}\n`;
+            funcBody += `${template.slice(startIndex, index)}\n`;
         }
-    }
-
-    function sliceCode() {
-        return template
-            .slice(startIndex, index)
-            .replace(/^\s+/, "")
-            .replace(/\s+$/, "");
-    }
-
-    function sliceHtml() {
-        return template
-            .slice(startIndex, index)
-            .replace(/^\s+</, "<")
-            .replace(/>\s+$/, ">");
     }
 
     function parseOpenBlock(c: number) {
@@ -124,22 +107,22 @@ export default function Nostache(template: string): (context?: unknown) => strin
 
     function parseHtmlBlock() {
         startIndex = index;
-        let isPotentialEnd = false;
+        let potentialEnd = -1;
         for (; index < length;) {
             const c = template.charCodeAt(index);
             if (parseOpenBlock(c)) {
                 // no action
             } else if (c === CLOSE_ANGLE) {
                 index++;
-                isPotentialEnd = true;
-            } else if (isPotentialEnd && isWhitespace[c]) {
+                potentialEnd = index;
+            } else if (potentialEnd >= 0 && isWhitespace[c]) {
                 index++;
-            } else if (isPotentialEnd && c === CLOSE_BRACE) {
-                appendResult();
+            } else if (potentialEnd && c === CLOSE_BRACE) {
+                appendResult(potentialEnd);
                 break;
             } else {
                 index++;
-                isPotentialEnd = false;
+                potentialEnd = -1;
             }
         }
         startIndex = index;
