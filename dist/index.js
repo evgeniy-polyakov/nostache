@@ -1,4 +1,4 @@
-(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?f(exports):typeof define==='function'&&define.amd?define(['exports'],f):(g=typeof globalThis!=='undefined'?globalThis:g||self,f(g.Nostache={}));})(this,(function(exports){'use strict';function Nostache(template) {
+function Nostache(template) {
     let index = 0;
     let startIndex = 0;
     const length = template.length;
@@ -177,4 +177,4 @@
             throw error;
         }
     };
-}exports.Nostache=Nostache;}));//# sourceMappingURL=nostache.js.map
+}export{Nostache};
