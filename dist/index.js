@@ -1,8 +1,8 @@
 function charCode(char) {
-    if (char.length > 0) {
+    if (char.length > 1) {
         const map = {};
         for (let i = 0; i < char.length; i++) {
-            map[char.charCodeAt(0)] = true;
+            map[char.charCodeAt(i)] = true;
         }
         return map;
     }
@@ -182,4 +182,4 @@ function Nostache(template) {
             throw error;
         }
     };
-}export{Nostache};
+}export{Nostache as default};//# sourceMappingURL=index.js.map

@@ -1,1 +1,1 @@
-export declare function Nostache(template: string): (context?: unknown) => string;
+export default function Nostache(template: string): (context?: unknown) => string;

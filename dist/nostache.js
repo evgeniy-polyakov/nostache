@@ -1,8 +1,8 @@
-(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?f(exports):typeof define==='function'&&define.amd?define(['exports'],f):(g=typeof globalThis!=='undefined'?globalThis:g||self,f(g.Nostache={}));})(this,(function(exports){'use strict';function charCode(char) {
-    if (char.length > 0) {
+(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';function charCode(char) {
+    if (char.length > 1) {
         const map = {};
         for (let i = 0; i < char.length; i++) {
-            map[char.charCodeAt(0)] = true;
+            map[char.charCodeAt(i)] = true;
         }
         return map;
     }
@@ -182,4 +182,4 @@ function Nostache(template) {
             throw error;
         }
     };
-}exports.Nostache=Nostache;}));//# sourceMappingURL=nostache.js.map
+}return Nostache;}));//# sourceMappingURL=nostache.js.map

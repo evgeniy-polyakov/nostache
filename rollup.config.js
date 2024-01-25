@@ -8,6 +8,7 @@ export default {
             file: 'dist/index.js',
             format: 'es',
             compact: true,
+            sourcemap: true,
         },
         {
             name: 'Nostache',

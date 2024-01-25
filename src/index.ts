@@ -1,8 +1,8 @@
 function charCode(char: string) {
-    if (char.length > 0) {
+    if (char.length > 1) {
         const map: Record<number, boolean> = {};
         for (let i = 0; i < char.length; i++) {
-            map[char.charCodeAt(0)] = true;
+            map[char.charCodeAt(i)] = true;
         }
         return map;
     }
@@ -17,7 +17,7 @@ const CLOSE_BRACE = charCode("}");
 const SEMICOLON = charCode(";");
 const EQUAL = charCode("=");
 
-export function Nostache(template: string): (context?: unknown) => string {
+export default function Nostache(template: string): (context?: unknown) => string {
 
     let index = 0;
     let startIndex = 0;
