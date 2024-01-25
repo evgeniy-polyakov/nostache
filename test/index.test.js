@@ -1,4 +1,4 @@
-const Nostache = require("../dist/index").Nostache;
+const Nostache = require("../dist/nostache.js").Nostache;
 
 test("Simple text", () => {
     expect(Nostache("")()).toBe("");

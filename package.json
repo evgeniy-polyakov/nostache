@@ -37,8 +37,8 @@
     "jest": "^29.7.0"
   },
   "scripts": {
-    "lint": "eslint src --ext .ts",
-    "lint-fix": "eslint src --ext .ts --fix",
-    "build": "npm run lint && rollup -c"
+    "jest": "jest",
+    "lint": "eslint src --ext .ts --fix",
+    "build": "eslint src --ext .ts && rollup -c"
   }
 }
