@@ -1,11 +1,9 @@
-export function Nostache(template: string): (context?: unknown) => string {
-
+(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?f(exports):typeof define==='function'&&define.amd?define(['exports'],f):(g=typeof globalThis!=='undefined'?globalThis:g||self,f(g.nostache={}));})(this,(function(exports){'use strict';function Nostache(template) {
     let index = 0;
     let startIndex = 0;
     const length = template.length;
     const result = "__var__";
     let funcBody = `let ${result}='';\n`;
-
     const isWhitespace = {
         [" ".charCodeAt(0)]: true,
         ["\t".charCodeAt(0)]: true,
@@ -18,54 +16,49 @@ export function Nostache(template: string): (context?: unknown) => string {
     const CLOSE_BRACE = "}".charCodeAt(0);
     const SEMICOLON = ";".charCodeAt(0);
     const EQUAL = "=".charCodeAt(0);
-
     function appendResult() {
         if (index > startIndex) {
             funcBody += `${result}+='${sliceHtml()
                 .replace(/\\/g, "\\\\")
-                .replace(/'/g, "\\'")
-            }';\n`;
+                .replace(/'/g, "\\'")}';\n`;
         }
     }
-
     function appendOutput() {
         if (index > startIndex) {
             funcBody += `${result}+=${sliceCode()};\n`;
         }
     }
-
     function appendLogic() {
         if (index > startIndex) {
             funcBody += `${sliceCode()}\n`;
         }
     }
-
     function sliceCode() {
         return template
             .slice(startIndex, index)
             .replace(/^\s+/, "")
             .replace(/\s+$/, "");
     }
-
     function sliceHtml() {
         return template
             .slice(startIndex, index)
             .replace(/^\s+</, "<")
             .replace(/>\s+$/, ">");
     }
-
-    function parseOpenBlock(c: number) {
+    function parseOpenBlock(c) {
         if (c === OPEN_ANGLE && template.charCodeAt(index + 1) === OPEN_BRACE) {
             appendResult();
             index += 2;
             parseLogicBlock();
             return true;
-        } else if (c === EQUAL && template.charCodeAt(index + 1) === OPEN_BRACE) {
+        }
+        else if (c === EQUAL && template.charCodeAt(index + 1) === OPEN_BRACE) {
             appendResult();
             index += 2;
             parseOutputBlock();
             return true;
-        } else if (c === OPEN_ANGLE && template.charCodeAt(index + 1) === SEMICOLON && template.charCodeAt(index + 2) === CLOSE_ANGLE) {
+        }
+        else if (c === OPEN_ANGLE && template.charCodeAt(index + 1) === SEMICOLON && template.charCodeAt(index + 2) === CLOSE_ANGLE) {
             appendResult();
             index++;
             startIndex = index;
@@ -77,19 +70,16 @@ export function Nostache(template: string): (context?: unknown) => string {
         }
         return false;
     }
-
     function parseStart() {
         for (; index < length;) {
             const c = template.charCodeAt(index);
-            if (parseOpenBlock(c)) {
-                // no action
-            } else {
+            if (parseOpenBlock(c)) ;
+            else {
                 index++;
             }
         }
         appendResult();
     }
-
     function parseLogicBlock() {
         startIndex = index;
         let isPotentialHtml = true; // We can start html block right away
@@ -98,47 +88,51 @@ export function Nostache(template: string): (context?: unknown) => string {
             if (c === OPEN_BRACE) {
                 index++;
                 isPotentialHtml = true;
-            } else if (isPotentialHtml && isWhitespace[c]) {
+            }
+            else if (isPotentialHtml && isWhitespace[c]) {
                 index++;
-            } else if (isPotentialHtml && c === OPEN_ANGLE) {
+            }
+            else if (isPotentialHtml && c === OPEN_ANGLE) {
                 isPotentialHtml = false;
                 appendLogic();
                 parseHtmlBlock();
-            } else if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === CLOSE_ANGLE) {
+            }
+            else if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === CLOSE_ANGLE) {
                 appendLogic();
                 index += 2;
                 break;
-            } else {
+            }
+            else {
                 index++;
                 isPotentialHtml = false;
             }
         }
         startIndex = index;
     }
-
     function parseHtmlBlock() {
         startIndex = index;
         let isPotentialEnd = false;
         for (; index < length;) {
             const c = template.charCodeAt(index);
-            if (parseOpenBlock(c)) {
-                // no action
-            } else if (c === CLOSE_ANGLE) {
+            if (parseOpenBlock(c)) ;
+            else if (c === CLOSE_ANGLE) {
                 index++;
                 isPotentialEnd = true;
-            } else if (isPotentialEnd && isWhitespace[c]) {
+            }
+            else if (isPotentialEnd && isWhitespace[c]) {
                 index++;
-            } else if (isPotentialEnd && c === CLOSE_BRACE) {
+            }
+            else if (isPotentialEnd && c === CLOSE_BRACE) {
                 appendResult();
                 break;
-            } else {
+            }
+            else {
                 index++;
                 isPotentialEnd = false;
             }
         }
         startIndex = index;
     }
-
     function parseOutputBlock() {
         startIndex = index;
         let hasMeaningfulSymbol = false;
@@ -150,20 +144,20 @@ export function Nostache(template: string): (context?: unknown) => string {
                 }
                 index += 2;
                 break;
-            } else if (isWhitespace[c]) {
+            }
+            else if (isWhitespace[c]) {
                 index++;
-            } else {
+            }
+            else {
                 index++;
                 hasMeaningfulSymbol = true;
             }
         }
         startIndex = index;
     }
-
     parseStart();
     funcBody += `return ${result};`;
-
-    return (context?: unknown) => {
+    return (context) => {
         const argNames = [];
         const argValues = [];
         const baseObject = {};
@@ -171,15 +165,16 @@ export function Nostache(template: string): (context?: unknown) => string {
             for (const p in context) {
                 if (!(p in baseObject) && /^[_a-z]\w*$/i.test(p)) {
                     argNames.push(p);
-                    argValues.push((context as any)[p]);
+                    argValues.push(context[p]);
                 }
             }
         }
         try {
             return Function(...argNames, funcBody).apply(context, argValues);
-        } catch (error: any) {
+        }
+        catch (error) {
             error.message += `\nat function (${argNames.join(", ")}) {\n${funcBody}\n}`;
             throw error;
         }
     };
-}
+}exports.Nostache=Nostache;}));
