@@ -1,5 +1,7 @@
 const Nostache = require("../dist/nostache.js");
 
+Nostache.verbose = true;
+
 test("Simple text", () => {
     expect(Nostache("")()).toBe("");
     expect(Nostache("simple text")()).toBe("simple text");
@@ -58,9 +60,15 @@ test("Whitespace", () => {
     expect(Nostache(" <{ if (true) { <div> <{ if (true) { <p>simple text</p> }}> </div> }}> ")()).toBe(" <div> <p>simple text</p> </div> ");
 });
 
-test("Javascript strings escaped", () => {
+test("Escape", () => {
     expect(Nostache(`<p>"'\\"'\\<{ if (true) { <b>simple"'\\"'\\text</b> }}>\\'"\\'"</p>`)()).toBe(`<p>"'\\"'\\<b>simple"'\\"'\\text</b>\\'"\\'"</p>`);
     expect(Nostache(`\\'\\'''\\\\\\'aaa\\'\\''  '\\  \\  \\'`)()).toBe(`\\'\\'''\\\\\\'aaa\\'\\''  '\\  \\  \\'`);
+    expect(Nostache("<<{")()).toBe("<{");
+    expect(Nostache(" <<{ ")()).toBe(" <{ ");
+    expect(Nostache("test<<{test")()).toBe("test<{test");
+    expect(Nostache("<p><<{</p>")()).toBe("<p><{</p>");
+    expect(Nostache("<p> <<{ </p>")()).toBe("<p> <{ </p>");
+    expect(Nostache("test <<{ test")()).toBe("test <{ test");
 });
 
 test("Output expressions", () => {
@@ -107,6 +115,7 @@ test("Arguments", () => {
     expect(Nostache("<{if (true) {<p>={ A }></p>} }>")({A: 'bb'})).toBe("<p>bb</p>");
     expect(Nostache("<{if (true) {<p>={ _a }></p>} }>")({_a: 'bb'})).toBe("<p>bb</p>");
     expect(Nostache("={a}> ={b}>")({a: 'aa', b: 'bb'})).toBe("aa bb");
+    expect(Nostache("={a}> ={b.c}>")({a: 'aa', b: {c: 'bb'}})).toBe("aa bb");
     expect(() => Nostache("={ c }>")({a: 'aa', b: 'bb'})).toThrow(ReferenceError);
     expect(Nostache("={a}> ={b}>")(Object.create({a: 'aa', b: 'bb'}))).toBe("aa bb");
 });

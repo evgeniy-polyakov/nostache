@@ -19,14 +19,14 @@ function parseTemplate(template: string) {
     const OPEN_BRACE = charCode("{");
     const CLOSE_BRACE = charCode("}");
     const SEMICOLON = charCode(";");
-    const EQUAL = charCode("=");
+    const ASSIGN = charCode("=");
     const BACKSLASH = charCode("\\");
     const QUOTE = charCode("'");
 
     let index = 0;
     let startIndex = 0;
     const length = template.length;
-    const result = "__nostache__";
+    const result = Nostache.resultVariable;
     let funcBody = `let ${result}='';\n`;
 
     function appendResult(endIndex = index, extra = "") {
@@ -43,37 +43,25 @@ function parseTemplate(template: string) {
 
     function appendLogic() {
         if (index > startIndex) {
-            funcBody += `${template.slice(startIndex, index)}\n`;
+            funcBody += `${template.slice(startIndex, index)}`;
         }
-    }
-
-    function escapeJsString(c: number) {
-        if (c === BACKSLASH) {
-            appendResult(index, "\\\\");
-            index++;
-            startIndex = index;
-            return true;
-        } else if (c === QUOTE) {
-            appendResult(index, "\\'");
-            index++;
-            startIndex = index;
-            return true;
-        }
-        return false;
     }
 
     function parseOpenBlock(c: number) {
         if (c === OPEN_ANGLE && template.charCodeAt(index + 1) === OPEN_BRACE) {
+            // Logic block <{
             appendResult();
             index += 2;
             parseLogicBlock();
             return true;
-        } else if (c === EQUAL && template.charCodeAt(index + 1) === OPEN_BRACE) {
+        } else if (c === ASSIGN && template.charCodeAt(index + 1) === OPEN_BRACE) {
+            // Assignment block ={
             appendResult();
             index += 2;
             parseOutputBlock();
             return true;
         } else if (c === OPEN_ANGLE && template.charCodeAt(index + 1) === SEMICOLON && template.charCodeAt(index + 2) === CLOSE_ANGLE) {
+            // End of expression block <;>
             appendResult();
             index++;
             startIndex = index;
@@ -82,7 +70,24 @@ function parseTemplate(template: string) {
             index++;
             startIndex = index;
             return true;
-        } else if (escapeJsString(c)) {
+        } else if (c === BACKSLASH) {
+            // Escape backslash \
+            appendResult(index, "\\\\");
+            index++;
+            startIndex = index;
+            return true;
+        } else if (c === QUOTE) {
+            // Escape single quote '
+            appendResult(index, "\\'");
+            index++;
+            startIndex = index;
+            return true;
+        } else if ((c === OPEN_ANGLE || c === ASSIGN) && template.charCodeAt(index + 1) === c && template.charCodeAt(index + 2) === OPEN_BRACE) {
+            // Escape open block symbols <<{ =={
+            index++;
+            appendResult();
+            index++;
+            startIndex = index;
             return true;
         }
         return false;
@@ -172,7 +177,7 @@ function parseTemplate(template: string) {
     return funcBody;
 }
 
-export default function Nostache(template: string): (context?: unknown) => string {
+function Nostache(template: string): (context?: unknown) => string {
     const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
     return (context?: unknown) => {
         const argNames = [];
@@ -187,10 +192,25 @@ export default function Nostache(template: string): (context?: unknown) => strin
             }
         }
         try {
+            if (Nostache.verbose) {
+                console.log(`(function Nostache(${argNames.join(", ")}) {\n${funcBody}\n})(`,
+                    ...argValues.reduce((a, t) => {
+                        if (a.length > 0) a.push(",");
+                        a.push(typeof t === "string" ? `"${t}"` : t);
+                        return a;
+                    }, []), ")");
+            }
             return Function(...argNames, funcBody).apply(context, argValues);
         } catch (error: any) {
-            error.message += `\nat function (${argNames.join(", ")}) {\n${funcBody}\n}`;
+            error.message += `\nat (function (${argNames.join(", ")}) {\n${funcBody}\n})(${
+                argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(', ')
+            })`;
             throw error;
         }
     };
 }
+
+Nostache.verbose = false;
+Nostache.resultVariable = "_";
+
+export default Nostache;
