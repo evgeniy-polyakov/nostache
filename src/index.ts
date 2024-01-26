@@ -177,9 +177,10 @@ function parseTemplate(template: string) {
     return funcBody;
 }
 
-function Nostache(template: string): (context?: unknown) => string {
+function Nostache(template: string): (context?: unknown) => string & { verbose: boolean } {
     const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
-    return (context?: unknown) => {
+
+    function templateFunc(context?: unknown) {
         const argNames = [];
         const argValues = [];
         const baseObject = {};
@@ -192,7 +193,7 @@ function Nostache(template: string): (context?: unknown) => string {
             }
         }
         try {
-            if (Nostache.verbose) {
+            if (Nostache.verbose || templateFunc.verbose) {
                 console.log(`(function Nostache(${argNames.join(", ")}) {\n${funcBody}\n})(`,
                     ...argValues.reduce((a, t) => {
                         if (a.length > 0) a.push(",");
@@ -207,7 +208,11 @@ function Nostache(template: string): (context?: unknown) => string {
             })`;
             throw error;
         }
-    };
+    }
+
+    templateFunc.verbose = false;
+
+    return templateFunc;
 }
 
 Nostache.verbose = false;
