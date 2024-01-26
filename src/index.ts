@@ -204,7 +204,7 @@ function Nostache(template: string): (context?: unknown) => string & { verbose: 
             return Function(...argNames, funcBody).apply(context, argValues);
         } catch (error: any) {
             error.message += `\nat (function (${argNames.join(", ")}) {\n${funcBody}\n})(${
-                argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(', ')
+                argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")
             })`;
             throw error;
         }
