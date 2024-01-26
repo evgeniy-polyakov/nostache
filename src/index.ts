@@ -47,7 +47,7 @@ function parseTemplate(template: string) {
         }
     }
 
-    function escapeChar(c: number) {
+    function escapeJsString(c: number) {
         if (c === BACKSLASH) {
             appendResult(index, "\\\\");
             index++;
@@ -82,7 +82,7 @@ function parseTemplate(template: string) {
             index++;
             startIndex = index;
             return true;
-        } else if (escapeChar(c)) {
+        } else if (escapeJsString(c)) {
             return true;
         }
         return false;
@@ -129,8 +129,6 @@ function parseTemplate(template: string) {
             } else if (potentialEnd && c === CLOSE_BRACE) {
                 appendResult(potentialEnd);
                 break;
-            } else if (escapeChar(c)) {
-                // continue
             } else {
                 index++;
                 potentialEnd = -1;
