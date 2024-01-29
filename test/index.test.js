@@ -74,6 +74,24 @@ test("Escape", () => {
     expect(Nostache("<p><<{</p>")()).toBe("<p><{</p>");
     expect(Nostache("<p> <<{ </p>")()).toBe("<p> <{ </p>");
     expect(Nostache("test <<{ test")()).toBe("test <{ test");
+    expect(Nostache("=={")()).toBe("={");
+    expect(Nostache(" =={ ")()).toBe(" ={ ");
+    expect(Nostache("test=={test")()).toBe("test={test");
+    expect(Nostache("<p>=={</p>")()).toBe("<p>={</p>");
+    expect(Nostache("<p> =={ </p>")()).toBe("<p> ={ </p>");
+    expect(Nostache("test =={ test")()).toBe("test ={ test");
+    expect(Nostache("<<{}>")()).toBe("<{}>");
+    expect(Nostache(" <<{ }>")()).toBe(" <{ }>");
+    expect(Nostache("test<<{test}>")()).toBe("test<{test}>");
+    expect(Nostache("<p><<{</p>}>")()).toBe("<p><{</p>}>");
+    expect(Nostache("<p> <<{ </p>}>")()).toBe("<p> <{ </p>}>");
+    expect(Nostache("test <<{ test}>")()).toBe("test <{ test}>");
+    expect(Nostache("=={}>")()).toBe("={}>");
+    expect(Nostache(" =={ }>")()).toBe(" ={ }>");
+    expect(Nostache("test=={test}>")()).toBe("test={test}>");
+    expect(Nostache("<p>=={</p>}>")()).toBe("<p>={</p>}>");
+    expect(Nostache("<p> =={ </p>}>")()).toBe("<p> ={ </p>}>");
+    expect(Nostache("test =={ test}>")()).toBe("test ={ test}>");
 });
 
 test("Output expressions", () => {
