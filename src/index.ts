@@ -22,6 +22,8 @@ function parseTemplate(template: string) {
     const ASSIGN = charCode("=");
     const BACKSLASH = charCode("\\");
     const QUOTE = charCode("'");
+    const NEWLINE = charCode("\n");
+    const CARRIAGE_RETURN = charCode("\r");
 
     let index = 0;
     let startIndex = 0;
@@ -68,6 +70,16 @@ function parseTemplate(template: string) {
             index++;
             appendLogic();
             index++;
+            startIndex = index;
+            return true;
+        } else if (c === NEWLINE) {
+            appendResult(index, "\\n");
+            index++;
+            startIndex = index;
+            return true;
+        } else if (c === CARRIAGE_RETURN && template.charCodeAt(index + 1) === NEWLINE) {
+            appendResult(index, "\\n");
+            index += 2;
             startIndex = index;
             return true;
         } else if (c === BACKSLASH) {
@@ -124,16 +136,16 @@ function parseTemplate(template: string) {
         let potentialEnd = -1;
         for (; index < length;) {
             const c = template.charCodeAt(index);
-            if (parseOpenBlock(c)) {
-                // continue
-            } else if (c === CLOSE_ANGLE) {
+            if (c === CLOSE_ANGLE) {
                 index++;
                 potentialEnd = index;
             } else if (potentialEnd >= 0 && isWhitespace[c]) {
                 index++;
-            } else if (potentialEnd && c === CLOSE_BRACE) {
+            } else if (potentialEnd >= 0 && c === CLOSE_BRACE) {
                 appendResult(potentialEnd);
                 break;
+            } else if (parseOpenBlock(c)) {
+                // continue
             } else {
                 index++;
                 potentialEnd = -1;

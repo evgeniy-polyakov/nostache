@@ -5,6 +5,11 @@ Nostache.verbose = true;
 test("Simple text", () => {
     expect(Nostache("")()).toBe("");
     expect(Nostache("simple text")()).toBe("simple text");
+    expect(Nostache("first line\nsecond line\nthird line")()).toBe("first line\nsecond line\nthird line");
+    expect(Nostache("first line\r\nsecond line\r\nthird line")()).toBe("first line\nsecond line\nthird line");
+    expect(Nostache(`first line
+second line
+third line`)()).toBe("first line\nsecond line\nthird line");
 });
 
 test("HTML Tags", () => {
