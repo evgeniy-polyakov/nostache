@@ -140,5 +140,10 @@ test("Arguments", () => {
     expect(Nostache("={a}> ={b}>")({a: 'aa', b: 'bb'})).toBe("aa bb");
     expect(Nostache("={a}> ={b.c}>")({a: 'aa', b: {c: 'bb'}})).toBe("aa bb");
     expect(() => Nostache("={ c }>")({a: 'aa', b: 'bb'})).toThrow(ReferenceError);
+    expect(() => {
+        const t = Nostache("={ a }>");
+        t.contextDecomposition = false;
+        t({a: "aa"})
+    }).toThrow(ReferenceError);
     expect(Nostache("={a}> ={b}>")(Object.create({a: 'aa', b: 'bb'}))).toBe("aa bb");
 });

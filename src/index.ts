@@ -189,14 +189,17 @@ function parseTemplate(template: string) {
     return funcBody;
 }
 
-function Nostache(template: string): (context?: unknown) => string & { verbose: boolean } {
+function Nostache(template: string): (context?: unknown) => string & {
+    verbose: boolean,
+    contextDecomposition: boolean,
+} {
     const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
 
     function templateFunc(context?: unknown) {
         const argNames = [];
         const argValues = [];
         const baseObject = {};
-        if (context && typeof context === "object") {
+        if (templateFunc.contextDecomposition && context && typeof context === "object" && !Array.isArray(context)) {
             for (const p in context) {
                 if (!(p in baseObject) && /^[_a-z]\w*$/i.test(p)) {
                     argNames.push(p);
@@ -205,7 +208,7 @@ function Nostache(template: string): (context?: unknown) => string & { verbose: 
             }
         }
         try {
-            if (Nostache.verbose || templateFunc.verbose) {
+            if (templateFunc.verbose) {
                 console.log(`(function Nostache(${argNames.join(", ")}) {\n${funcBody}\n})(`,
                     ...argValues.reduce((a, t) => {
                         if (a.length > 0) a.push(",");
@@ -222,12 +225,14 @@ function Nostache(template: string): (context?: unknown) => string & { verbose: 
         }
     }
 
-    templateFunc.verbose = false;
+    templateFunc.verbose = Nostache.verbose;
+    templateFunc.contextDecomposition = Nostache.contextDecomposition;
 
     return templateFunc;
 }
 
 Nostache.verbose = false;
 Nostache.resultVariable = "_";
+Nostache.contextDecomposition = true;
 
 export default Nostache;

@@ -196,7 +196,7 @@ function Nostache(template) {
         const argNames = [];
         const argValues = [];
         const baseObject = {};
-        if (context && typeof context === "object") {
+        if (templateFunc.contextDecomposition && context && typeof context === "object" && !Array.isArray(context)) {
             for (const p in context) {
                 if (!(p in baseObject) && /^[_a-z]\w*$/i.test(p)) {
                     argNames.push(p);
@@ -205,7 +205,7 @@ function Nostache(template) {
             }
         }
         try {
-            if (Nostache.verbose || templateFunc.verbose) {
+            if (templateFunc.verbose) {
                 console.log(`(function Nostache(${argNames.join(", ")}) {\n${funcBody}\n})(`, ...argValues.reduce((a, t) => {
                     if (a.length > 0)
                         a.push(",");
@@ -220,8 +220,10 @@ function Nostache(template) {
             throw error;
         }
     }
-    templateFunc.verbose = false;
+    templateFunc.verbose = Nostache.verbose;
+    templateFunc.contextDecomposition = Nostache.contextDecomposition;
     return templateFunc;
 }
 Nostache.verbose = false;
-Nostache.resultVariable = "_";export{Nostache as default};//# sourceMappingURL=index.js.map
+Nostache.resultVariable = "_";
+Nostache.contextDecomposition = true;export{Nostache as default};//# sourceMappingURL=index.js.map
