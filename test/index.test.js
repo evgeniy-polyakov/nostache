@@ -156,6 +156,19 @@ test("Arguments", () => {
 
 test("Arguments Mutation", () => {
     expect(Nostache("={ a++ }><p>={ a }></p>")({a: 0})).toBe("0<p>1</p>");
+    expect(Nostache("={ ++a }><p>={ a }></p>")({a: 0})).toBe("1<p>1</p>");
     expect(Nostache("={ a = 'bb'; }><p>={ a }></p>")({a: 'aa'})).toBe("bb<p>bb</p>");
     expect(Nostache("={ a }><{ a = 'bb'; }><p>={ a }></p>")({a: 'aa'})).toBe("aa<p>bb</p>");
+    expect(Nostache("={ this.a++ }><p>={ this.a }></p>")({a: 0})).toBe("0<p>1</p>");
+    expect(Nostache("={ ++this.a }><p>={ this.a }></p>")({a: 0})).toBe("1<p>1</p>");
+    expect(Nostache("={ this.a = 'bb'; }><p>={ this.a }></p>")({a: 'aa'})).toBe("bb<p>bb</p>");
+    expect(Nostache("={ this.a }><{ this.a = 'bb'; }><p>={ this.a }></p>")({a: 'aa'})).toBe("aa<p>bb</p>");
+    expect(Nostache("={ this.a++ }><p>={ a }></p>")({a: 0})).toBe("0<p>0</p>");
+    expect(Nostache("={ ++this.a }><p>={ a }></p>")({a: 0})).toBe("1<p>0</p>");
+    expect(Nostache("={ this.a = 'bb'; }><p>={ a }></p>")({a: 'aa'})).toBe("bb<p>aa</p>");
+    expect(Nostache("={ this.a }><{ this.a = 'bb'; }><p>={ a }></p>")({a: 'aa'})).toBe("aa<p>aa</p>");
+    expect(Nostache("={ a++ }><p>={ this.a }></p>")({a: 0})).toBe("0<p>0</p>");
+    expect(Nostache("={ ++a }><p>={ this.a }></p>")({a: 0})).toBe("1<p>0</p>");
+    expect(Nostache("={ a = 'bb'; }><p>={ this.a }></p>")({a: 'aa'})).toBe("bb<p>aa</p>");
+    expect(Nostache("={ a }><{ a = 'bb'; }><p>={ this.a }></p>")({a: 'aa'})).toBe("aa<p>aa</p>");
 });
