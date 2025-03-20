@@ -26,14 +26,14 @@
   "types": "dist/index.d.ts",
   "main": "dist/nostache.js",
   "devDependencies": {
-    "typescript": "^5.3.3",
-    "tslib": "^2.6.2",
-    "rollup": "^4.9.6",
+    "typescript": "^5.8.2",
+    "tslib": "^2.8.1",
+    "rollup": "^4.36.0",
     "@rollup/plugin-terser": "^0.4.4",
-    "@rollup/plugin-typescript": "^11.1.6",
-    "@typescript-eslint/eslint-plugin": "^6.19.1",
-    "@typescript-eslint/parser": "^6.19.1",
-    "eslint": "^8.56.0",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "@typescript-eslint/eslint-plugin": "^8.27.0",
+    "@typescript-eslint/parser": "^8.27.0",
+    "eslint": "^8.57.1",
     "jest": "^29.7.0"
   },
   "scripts": {
