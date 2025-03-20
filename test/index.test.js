@@ -153,3 +153,9 @@ test("Arguments", () => {
     }).toThrow(ReferenceError);
     expect(Nostache("={a}> ={b}>")(Object.create({a: 'aa', b: 'bb'}))).toBe("aa bb");
 });
+
+test("Arguments Mutation", () => {
+    expect(Nostache("={ a++ }><p>={ a }></p>")({a: 0})).toBe("0<p>1</p>");
+    expect(Nostache("={ a = 'bb'; }><p>={ a }></p>")({a: 'aa'})).toBe("bb<p>bb</p>");
+    expect(Nostache("={ a }><{ a = 'bb'; }><p>={ a }></p>")({a: 'aa'})).toBe("aa<p>bb</p>");
+});
