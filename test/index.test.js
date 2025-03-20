@@ -69,12 +69,14 @@ test("Escape", () => {
     expect(Nostache(`<p>"'\\"'\\<{ if (true) { <b>simple"'\\"'\\text</b> }}>\\'"\\'"</p>`)()).toBe(`<p>"'\\"'\\<b>simple"'\\"'\\text</b>\\'"\\'"</p>`);
     expect(Nostache(`\\'\\'''\\\\\\'aaa\\'\\''  '\\  \\  \\'`)()).toBe(`\\'\\'''\\\\\\'aaa\\'\\''  '\\  \\  \\'`);
     expect(Nostache("<<{")()).toBe("<{");
+    expect(Nostache("<<<{")()).toBe("<<{");
     expect(Nostache(" <<{ ")()).toBe(" <{ ");
     expect(Nostache("test<<{test")()).toBe("test<{test");
     expect(Nostache("<p><<{</p>")()).toBe("<p><{</p>");
     expect(Nostache("<p> <<{ </p>")()).toBe("<p> <{ </p>");
     expect(Nostache("test <<{ test")()).toBe("test <{ test");
     expect(Nostache("=={")()).toBe("={");
+    expect(Nostache("==={")()).toBe("=={");
     expect(Nostache(" =={ ")()).toBe(" ={ ");
     expect(Nostache("test=={test")()).toBe("test={test");
     expect(Nostache("<p>=={</p>")()).toBe("<p>={</p>");
