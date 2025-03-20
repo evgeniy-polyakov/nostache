@@ -139,6 +139,10 @@ test("Arguments", () => {
     expect(Nostache("<{if (true) {<p>={ a }></p>} }>")({a: 'bb'})).toBe("<p>bb</p>");
     expect(Nostache("<{if (true) {<p>={ A }></p>} }>")({A: 'bb'})).toBe("<p>bb</p>");
     expect(Nostache("<{if (true) {<p>={ _a }></p>} }>")({_a: 'bb'})).toBe("<p>bb</p>");
+    expect(Nostache("<{if (a) {<p>={ b }></p>} }>")({a: true, b: 'bb'})).toBe("<p>bb</p>");
+    expect(Nostache("<{if (!a) {<p>={ b }></p>} }>")({a: false, b: 'bb'})).toBe("<p>bb</p>");
+    expect(Nostache("<{if (!a) {<p>={ b }></p>} }>")({a: true, b: 'bb'})).toBe("");
+    expect(Nostache("<{if (a) {<p>={ b }></p>} }>")({a: false, b: 'bb'})).toBe("");
     expect(Nostache("={a}> ={b}>")({a: 'aa', b: 'bb'})).toBe("aa bb");
     expect(Nostache("={a}> ={b.c}>")({a: 'aa', b: {c: 'bb'}})).toBe("aa bb");
     expect(() => Nostache("={ c }>")({a: 'aa', b: 'bb'})).toThrow(ReferenceError);
