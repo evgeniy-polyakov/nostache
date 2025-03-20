@@ -44,6 +44,7 @@ test("HTML in logic block", () => {
 test("Mixed blocks", () => {
     expect(Nostache("<p><{ if (true) { <b>simple text</b> }}></p>")()).toBe("<p><b>simple text</b></p>");
     expect(Nostache("<p><{ if (true) }>simple text<;></p>")()).toBe("<p>simple text</p>");
+    expect(Nostache("<p><{ if (true) {}>simple text<{}}></p>")()).toBe("<p>simple text</p>");
     expect(Nostache("one<{ if (true) }>simple text<;>two")()).toBe("onesimple texttwo");
     expect(Nostache("one<{ if (true) }> simple text <;>two")()).toBe("one simple text two");
 });

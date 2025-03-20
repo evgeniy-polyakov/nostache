@@ -1,5 +1,7 @@
 const templateCache: Record<string, string> = {};
 
+// todo escape html
+// todo async templates
 function parseTemplate(template: string) {
 
     function charCode(char: string) {
