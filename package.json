@@ -22,8 +22,8 @@
   ],
   "type": "module",
   "source": "src/index.ts",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "module": "dist/nostache.mjs",
+  "types": "dist/nostache.d.ts",
   "main": "dist/nostache.js",
   "devDependencies": {
     "typescript": "^5.8.2",

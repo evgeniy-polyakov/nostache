@@ -223,4 +223,4 @@ function Nostache(template) {
     return templateFunc;
 }
 Nostache.verbose = false;
-Nostache.contextDecomposition = true;export{Nostache as default};//# sourceMappingURL=index.js.map
+Nostache.contextDecomposition = true;export{Nostache as default};//# sourceMappingURL=nostache.mjs.map
