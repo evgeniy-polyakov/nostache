@@ -4,7 +4,6 @@ declare function Nostache(template: string): (context?: unknown) => string & {
 };
 declare namespace Nostache {
     var verbose: boolean;
-    var resultVariable: string;
     var contextDecomposition: boolean;
 }
 export default Nostache;

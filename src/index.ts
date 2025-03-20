@@ -28,18 +28,17 @@ function parseTemplate(template: string) {
     let index = 0;
     let startIndex = 0;
     const length = template.length;
-    const result = Nostache.resultVariable;
-    let funcBody = `let ${result}='';\n`;
+    let funcBody = "";
 
     function appendResult(endIndex = index, extra = "") {
         if (endIndex > startIndex || extra) {
-            funcBody += `${result}+='${template.slice(startIndex, endIndex)}${extra}';\n`;
+            funcBody += `yield '${template.slice(startIndex, endIndex)}${extra}';\n`;
         }
     }
 
     function appendOutput() {
         if (index > startIndex) {
-            funcBody += `${result}+=${template.slice(startIndex, index)};\n`;
+            funcBody += `yield ${template.slice(startIndex, index)};\n`;
         }
     }
 
@@ -184,9 +183,8 @@ function parseTemplate(template: string) {
         }
     }
     appendResult();
-    funcBody += `return ${result};`;
 
-    return funcBody;
+    return `return[...(function*(){\n${funcBody}}).call(this)].join("")`;
 }
 
 function Nostache(template: string): (context?: unknown) => string & {
@@ -232,7 +230,6 @@ function Nostache(template: string): (context?: unknown) => string & {
 }
 
 Nostache.verbose = false;
-Nostache.resultVariable = "_";
 Nostache.contextDecomposition = true;
 
 export default Nostache;
