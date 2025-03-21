@@ -1,4 +1,6 @@
 (function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const templateCache = {};
+// todo escape html
+// todo async templates
 function parseTemplate(template) {
     function charCode(char) {
         if (char.length > 1) {
@@ -185,7 +187,7 @@ function parseTemplate(template) {
         }
     }
     appendResult();
-    return `return[...(function*(){\n${funcBody}}).call(this)].join("")`;
+    return `return new Promise(() => [...(function*(){\n${funcBody}}).call(this)].join(""))`;
 }
 function Nostache(template) {
     var _a;
@@ -193,10 +195,9 @@ function Nostache(template) {
     function templateFunc(context) {
         const argNames = [];
         const argValues = [];
-        const baseObject = {};
         if (templateFunc.contextDecomposition && context && typeof context === "object" && !Array.isArray(context)) {
             for (const p in context) {
-                if (!(p in baseObject) && /^[_a-z]\w*$/i.test(p)) {
+                if (/^[_a-z]\w*$/i.test(p)) {
                     argNames.push(p);
                     argValues.push(context[p]);
                 }

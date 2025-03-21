@@ -186,7 +186,7 @@ function parseTemplate(template: string) {
     }
     appendResult();
 
-    return `return[...(function*(){\n${funcBody}}).call(this)].join("")`;
+    return `return new Promise(() => [...(function*(){\n${funcBody}}).call(this)].join(""))`;
 }
 
 function Nostache(template: string): (context?: unknown) => string & {
