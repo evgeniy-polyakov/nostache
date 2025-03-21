@@ -198,10 +198,9 @@ function Nostache(template: string): (context?: unknown) => string & {
     function templateFunc(context?: unknown) {
         const argNames = [];
         const argValues = [];
-        const baseObject = {};
         if (templateFunc.contextDecomposition && context && typeof context === "object" && !Array.isArray(context)) {
             for (const p in context) {
-                if (!(p in baseObject) && /^[_a-z]\w*$/i.test(p)) {
+                if (/^[_a-z]\w*$/i.test(p)) {
                     argNames.push(p);
                     argValues.push((context as any)[p]);
                 }
