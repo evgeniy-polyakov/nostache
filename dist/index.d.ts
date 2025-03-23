@@ -1,4 +1,4 @@
-declare function Nostache(template: string): (context?: unknown) => string & {
+declare function Nostache(template: string): ((context?: unknown) => Promise<string>) & {
     verbose: boolean;
     contextDecomposition: boolean;
 };

@@ -1,7 +1,6 @@
 const templateCache: Record<string, string> = {};
 
 // todo escape html
-// todo async templates
 function parseTemplate(template: string) {
 
     function charCode(char: string) {
@@ -185,17 +184,16 @@ function parseTemplate(template: string) {
         }
     }
     appendResult();
-
-    return `return new Promise(() => [...(function*(){\n${funcBody}}).call(this)].join(""))`;
+    return `return(async function*(){\n${funcBody}}).call(this)`;
 }
 
-function Nostache(template: string): (context?: unknown) => string & {
+function Nostache(template: string): ((context?: unknown) => Promise<string>) & {
     verbose: boolean,
     contextDecomposition: boolean,
 } {
     const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
 
-    function templateFunc(context?: unknown) {
+    async function templateFunc(context?: unknown) {
         const argNames = [];
         const argValues = [];
         if (templateFunc.contextDecomposition && context && typeof context === "object" && !Array.isArray(context)) {
@@ -215,9 +213,19 @@ function Nostache(template: string): (context?: unknown) => string & {
                         return a;
                     }, []), ")");
             }
-            return Function(...argNames, funcBody).apply(context, argValues);
+            const asyncGenerator: AsyncGenerator<string> = Function(...argNames, funcBody).apply(context, argValues);
+            let result = "";
+            while (true) {
+                const chunk = await asyncGenerator.next();
+                if (chunk.done) {
+                    break;
+                } else {
+                    result += chunk.value;
+                }
+            }
+            return result;
         } catch (error: any) {
-            error.message += `\nat (function (${argNames.join(", ")}) {\n${funcBody}\n})(${
+            error.message += `\nat (function* (${argNames.join(", ")}) {\n${funcBody}\n})(${
                 argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")
             })`;
             throw error;
