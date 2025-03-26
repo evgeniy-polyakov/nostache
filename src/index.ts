@@ -1,6 +1,8 @@
 const templateCache: Record<string, string> = {};
 
-// todo escape html
+// todo escape html in ={}= blocks
+// todo ~{}~ for unescaped html
+// todo don't process }> in strings
 function parseTemplate(template: string) {
 
     function charCode(char: string) {
