@@ -1,5 +1,6 @@
 const templateCache: Record<string, string> = {};
 
+// todo change ={}> to ={}=
 // todo escape html in ={}= blocks
 // todo ~{}~ for unescaped html
 // todo don't process }> in strings
