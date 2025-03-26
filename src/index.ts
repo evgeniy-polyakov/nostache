@@ -206,7 +206,7 @@ function Nostache(template: string): ((context?: unknown) => Promise<string>) & 
         }
         try {
             if (templateFunc.verbose) {
-                console.log(`(function Nostache(${argNames.join(", ")}) {\n${funcBody}\n})(`,
+                console.log(`function (${argNames.join(", ")}) {\n${funcBody}\n})(`,
                     ...argValues.reduce((a, t) => {
                         if (a.length > 0) a.push(",");
                         a.push(typeof t === "string" ? `"${t}"` : t);
@@ -225,7 +225,7 @@ function Nostache(template: string): ((context?: unknown) => Promise<string>) & 
             }
             return result;
         } catch (error: any) {
-            error.message += `\nat (function* (${argNames.join(", ")}) {\n${funcBody}\n})(${
+            error.message += `\nat function (${argNames.join(", ")}) {\n${funcBody}\n})(${
                 argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")
             })`;
             throw error;
