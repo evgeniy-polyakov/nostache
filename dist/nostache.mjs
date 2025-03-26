@@ -29,7 +29,10 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
     var e = new Error(message);
     return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
 };const templateCache = {};
-// todo escape html
+// todo change ={}> to ={}=
+// todo escape html in ={}= blocks
+// todo ~{}~ for unescaped html
+// todo don't process }> in strings
 function parseTemplate(template) {
     function charCode(char) {
         if (char.length > 1) {
@@ -235,7 +238,7 @@ function Nostache(template) {
             }
             try {
                 if (templateFunc.verbose) {
-                    console.log(`(function Nostache(${argNames.join(", ")}) {\n${funcBody}\n})(`, ...argValues.reduce((a, t) => {
+                    console.log(`function (${argNames.join(", ")}) {\n${funcBody}\n})(`, ...argValues.reduce((a, t) => {
                         if (a.length > 0)
                             a.push(",");
                         a.push(typeof t === "string" ? `"${t}"` : t);
@@ -256,7 +259,7 @@ function Nostache(template) {
                 return result;
             }
             catch (error) {
-                error.message += `\nat (function* (${argNames.join(", ")}) {\n${funcBody}\n})(${argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;
+                error.message += `\nat function (${argNames.join(", ")}) {\n${funcBody}\n})(${argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;
                 throw error;
             }
         });

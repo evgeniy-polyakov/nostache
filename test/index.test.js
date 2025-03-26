@@ -173,3 +173,17 @@ test("Arguments Mutation", async () => {
     expect(await Nostache("={ a = 'bb'; }><p>={ this.a }></p>")({a: 'aa'})).toBe("bb<p>aa</p>");
     expect(await Nostache("={ a }><{ a = 'bb'; }><p>={ this.a }></p>")({a: 'aa'})).toBe("aa<p>aa</p>");
 });
+
+test("Promises", async () => {
+    expect(await Nostache("={new Promise(r => setTimeout(() => r(1), 10))}>")()).toBe("1");
+    expect(await Nostache("={new Promise(r => setTimeout(() => r(1), 10))}> ={new Promise(r => setTimeout(() => r(2), 20))}>")()).toBe("1 2");
+    expect(await Nostache("={new Promise(r => setTimeout(() => r(1), 20))}> ={new Promise(r => setTimeout(() => r(2), 10))}>")()).toBe("1 2");
+    expect(await Nostache("={new Promise(r => setTimeout(() => r(1), 20))}> ={new Promise(r => setTimeout(() => r(2), 10))}>")()).toBe("1 2");
+    expect(await Nostache("={await new Promise(r => setTimeout(() => r(1), 10))}>")()).toBe("1");
+    expect(await Nostache("={await new Promise(r => setTimeout(() => r(1), 10))}> ={await new Promise(r => setTimeout(() => r(2), 20))}>")()).toBe("1 2");
+    expect(await Nostache("={await new Promise(r => setTimeout(() => r(1), 20))}> ={await new Promise(r => setTimeout(() => r(2), 10))}>")()).toBe("1 2");
+    expect(await Nostache("={await new Promise(r => setTimeout(() => r(1), 20))}> ={await new Promise(r => setTimeout(() => r(2), 10))}>")()).toBe("1 2");
+    expect(await Nostache("<{let a = 1;}>={new Promise(r => setTimeout(() => r(a), 10))}><{a++;}> ={new Promise(r => setTimeout(() => r(a), 10))}>")()).toBe("1 2");
+    expect(await Nostache("<{let a = 1;}>={await new Promise(r => setTimeout(() => r(a), 10))}><{a++;}> ={await new Promise(r => setTimeout(() => r(a), 10))}>")()).toBe("1 2");
+    expect(await Nostache("<{let a = 1; const p = new Promise(r => setTimeout(() => r(a), 10));}>={p}><{a++;}> ={p}>")()).toBe("1 1");
+});
