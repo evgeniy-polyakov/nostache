@@ -1,10 +1,9 @@
 const templateCache: Record<string, string> = {};
 
 // todo test for js in html
-// todo change ={}> to ={}=
 // todo escape html in ={}= blocks
 // todo ~{}~ for unescaped html
-// todo don't process }> in strings
+// todo don't process }> }= in strings
 function parseTemplate(template: string) {
 
     function charCode(char: string) {
@@ -163,7 +162,7 @@ function parseTemplate(template: string) {
         let hasMeaningfulSymbol = false;
         for (; index < length;) {
             const c = template.charCodeAt(index);
-            if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === CLOSE_ANGLE) {
+            if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === ASSIGN) {
                 if (hasMeaningfulSymbol) {
                     appendOutput();
                 }

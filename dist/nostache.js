@@ -29,10 +29,10 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
     var e = new Error(message);
     return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
 };const templateCache = {};
-// todo change ={}> to ={}=
+// todo test for js in html
 // todo escape html in ={}= blocks
 // todo ~{}~ for unescaped html
-// todo don't process }> in strings
+// todo don't process }> }= in strings
 function parseTemplate(template) {
     function charCode(char) {
         if (char.length > 1) {
@@ -194,7 +194,7 @@ function parseTemplate(template) {
         let hasMeaningfulSymbol = false;
         for (; index < length;) {
             const c = template.charCodeAt(index);
-            if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === CLOSE_ANGLE) {
+            if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === ASSIGN) {
                 if (hasMeaningfulSymbol) {
                     appendOutput();
                 }
