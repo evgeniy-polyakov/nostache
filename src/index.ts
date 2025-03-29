@@ -3,7 +3,8 @@ const templateCache: Record<string, string> = {};
 // todo test for js in html
 // todo escape html in ={}= blocks
 // todo ~{}~ for unescaped html
-// todo don't process }> }= in strings
+// todo don't process }> }= in strings "" '' ``
+// todo table of control characters in readme.md
 function parseTemplate(template: string) {
 
     function charCode(char: string) {
