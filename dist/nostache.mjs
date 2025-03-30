@@ -32,7 +32,8 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
 // todo test for js in html
 // todo escape html in ={}= blocks
 // todo ~{}~ for unescaped html
-// todo don't process }> }= in strings
+// todo don't process }> }= in strings "" '' ``
+// todo table of control characters in readme.md
 function parseTemplate(template) {
     function charCode(char) {
         if (char.length > 1) {
