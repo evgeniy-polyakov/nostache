@@ -25,7 +25,6 @@ function parseTemplate(template: string) {
     const CLOSE_ANGLE = charCode(">");
     const OPEN_BRACE = charCode("{");
     const CLOSE_BRACE = charCode("}");
-    const SEMICOLON = charCode(";");
     const ASSIGN = charCode("=");
     const BACKSLASH = charCode("\\");
     const BACKTICK = charCode("`");
@@ -65,16 +64,6 @@ function parseTemplate(template: string) {
             appendResult();
             index += 2;
             parseOutputBlock();
-            return true;
-        } else if (c === OPEN_ANGLE && template.charCodeAt(index + 1) === SEMICOLON && template.charCodeAt(index + 2) === CLOSE_ANGLE) {
-            // End of expression block <;>
-            appendResult();
-            index++;
-            startIndex = index;
-            index++;
-            appendLogic();
-            index++;
-            startIndex = index;
             return true;
         } else if (c === BACKSLASH) {
             // Escape backslash \

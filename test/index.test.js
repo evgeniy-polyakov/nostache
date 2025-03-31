@@ -28,7 +28,11 @@ test("HTML in logic block", async () => {
     <p>simple text</p>
     } }>`)()).toBe("<p>simple text</p>");
     expect(await Nostache("<{ if (true) {<p><b>simple</b> text</p>} }>")()).toBe("<p><b>simple</b> text</p>");
-    expect(await Nostache("<{ if (true) }><p>simple text</p><;>")()).toBe("<p>simple text</p>");
+    expect(await Nostache("<{ if (true) }><p>simple text</p>")()).toBe("<p>simple text</p>");
+    expect(await Nostache("<{ if (false) }>false<{}><p>simple text</p>")()).toBe("<p>simple text</p>");
+    expect(await Nostache("<{ if (true) }>true<{}><p>simple text</p>")()).toBe("true<p>simple text</p>");
+    expect(await Nostache("<{ if (true) }>true<p>simple text</p>")()).toBe("true<p>simple text</p>");
+    expect(await Nostache("<{ if (false) }>false<p>simple text</p>")()).toBe("");
     expect(await Nostache("<{ if (false) {<p>error</p>} else {<p>simple text</p>} }>")()).toBe("<p>simple text</p>");
     expect(await Nostache(`<{ if (false) {
     <p>error</p>
@@ -43,24 +47,24 @@ test("HTML in logic block", async () => {
 
 test("Mixed blocks", async () => {
     expect(await Nostache("<p><{ if (true) { <b>simple text</b> }}></p>")()).toBe("<p><b>simple text</b></p>");
-    expect(await Nostache("<p><{ if (true) }>simple text<;></p>")()).toBe("<p>simple text</p>");
+    expect(await Nostache("<p><{ if (true) }>simple text<{}></p>")()).toBe("<p>simple text</p>");
     expect(await Nostache("<p><{ if (true) {}>simple text<{}}></p>")()).toBe("<p>simple text</p>");
-    expect(await Nostache("one<{ if (true) }>simple text<;>two")()).toBe("onesimple texttwo");
-    expect(await Nostache("one<{ if (true) }> simple text <;>two")()).toBe("one simple text two");
+    expect(await Nostache("one<{ if (true) }>simple text<{}>two")()).toBe("onesimple texttwo");
+    expect(await Nostache("one<{ if (true) }> simple text <{}>two")()).toBe("one simple text two");
 });
 
 test("Nested blocks", async () => {
     expect(await Nostache("<{ if (true) { <p><{ if (true) { <b>simple text</b> }}></p> }}>")()).toBe("<p><b>simple text</b></p>");
     expect(await Nostache("<{ if (true) { <p><{ if (true) { <b><{ if (true) {<i>simple</i>}}> text</b> }}></p> }}>")()).toBe("<p><b><i>simple</i> text</b></p>");
     expect(await Nostache("<{ if (true) { <p><{ if (true) { <b><{ if (true) {<i>simple</i>}}> text</b> }}></p> }}>")()).toBe("<p><b><i>simple</i> text</b></p>");
-    expect(await Nostache("<{ if (true) { <p><{ if (true) { <b><{ if (true) }><i>simple</i><;> text</b> }}></p> }}>")()).toBe("<p><b><i>simple</i> text</b></p>");
+    expect(await Nostache("<{ if (true) { <p><{ if (true) { <b><{ if (true) }><i>simple</i><{}> text</b> }}></p> }}>")()).toBe("<p><b><i>simple</i> text</b></p>");
 });
 
 test("Whitespace", async () => {
     expect(await Nostache(" <{ }> ")()).toBe("  ");
     expect(await Nostache(" <{ <p>simple text</p> }> ")()).toBe(" <p>simple text</p> ");
     expect(await Nostache(" <{ if (true) { <p>simple text</p> } }> ")()).toBe(" <p>simple text</p> ");
-    expect(await Nostache(" <{ if (true) }> <p>simple text</p> <;> ")()).toBe("  <p>simple text</p>  ");
+    expect(await Nostache(" <{ if (true) }> <p>simple text</p> <{}> ")()).toBe("  <p>simple text</p>  ");
     expect(await Nostache("<div> <{ if (true) { <p>simple text</p> } }> </div>")()).toBe("<div> <p>simple text</p> </div>");
     expect(await Nostache(" <div> <{ if (true) { <p>simple text</p> } }> </div> ")()).toBe(" <div> <p>simple text</p> </div> ");
     expect(await Nostache(" <{ if (true) { <div> <{ if (true) { <p>simple text</p> }}> </div> }}> ")()).toBe(" <div> <p>simple text</p> </div> ");
@@ -71,7 +75,6 @@ test("Escape", async () => {
     expect(await Nostache(`\\'\\'''\\\\\\'aaa\\'\\''  '\\  \\  \\'`)()).toBe(`\\'\\'''\\\\\\'aaa\\'\\''  '\\  \\  \\'`);
     expect(await Nostache(`\\"\\"""\\\\\\"aaa\\"\\""  "\\  \\  \\"`)()).toBe(`\\"\\"""\\\\\\"aaa\\"\\""  "\\  \\  \\"`);
     expect(await Nostache("\\`\\```\\\\\\`aaa\\`\\``  `\\  \\  \\`")()).toBe("\\`\\```\\\\\\`aaa\\`\\``  `\\  \\  \\`");
-    expect(await Nostache("<{const a = 10;}><div>={ `${a}px\\`` }=</div>")()).toBe("<div>10px`</div>");
     expect(await Nostache("<<{")()).toBe("<{");
     expect(await Nostache("<<<{")()).toBe("<<{");
     expect(await Nostache(" <<{ ")()).toBe(" <{ ");
@@ -98,6 +101,11 @@ test("Escape", async () => {
     expect(await Nostache("<p>=={</p>}=")()).toBe("<p>={</p>}=");
     expect(await Nostache("<p> =={ </p>}=")()).toBe("<p> ={ </p>}=");
     expect(await Nostache("test =={ test}=")()).toBe("test ={ test}=");
+});
+
+test("String interpolation", async () => {
+    expect(await Nostache("<{const a = 10;}><div>={ `${a}px\\`` }=</div>")()).toBe("<div>10px`</div>");
+    expect(await Nostache("<div>${a}px`</div>")({a:10})).toBe("<div>10px`</div>");
 });
 
 test("Output expressions", async () => {
