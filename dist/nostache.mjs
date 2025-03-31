@@ -33,7 +33,6 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
 // todo escape html in ={}= blocks
 // todo ~{}~ for unescaped html
 // todo implement equations like <{if (true) {>true<} else {>false<}> as alternative to <{if (true) }>true<{ else }>false<{}>
-// todo remove <;> as it can be replaced with <{}>
 // todo don't process }> }= in strings "" '' ``
 // todo table of control characters in readme.md
 function parseTemplate(template) {
