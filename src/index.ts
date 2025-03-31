@@ -1,7 +1,6 @@
 const templateCache: Record<string, string> = {};
 
 // todo test for js in html
-// todo test for multiline html
 // todo escape html in ={}= blocks
 // todo ~{}~ for unescaped html
 // todo implement equations like <{if (true) {>true<} else {>false<}> as alternative to <{if (true) }>true<{ else }>false<{}>
@@ -29,9 +28,7 @@ function parseTemplate(template: string) {
     const SEMICOLON = charCode(";");
     const ASSIGN = charCode("=");
     const BACKSLASH = charCode("\\");
-    const QUOTE = charCode("'");
-    const NEWLINE = charCode("\n");
-    const CARRIAGE_RETURN = charCode("\r");
+    const BACKTICK = charCode("`");
 
     let index = 0;
     let startIndex = 0;
@@ -40,7 +37,7 @@ function parseTemplate(template: string) {
 
     function appendResult(endIndex = index, extra = "") {
         if (endIndex > startIndex || extra) {
-            funcBody += `yield '${template.slice(startIndex, endIndex)}${extra}';\n`;
+            funcBody += `yield \`${template.slice(startIndex, endIndex)}${extra}\`;\n`;
         }
     }
 
@@ -79,25 +76,15 @@ function parseTemplate(template: string) {
             index++;
             startIndex = index;
             return true;
-        } else if (c === NEWLINE) {
-            appendResult(index, "\\n");
-            index++;
-            startIndex = index;
-            return true;
-        } else if (c === CARRIAGE_RETURN && template.charCodeAt(index + 1) === NEWLINE) {
-            appendResult(index, "\\n");
-            index += 2;
-            startIndex = index;
-            return true;
         } else if (c === BACKSLASH) {
             // Escape backslash \
             appendResult(index, "\\\\");
             index++;
             startIndex = index;
             return true;
-        } else if (c === QUOTE) {
-            // Escape single quote '
-            appendResult(index, "\\'");
+        } else if (c === BACKTICK) {
+            // Escape backtick
+            appendResult(index, "\\`");
             index++;
             startIndex = index;
             return true;

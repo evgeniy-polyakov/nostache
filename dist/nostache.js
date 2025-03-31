@@ -32,6 +32,8 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
 // todo test for js in html
 // todo escape html in ={}= blocks
 // todo ~{}~ for unescaped html
+// todo implement equations like <{if (true) {>true<} else {>false<}> as alternative to <{if (true) }>true<{ else }>false<{}>
+// todo remove <;> as it can be replaced with <{}>
 // todo don't process }> }= in strings "" '' ``
 // todo table of control characters in readme.md
 function parseTemplate(template) {
@@ -53,16 +55,14 @@ function parseTemplate(template) {
     const SEMICOLON = charCode(";");
     const ASSIGN = charCode("=");
     const BACKSLASH = charCode("\\");
-    const QUOTE = charCode("'");
-    const NEWLINE = charCode("\n");
-    const CARRIAGE_RETURN = charCode("\r");
+    const BACKTICK = charCode("`");
     let index = 0;
     let startIndex = 0;
     const length = template.length;
     let funcBody = "";
     function appendResult(endIndex = index, extra = "") {
         if (endIndex > startIndex || extra) {
-            funcBody += `yield '${template.slice(startIndex, endIndex)}${extra}';\n`;
+            funcBody += `yield \`${template.slice(startIndex, endIndex)}${extra}\`;\n`;
         }
     }
     function appendOutput() {
@@ -101,18 +101,6 @@ function parseTemplate(template) {
             startIndex = index;
             return true;
         }
-        else if (c === NEWLINE) {
-            appendResult(index, "\\n");
-            index++;
-            startIndex = index;
-            return true;
-        }
-        else if (c === CARRIAGE_RETURN && template.charCodeAt(index + 1) === NEWLINE) {
-            appendResult(index, "\\n");
-            index += 2;
-            startIndex = index;
-            return true;
-        }
         else if (c === BACKSLASH) {
             // Escape backslash \
             appendResult(index, "\\\\");
@@ -120,9 +108,9 @@ function parseTemplate(template) {
             startIndex = index;
             return true;
         }
-        else if (c === QUOTE) {
-            // Escape single quote '
-            appendResult(index, "\\'");
+        else if (c === BACKTICK) {
+            // Escape backtick
+            appendResult(index, "\\`");
             index++;
             startIndex = index;
             return true;

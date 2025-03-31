@@ -69,6 +69,9 @@ test("Whitespace", async () => {
 test("Escape", async () => {
     expect(await Nostache(`<p>"'\\"'\\<{ if (true) { <b>simple"'\\"'\\text</b> }}>\\'"\\'"</p>`)()).toBe(`<p>"'\\"'\\<b>simple"'\\"'\\text</b>\\'"\\'"</p>`);
     expect(await Nostache(`\\'\\'''\\\\\\'aaa\\'\\''  '\\  \\  \\'`)()).toBe(`\\'\\'''\\\\\\'aaa\\'\\''  '\\  \\  \\'`);
+    expect(await Nostache(`\\"\\"""\\\\\\"aaa\\"\\""  "\\  \\  \\"`)()).toBe(`\\"\\"""\\\\\\"aaa\\"\\""  "\\  \\  \\"`);
+    expect(await Nostache("\\`\\```\\\\\\`aaa\\`\\``  `\\  \\  \\`")()).toBe("\\`\\```\\\\\\`aaa\\`\\``  `\\  \\  \\`");
+    expect(await Nostache("<{const a = 10;}><div>={ `${a}px\\`` }=</div>")()).toBe("<div>10px`</div>");
     expect(await Nostache("<<{")()).toBe("<{");
     expect(await Nostache("<<<{")()).toBe("<<{");
     expect(await Nostache(" <<{ ")()).toBe(" <{ ");
