@@ -200,15 +200,17 @@ function parseTemplate(template) {
 function Nostache(template) {
     var _a;
     const funcBody = (_a = templateCache[template]) !== null && _a !== void 0 ? _a : (templateCache[template] = parseTemplate(template));
-    function templateFunc(context) {
+    function templateFunc(...context) {
         return __awaiter(this, void 0, void 0, function* () {
             const argNames = [];
             const argValues = [];
-            if (context && typeof context === "object" && !Array.isArray(context)) {
-                for (const p in context) {
-                    if (/^[_a-z]\w*$/i.test(p)) {
-                        argNames.push(p);
-                        argValues.push(context[p]);
+            for (const c of context) {
+                if (c && typeof c === "object" && !Array.isArray(c)) {
+                    for (const p in c) {
+                        if (/^[_a-z]\w*$/i.test(p)) {
+                            argNames.push(p);
+                            argValues.push(c[p]);
+                        }
                     }
                 }
             }
@@ -223,10 +225,12 @@ function Nostache(template) {
                     }, []), ")");
                     console.groupEnd();
                 }
-                const contextFunc = function (context) {
-                    return templateFunc(context);
+                const contextFunc = function (...context) {
+                    return templateFunc(...context);
                 };
-                contextFunc.context = context;
+                for (let i = 0; i < context.length; i++) {
+                    contextFunc[i] = context[i];
+                }
                 const asyncGenerator = Function(...argNames, funcBody).apply(contextFunc, argValues);
                 let result = "";
                 while (true) {

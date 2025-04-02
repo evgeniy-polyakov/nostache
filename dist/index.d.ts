@@ -1,4 +1,4 @@
-declare function Nostache(template: string): ((context?: unknown) => Promise<string>) & {
+declare function Nostache(template: string): ((...context: unknown[]) => Promise<string>) & {
     verbose: boolean;
 };
 declare namespace Nostache {
