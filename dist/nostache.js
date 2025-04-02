@@ -223,7 +223,11 @@ function Nostache(template) {
                     }, []), ")");
                     console.groupEnd();
                 }
-                const asyncGenerator = Function(...argNames, funcBody).apply(context, argValues);
+                const contextFunc = function (context) {
+                    return templateFunc(context);
+                };
+                contextFunc.context = context;
+                const asyncGenerator = Function(...argNames, funcBody).apply(contextFunc, argValues);
                 let result = "";
                 while (true) {
                     const chunk = yield asyncGenerator.next();

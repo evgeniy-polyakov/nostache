@@ -195,7 +195,11 @@ function Nostache(template: string): ((context?: unknown) => Promise<string>) & 
                 }, []), ")")
                 console.groupEnd();
             }
-            const asyncGenerator: AsyncGenerator<string> = Function(...argNames, funcBody).apply(context, argValues);
+            const contextFunc = function (context: any) {
+                return templateFunc(context);
+            };
+            contextFunc.context = context;
+            const asyncGenerator: AsyncGenerator<string> = Function(...argNames, funcBody).apply(contextFunc, argValues);
             let result = "";
             while (true) {
                 const chunk = await asyncGenerator.next();
