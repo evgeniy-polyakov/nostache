@@ -171,14 +171,13 @@ function parseTemplate(template: string) {
 
 function Nostache(template: string): ((context?: unknown) => Promise<string>) & {
     verbose: boolean,
-    contextDecomposition: boolean,
 } {
     const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
 
     async function templateFunc(context?: unknown) {
         const argNames = [];
         const argValues = [];
-        if (templateFunc.contextDecomposition && context && typeof context === "object" && !Array.isArray(context)) {
+        if (context && typeof context === "object" && !Array.isArray(context)) {
             for (const p in context) {
                 if (/^[_a-z]\w*$/i.test(p)) {
                     argNames.push(p);
@@ -215,12 +214,9 @@ function Nostache(template: string): ((context?: unknown) => Promise<string>) & 
     }
 
     templateFunc.verbose = Nostache.verbose;
-    templateFunc.contextDecomposition = Nostache.contextDecomposition;
-
     return templateFunc;
 }
 
 Nostache.verbose = false;
-Nostache.contextDecomposition = true;
 
 export default Nostache;

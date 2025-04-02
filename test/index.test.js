@@ -158,11 +158,6 @@ test("Arguments", async () => {
     expect(await Nostache("={a}= ={b}=")({a: 'aa', b: 'bb'})).toBe("aa bb");
     expect(await Nostache("={a}= ={b.c}=")({a: 'aa', b: {c: 'bb'}})).toBe("aa bb");
     await (expect(Nostache("={ c }=")({a: 'aa', b: 'bb'}))).rejects.toBeInstanceOf(ReferenceError);
-    await (expect(async () => {
-        const t = Nostache("={ a }=");
-        t.contextDecomposition = false;
-        await t({a: "aa"});
-    })).rejects.toBeInstanceOf(ReferenceError);
     expect(await Nostache("={a}= ={b}=")(Object.create({a: 'aa', b: 'bb'}))).toBe("aa bb");
 });
 
