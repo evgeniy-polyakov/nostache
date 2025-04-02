@@ -169,19 +169,21 @@ function parseTemplate(template: string) {
     return `return(async function*(){\n${funcBody}}).call(this)`;
 }
 
-function Nostache(template: string): ((context?: unknown) => Promise<string>) & {
+function Nostache(template: string): ((...context: unknown[]) => Promise<string>) & {
     verbose: boolean,
 } {
     const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
 
-    async function templateFunc(context?: unknown) {
+    async function templateFunc(...context: unknown[]) {
         const argNames = [];
         const argValues = [];
-        if (context && typeof context === "object" && !Array.isArray(context)) {
-            for (const p in context) {
-                if (/^[_a-z]\w*$/i.test(p)) {
-                    argNames.push(p);
-                    argValues.push((context as any)[p]);
+        for (const c of context) {
+            if (c && typeof c === "object" && !Array.isArray(c)) {
+                for (const p in c) {
+                    if (/^[_a-z]\w*$/i.test(p)) {
+                        argNames.push(p);
+                        argValues.push((c as any)[p]);
+                    }
                 }
             }
         }
@@ -195,10 +197,12 @@ function Nostache(template: string): ((context?: unknown) => Promise<string>) & 
                 }, []), ")")
                 console.groupEnd();
             }
-            const contextFunc = function (context: any) {
-                return templateFunc(context);
+            const contextFunc = function (...context: unknown[]) {
+                return templateFunc(...context);
             };
-            contextFunc.context = context;
+            for (let i = 0; i < context.length; i++) {
+                (contextFunc as any)[i] = context[i];
+            }
             const asyncGenerator: AsyncGenerator<string> = Function(...argNames, funcBody).apply(contextFunc, argValues);
             let result = "";
             while (true) {
