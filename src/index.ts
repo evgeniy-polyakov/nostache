@@ -187,12 +187,13 @@ function Nostache(template: string): ((context?: unknown) => Promise<string>) & 
         }
         try {
             if (templateFunc.verbose) {
-                console.log(`function (${argNames.join(", ")}) {\n${funcBody}\n})(`,
-                    ...argValues.reduce((a, t) => {
-                        if (a.length > 0) a.push(",");
-                        a.push(typeof t === "string" ? `"${t}"` : t);
-                        return a;
-                    }, []), ")");
+                console.groupCollapsed(`(function Nostache(${argNames.join(", ")}) {`);
+                console.log(`${funcBody}})\n(`, ...argValues.reduce((a, t) => {
+                    if (a.length > 0) a.push(",");
+                    a.push(typeof t === "string" ? `"${t}"` : t);
+                    return a;
+                }, []), ")")
+                console.groupEnd();
             }
             const asyncGenerator: AsyncGenerator<string> = Function(...argNames, funcBody).apply(context, argValues);
             let result = "";

@@ -204,7 +204,7 @@ function Nostache(template) {
         return __awaiter(this, void 0, void 0, function* () {
             const argNames = [];
             const argValues = [];
-            if (templateFunc.contextDecomposition && context && typeof context === "object" && !Array.isArray(context)) {
+            if (context && typeof context === "object" && !Array.isArray(context)) {
                 for (const p in context) {
                     if (/^[_a-z]\w*$/i.test(p)) {
                         argNames.push(p);
@@ -214,12 +214,14 @@ function Nostache(template) {
             }
             try {
                 if (templateFunc.verbose) {
-                    console.log(`function (${argNames.join(", ")}) {\n${funcBody}\n})(`, ...argValues.reduce((a, t) => {
+                    console.groupCollapsed(`(function Nostache(${argNames.join(", ")}) {`);
+                    console.log(`${funcBody}})\n(`, ...argValues.reduce((a, t) => {
                         if (a.length > 0)
                             a.push(",");
                         a.push(typeof t === "string" ? `"${t}"` : t);
                         return a;
                     }, []), ")");
+                    console.groupEnd();
                 }
                 const asyncGenerator = Function(...argNames, funcBody).apply(context, argValues);
                 let result = "";
@@ -241,8 +243,6 @@ function Nostache(template) {
         });
     }
     templateFunc.verbose = Nostache.verbose;
-    templateFunc.contextDecomposition = Nostache.contextDecomposition;
     return templateFunc;
 }
-Nostache.verbose = false;
-Nostache.contextDecomposition = true;export{Nostache as default};//# sourceMappingURL=nostache.mjs.map
+Nostache.verbose = false;export{Nostache as default};//# sourceMappingURL=nostache.mjs.map
