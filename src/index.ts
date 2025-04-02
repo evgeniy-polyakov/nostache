@@ -8,9 +8,9 @@ const templateCache: Record<string, string> = {};
 // todo implement equations like <{if (true) {>true<} else {>false<}> as alternative to <{if (true) }>true<{ else }>false<{}>
 // todo don't process }> }= in strings "" '' ``
 // todo table of control characters in readme.md
-function parseTemplate(template: string) {
+const parseTemplate = (template: string) => {
 
-    function charCode(char: string) {
+    const charCode = (char: string) => {
         if (char.length > 1) {
             const map: Record<number, boolean> = {};
             for (let i = 0; i < char.length; i++) {
@@ -19,7 +19,7 @@ function parseTemplate(template: string) {
             return map;
         }
         return char.charCodeAt(0);
-    }
+    };
 
     const isWhitespace = charCode(" \t\r\n") as Record<number, boolean>;
     const OPEN_ANGLE = charCode("<");
@@ -35,25 +35,25 @@ function parseTemplate(template: string) {
     const length = template.length;
     let funcBody = "";
 
-    function appendResult(endIndex = index, extra = "") {
+    const appendResult = (endIndex = index, extra = "") => {
         if (endIndex > startIndex || extra) {
             funcBody += `yield \`${template.slice(startIndex, endIndex)}${extra}\`;\n`;
         }
-    }
+    };
 
-    function appendOutput() {
+    const appendOutput = () => {
         if (index > startIndex) {
             funcBody += `yield ${template.slice(startIndex, index)};\n`;
         }
-    }
+    };
 
-    function appendLogic() {
+    const appendLogic = () => {
         if (index > startIndex) {
             funcBody += `${template.slice(startIndex, index)}`;
         }
-    }
+    };
 
-    function parseOpenBlock(c: number) {
+    const parseOpenBlock = (c: number) => {
         if (c === OPEN_ANGLE && template.charCodeAt(index + 1) === OPEN_BRACE) {
             // Logic block <{
             appendResult();
@@ -87,9 +87,9 @@ function parseTemplate(template: string) {
             return true;
         }
         return false;
-    }
+    };
 
-    function parseLogicBlock() {
+    const parseLogicBlock = () => {
         startIndex = index;
         let isPotentialHtml = true; // We can start html block right away
         for (; index < length;) {
@@ -113,9 +113,9 @@ function parseTemplate(template: string) {
             }
         }
         startIndex = index;
-    }
+    };
 
-    function parseHtmlBlock() {
+    const parseHtmlBlock = () => {
         startIndex = index;
         let potentialEnd = -1;
         for (; index < length;) {
@@ -138,7 +138,7 @@ function parseTemplate(template: string) {
         startIndex = index;
     }
 
-    function parseOutputBlock() {
+    const parseOutputBlock = () => {
         startIndex = index;
         let hasMeaningfulSymbol = false;
         for (; index < length;) {
@@ -157,7 +157,7 @@ function parseTemplate(template: string) {
             }
         }
         startIndex = index;
-    }
+    };
 
     for (; index < length;) {
         const c = template.charCodeAt(index);
@@ -171,12 +171,11 @@ function parseTemplate(template: string) {
     return `return(async function*(){\n${funcBody}}).call(this)`;
 }
 
-function Nostache(template: string): ((...context: unknown[]) => Promise<string>) & {
+const Nostache = (template: string): ((...context: unknown[]) => Promise<string>) & {
     verbose: boolean,
-} {
+} => {
     const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
-
-    async function templateFunc(...context: unknown[]) {
+    const templateFunc = async (...context: unknown[]) => {
         const argNames = [];
         const argValues = [];
         for (const c of context) {
@@ -199,7 +198,7 @@ function Nostache(template: string): ((...context: unknown[]) => Promise<string>
                 }, []), ")")
                 console.groupEnd();
             }
-            const contextFunc = function (...context: unknown[]) {
+            const contextFunc = (...context: unknown[]) => {
                 return templateFunc(...context);
             };
             for (let i = 0; i < context.length; i++) {
@@ -222,8 +221,7 @@ function Nostache(template: string): ((...context: unknown[]) => Promise<string>
             })`;
             throw error;
         }
-    }
-
+    };
     templateFunc.verbose = Nostache.verbose;
     return templateFunc;
 }

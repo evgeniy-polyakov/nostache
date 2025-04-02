@@ -37,8 +37,8 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
 // todo implement equations like <{if (true) {>true<} else {>false<}> as alternative to <{if (true) }>true<{ else }>false<{}>
 // todo don't process }> }= in strings "" '' ``
 // todo table of control characters in readme.md
-function parseTemplate(template) {
-    function charCode(char) {
+const parseTemplate = (template) => {
+    const charCode = (char) => {
         if (char.length > 1) {
             const map = {};
             for (let i = 0; i < char.length; i++) {
@@ -47,7 +47,7 @@ function parseTemplate(template) {
             return map;
         }
         return char.charCodeAt(0);
-    }
+    };
     const isWhitespace = charCode(" \t\r\n");
     const OPEN_ANGLE = charCode("<");
     const CLOSE_ANGLE = charCode(">");
@@ -60,22 +60,22 @@ function parseTemplate(template) {
     let startIndex = 0;
     const length = template.length;
     let funcBody = "";
-    function appendResult(endIndex = index, extra = "") {
+    const appendResult = (endIndex = index, extra = "") => {
         if (endIndex > startIndex || extra) {
             funcBody += `yield \`${template.slice(startIndex, endIndex)}${extra}\`;\n`;
         }
-    }
-    function appendOutput() {
+    };
+    const appendOutput = () => {
         if (index > startIndex) {
             funcBody += `yield ${template.slice(startIndex, index)};\n`;
         }
-    }
-    function appendLogic() {
+    };
+    const appendLogic = () => {
         if (index > startIndex) {
             funcBody += `${template.slice(startIndex, index)}`;
         }
-    }
-    function parseOpenBlock(c) {
+    };
+    const parseOpenBlock = (c) => {
         if (c === OPEN_ANGLE && template.charCodeAt(index + 1) === OPEN_BRACE) {
             // Logic block <{
             appendResult();
@@ -113,8 +113,8 @@ function parseTemplate(template) {
             return true;
         }
         return false;
-    }
-    function parseLogicBlock() {
+    };
+    const parseLogicBlock = () => {
         startIndex = index;
         let isPotentialHtml = true; // We can start html block right away
         for (; index < length;) {
@@ -142,8 +142,8 @@ function parseTemplate(template) {
             }
         }
         startIndex = index;
-    }
-    function parseHtmlBlock() {
+    };
+    const parseHtmlBlock = () => {
         startIndex = index;
         let potentialEnd = -1;
         for (; index < length;) {
@@ -166,8 +166,8 @@ function parseTemplate(template) {
             }
         }
         startIndex = index;
-    }
-    function parseOutputBlock() {
+    };
+    const parseOutputBlock = () => {
         startIndex = index;
         let hasMeaningfulSymbol = false;
         for (; index < length;) {
@@ -188,7 +188,7 @@ function parseTemplate(template) {
             }
         }
         startIndex = index;
-    }
+    };
     for (; index < length;) {
         const c = template.charCodeAt(index);
         if (parseOpenBlock(c)) ;
@@ -198,61 +198,59 @@ function parseTemplate(template) {
     }
     appendResult();
     return `return(async function*(){\n${funcBody}}).call(this)`;
-}
-function Nostache(template) {
+};
+const Nostache = (template) => {
     var _a;
     const funcBody = (_a = templateCache[template]) !== null && _a !== void 0 ? _a : (templateCache[template] = parseTemplate(template));
-    function templateFunc(...context) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const argNames = [];
-            const argValues = [];
-            for (const c of context) {
-                if (c && typeof c === "object" && !Array.isArray(c)) {
-                    for (const p in c) {
-                        if (/^[_a-z]\w*$/i.test(p)) {
-                            argNames.push(p);
-                            argValues.push(c[p]);
-                        }
+    const templateFunc = (...context) => __awaiter(void 0, void 0, void 0, function* () {
+        const argNames = [];
+        const argValues = [];
+        for (const c of context) {
+            if (c && typeof c === "object" && !Array.isArray(c)) {
+                for (const p in c) {
+                    if (/^[_a-z]\w*$/i.test(p)) {
+                        argNames.push(p);
+                        argValues.push(c[p]);
                     }
                 }
             }
-            try {
-                if (templateFunc.verbose) {
-                    console.groupCollapsed(`(function Nostache(${argNames.join(", ")}) {`);
-                    console.log(`${funcBody}})\n(`, ...argValues.reduce((a, t) => {
-                        if (a.length > 0)
-                            a.push(",");
-                        a.push(typeof t === "string" ? `"${t}"` : t);
-                        return a;
-                    }, []), ")");
-                    console.groupEnd();
-                }
-                const contextFunc = function (...context) {
-                    return templateFunc(...context);
-                };
-                for (let i = 0; i < context.length; i++) {
-                    contextFunc[i] = context[i];
-                }
-                const asyncGenerator = Function(...argNames, funcBody).apply(contextFunc, argValues);
-                let result = "";
-                while (true) {
-                    const chunk = yield asyncGenerator.next();
-                    if (chunk.done) {
-                        break;
-                    }
-                    else {
-                        result += chunk.value;
-                    }
-                }
-                return result;
+        }
+        try {
+            if (templateFunc.verbose) {
+                console.groupCollapsed(`(function Nostache(${argNames.join(", ")}) {`);
+                console.log(`${funcBody}})\n(`, ...argValues.reduce((a, t) => {
+                    if (a.length > 0)
+                        a.push(",");
+                    a.push(typeof t === "string" ? `"${t}"` : t);
+                    return a;
+                }, []), ")");
+                console.groupEnd();
             }
-            catch (error) {
-                error.message += `\nat function (${argNames.join(", ")}) {\n${funcBody}\n})(${argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;
-                throw error;
+            const contextFunc = (...context) => {
+                return templateFunc(...context);
+            };
+            for (let i = 0; i < context.length; i++) {
+                contextFunc[i] = context[i];
             }
-        });
-    }
+            const asyncGenerator = Function(...argNames, funcBody).apply(contextFunc, argValues);
+            let result = "";
+            while (true) {
+                const chunk = yield asyncGenerator.next();
+                if (chunk.done) {
+                    break;
+                }
+                else {
+                    result += chunk.value;
+                }
+            }
+            return result;
+        }
+        catch (error) {
+            error.message += `\nat function (${argNames.join(", ")}) {\n${funcBody}\n})(${argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;
+            throw error;
+        }
+    });
     templateFunc.verbose = Nostache.verbose;
     return templateFunc;
-}
+};
 Nostache.verbose = false;return Nostache;}));//# sourceMappingURL=nostache.js.map
