@@ -218,4 +218,5 @@ test("Recursive templates", async () => {
 test("Escape html", async () => {
     expect(await Nostache(`<p>={ "<p>&'\\"" }=</p>`)()).toBe("<p>&#60;p&#62;&#38;&#39;&#34;</p>");
     expect(await Nostache(`<p>={ this[0] }=</p>`)("<p>&'\"")).toBe("<p>&#60;p&#62;&#38;&#39;&#34;</p>");
+    expect(await Nostache(`<p>={ new Promise(r => r(this[0])) }=</p>`)("<p>&'\"")).toBe("<p>&#60;p&#62;&#38;&#39;&#34;</p>");
 });
