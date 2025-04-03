@@ -105,7 +105,7 @@ test("Escape", async () => {
 
 test("String interpolation", async () => {
     expect(await Nostache("<{const a = 10;}><div>={ `${a}px\\`` }=</div>")()).toBe("<div>10px`</div>");
-    expect(await Nostache("<div>${a}px`</div>")({a:10})).toBe("<div>10px`</div>");
+    expect(await Nostache("<div>${a}px`</div>")({a: 10})).toBe("<div>10px`</div>");
 });
 
 test("Output expressions", async () => {
@@ -139,6 +139,21 @@ test("This argument", async () => {
     expect(await Nostache("<{if (true) {<p>={ this[0] }=</p>} }>")(true)).toBe("<p>true</p>");
     expect(await Nostache("<{if (true) {<p>={ this[0] }=</p>} }>")("")).toBe("<p></p>");
     expect(await Nostache("<{if (true) {<p>={ this[0].a }=</p>} }>")({a: 'aa'})).toBe("<p>aa</p>");
+});
+
+test("Multiple arguments", async () => {
+    expect(await Nostache("={ this[0] }=={ this[1] }=")(10, 11)).toBe("1011");
+    expect(await Nostache("={ this[0] }=={ this[1] }=")(true, false)).toBe("truefalse");
+    expect(await Nostache("={ this[0] }=={ this[1] }=")("", "")).toBe("");
+    expect(await Nostache("={ this[0].a }=={ this[1].b }=")({a: 'aa'}, {b: 'bb'})).toBe("aabb");
+    expect(await Nostache("<p>={ this[0] }=</p><p>={ this[1] }=</p>")(10, 11)).toBe("<p>10</p><p>11</p>");
+    expect(await Nostache("<p>={ this[0] }=</p><p>={ this[1] }=</p>")(true, false)).toBe("<p>true</p><p>false</p>");
+    expect(await Nostache("<p>={ this[0] }=</p><p>={ this[1] }=</p>")("", "")).toBe("<p></p><p></p>");
+    expect(await Nostache("<p>={ this[0].a }=</p><p>={ this[1].b }=</p>")({a: 'aa'}, {b: 'bb'})).toBe("<p>aa</p><p>bb</p>");
+    expect(await Nostache("<{if (true) {<p>={ this[0] }=</p><p>={ this[1] }=</p>} }>")(10, 11)).toBe("<p>10</p><p>11</p>");
+    expect(await Nostache("<{if (true) {<p>={ this[0] }=</p><p>={ this[1] }=</p>} }>")(true, false)).toBe("<p>true</p><p>false</p>");
+    expect(await Nostache("<{if (true) {<p>={ this[0] }=</p><p>={ this[1] }=</p>} }>")("", "")).toBe("<p></p><p></p>");
+    expect(await Nostache("<{if (true) {<p>={ this[0].a }=</p><p>={ this[1].b }=</p>} }>")({a: 'aa'}, {b: 'bb'})).toBe("<p>aa</p><p>bb</p>");
 });
 
 test("Arguments", async () => {
@@ -192,4 +207,9 @@ test("Promises", async () => {
     expect(await Nostache("<{let a = 1;}>={new Promise(r => setTimeout(() => r(a), 10))}=<{a++;}> ={new Promise(r => setTimeout(() => r(a), 10))}=")()).toBe("1 2");
     expect(await Nostache("<{let a = 1;}>={await new Promise(r => setTimeout(() => r(a), 10))}=<{a++;}> ={await new Promise(r => setTimeout(() => r(a), 10))}=")()).toBe("1 2");
     expect(await Nostache("<{let a = 1; const p = new Promise(r => setTimeout(() => r(a), 10));}>={p}=<{a++;}> ={p}=")()).toBe("1 1");
+});
+
+test("Recursive templates", async () => {
+    expect(await Nostache("<li>={ this[0] }=</li><{if (this[0] < 13) }>={ this(this[0] + 1) }=")(10)).toBe("<li>10</li><li>11</li><li>12</li><li>13</li>");
+    expect(await Nostache("<li>={ a }=</li><{if (a < 13) }>={ this({a:++a}) }=")({a: 10})).toBe("<li>10</li><li>11</li><li>12</li><li>13</li>");
 });
