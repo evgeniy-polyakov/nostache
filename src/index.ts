@@ -1,7 +1,5 @@
 const templateCache: Record<string, string> = {};
 
-// todo tests for multiple arguments
-// todo tests for recursive calls of template function
 // todo test for js in html
 // todo escape html in ={}= blocks
 // todo ~{}~ for unescaped html
@@ -223,6 +221,7 @@ const Nostache = (template: string): ((...context: unknown[]) => Promise<string>
         }
     };
     templateFunc.verbose = Nostache.verbose;
+    templateFunc.toString = funcBody;
     return templateFunc;
 }
 

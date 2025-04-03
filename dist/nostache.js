@@ -29,8 +29,6 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
     var e = new Error(message);
     return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
 };const templateCache = {};
-// todo tests for multiple arguments
-// todo tests for recursive calls of template function
 // todo test for js in html
 // todo escape html in ={}= blocks
 // todo ~{}~ for unescaped html
@@ -251,6 +249,7 @@ const Nostache = (template) => {
         }
     });
     templateFunc.verbose = Nostache.verbose;
+    templateFunc.toString = funcBody;
     return templateFunc;
 };
 Nostache.verbose = false;return Nostache;}));//# sourceMappingURL=nostache.js.map

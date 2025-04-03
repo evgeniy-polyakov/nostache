@@ -154,6 +154,7 @@ test("Multiple arguments", async () => {
     expect(await Nostache("<{if (true) {<p>={ this[0] }=</p><p>={ this[1] }=</p>} }>")(true, false)).toBe("<p>true</p><p>false</p>");
     expect(await Nostache("<{if (true) {<p>={ this[0] }=</p><p>={ this[1] }=</p>} }>")("", "")).toBe("<p></p><p></p>");
     expect(await Nostache("<{if (true) {<p>={ this[0].a }=</p><p>={ this[1].b }=</p>} }>")({a: 'aa'}, {b: 'bb'})).toBe("<p>aa</p><p>bb</p>");
+    expect(await Nostache("<{if (true) {<p>={ a }=</p><p>={ b }=</p>} }>")({a: 0}, {a: 'aa', b: 'bb'})).toBe("<p>aa</p><p>bb</p>");
 });
 
 test("Arguments", async () => {
