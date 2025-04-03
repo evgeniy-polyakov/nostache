@@ -134,7 +134,7 @@ const parseTemplate = (template: string) => {
             }
         }
         startIndex = index;
-    }
+    };
 
     const parseOutputBlock = () => {
         startIndex = index;
@@ -167,10 +167,11 @@ const parseTemplate = (template: string) => {
     }
     appendResult();
     return `return(async function*(){\n${funcBody}}).call(this)`;
-}
+};
 
 const Nostache = (template: string): ((...context: unknown[]) => Promise<string>) & {
     verbose: boolean,
+    toString(): string,
 } => {
     const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
     const templateFunc = async (...context: unknown[]) => {
@@ -221,9 +222,9 @@ const Nostache = (template: string): ((...context: unknown[]) => Promise<string>
         }
     };
     templateFunc.verbose = Nostache.verbose;
-    templateFunc.toString = funcBody;
+    templateFunc.toString = () => funcBody;
     return templateFunc;
-}
+};
 
 Nostache.verbose = false;
 

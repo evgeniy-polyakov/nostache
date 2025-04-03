@@ -249,7 +249,7 @@ const Nostache = (template) => {
         }
     });
     templateFunc.verbose = Nostache.verbose;
-    templateFunc.toString = funcBody;
+    templateFunc.toString = () => funcBody;
     return templateFunc;
 };
 Nostache.verbose = false;export{Nostache as default};//# sourceMappingURL=nostache.mjs.map
