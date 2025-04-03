@@ -30,7 +30,6 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
     return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
 };const templateCache = {};
 // todo test for js in html
-// todo escape html in ={}= blocks
 // todo ~{}~ for unescaped html
 // todo implement equations like <{if (true) {>true<} else {>false<}> as alternative to <{if (true) }>true<{ else }>false<{}>
 // todo don't process }> }= in strings "" '' ``
@@ -65,7 +64,7 @@ const parseTemplate = (template) => {
     };
     const appendOutput = () => {
         if (index > startIndex) {
-            funcBody += `yield ${template.slice(startIndex, index)};\n`;
+            funcBody += `yield this.escape(${template.slice(startIndex, index)});\n`;
         }
     };
     const appendLogic = () => {
@@ -197,6 +196,9 @@ const parseTemplate = (template) => {
     appendResult();
     return `return(async function*(){\n${funcBody}}).call(this)`;
 };
+const escape = (value) => __awaiter(void 0, void 0, void 0, function* () {
+    return String(yield value).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+});
 const Nostache = (template) => {
     var _a;
     const funcBody = (_a = templateCache[template]) !== null && _a !== void 0 ? _a : (templateCache[template] = parseTemplate(template));
@@ -230,6 +232,7 @@ const Nostache = (template) => {
             for (let i = 0; i < context.length; i++) {
                 contextFunc[i] = context[i];
             }
+            contextFunc.escape = templateFunc.escape;
             const asyncGenerator = Function(...argNames, funcBody).apply(contextFunc, argValues);
             let result = "";
             while (true) {
@@ -250,6 +253,7 @@ const Nostache = (template) => {
     });
     templateFunc.verbose = Nostache.verbose;
     templateFunc.toString = () => funcBody;
+    templateFunc.escape = escape;
     return templateFunc;
 };
 Nostache.verbose = false;return Nostache;}));//# sourceMappingURL=nostache.js.map

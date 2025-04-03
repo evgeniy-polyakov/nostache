@@ -1,7 +1,6 @@
 const templateCache: Record<string, string> = {};
 
 // todo test for js in html
-// todo escape html in ={}= blocks
 // todo ~{}~ for unescaped html
 // todo implement equations like <{if (true) {>true<} else {>false<}> as alternative to <{if (true) }>true<{ else }>false<{}>
 // todo don't process }> }= in strings "" '' ``
@@ -41,7 +40,7 @@ const parseTemplate = (template: string) => {
 
     const appendOutput = () => {
         if (index > startIndex) {
-            funcBody += `yield ${template.slice(startIndex, index)};\n`;
+            funcBody += `yield this.escape(${template.slice(startIndex, index)});\n`;
         }
     };
 
@@ -167,11 +166,16 @@ const parseTemplate = (template: string) => {
     }
     appendResult();
     return `return(async function*(){\n${funcBody}}).call(this)`;
+}
+
+const escape = async (value: unknown) => {
+    return String(await value).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 };
 
 const Nostache = (template: string): ((...context: unknown[]) => Promise<string>) & {
     verbose: boolean,
     toString(): string,
+    escape(value: unknown): Promise<string>,
 } => {
     const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
     const templateFunc = async (...context: unknown[]) => {
@@ -203,6 +207,7 @@ const Nostache = (template: string): ((...context: unknown[]) => Promise<string>
             for (let i = 0; i < context.length; i++) {
                 (contextFunc as any)[i] = context[i];
             }
+            contextFunc.escape = templateFunc.escape;
             const asyncGenerator: AsyncGenerator<string> = Function(...argNames, funcBody).apply(contextFunc, argValues);
             let result = "";
             while (true) {
@@ -223,6 +228,7 @@ const Nostache = (template: string): ((...context: unknown[]) => Promise<string>
     };
     templateFunc.verbose = Nostache.verbose;
     templateFunc.toString = () => funcBody;
+    templateFunc.escape = escape;
     return templateFunc;
 };
 
