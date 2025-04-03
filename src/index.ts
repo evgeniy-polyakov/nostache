@@ -27,6 +27,7 @@ const parseTemplate = (template: string) => {
     const TILDE = charCode("~");
     const BACKSLASH = charCode("\\");
     const BACKTICK = charCode("`");
+    const DOLLAR = charCode("$");
 
     let index = 0;
     let startIndex = 0;
@@ -81,6 +82,12 @@ const parseTemplate = (template: string) => {
         } else if (c === BACKTICK) {
             // Escape backtick
             appendResult(index, "\\`");
+            index++;
+            startIndex = index;
+            return true;
+        } else if (c === DOLLAR) {
+            // Escape dollar
+            appendResult(index, "\\$");
             index++;
             startIndex = index;
             return true;

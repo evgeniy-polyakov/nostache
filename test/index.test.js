@@ -105,7 +105,7 @@ test("Escape", async () => {
 
 test("String interpolation", async () => {
     expect(await Nostache("<{const a = 10;}><div>={ `${a}px\\`` }=</div>")()).toBe("<div>10px`</div>");
-    expect(await Nostache("<div>${a}px`</div>")({a: 10})).toBe("<div>10px`</div>");
+    expect(await Nostache("<div>${a}px`</div>")({a: 10})).toBe("<div>${a}px`</div>");
 });
 
 test("Output expressions", async () => {
