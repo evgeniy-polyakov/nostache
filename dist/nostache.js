@@ -30,9 +30,9 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
     return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
 };const templateCache = {};
 // todo test for js in html
-// todo ~{}~ for unescaped html
-// todo implement equations like <{if (true) {>true<} else {>false<}> as alternative to <{if (true) }>true<{ else }>false<{}>
-// todo don't process }> }= in strings "" '' ``
+// todo implement expressions like <{if (true) {>true<} else {>false<}> as alternative to <{if (true) }>true<{ else }>false<{}>
+// todo don't process }> }= }~ in strings "" '' ``
+// todo think about simplified expressions like <a class={"class"}>{"text"}</a>
 // todo table of control characters in readme.md
 const parseTemplate = (template) => {
     const charCode = (char) => {
@@ -51,6 +51,7 @@ const parseTemplate = (template) => {
     const OPEN_BRACE = charCode("{");
     const CLOSE_BRACE = charCode("}");
     const ASSIGN = charCode("=");
+    const TILDE = charCode("~");
     const BACKSLASH = charCode("\\");
     const BACKTICK = charCode("`");
     let index = 0;
@@ -62,9 +63,11 @@ const parseTemplate = (template) => {
             funcBody += `yield \`${template.slice(startIndex, endIndex)}${extra}\`;\n`;
         }
     };
-    const appendOutput = () => {
+    const appendOutput = (unsafe) => {
         if (index > startIndex) {
-            funcBody += `yield this.escape(${template.slice(startIndex, index)});\n`;
+            funcBody += unsafe ?
+                `yield ${template.slice(startIndex, index)};\n` :
+                `yield this.escape(${template.slice(startIndex, index)});\n`;
         }
     };
     const appendLogic = () => {
@@ -84,7 +87,14 @@ const parseTemplate = (template) => {
             // Assignment block ={
             appendResult();
             index += 2;
-            parseOutputBlock();
+            parseOutputBlock(false);
+            return true;
+        }
+        else if (c === TILDE && template.charCodeAt(index + 1) === OPEN_BRACE) {
+            // Unsafe assignment block ~{
+            appendResult();
+            index += 2;
+            parseOutputBlock(true);
             return true;
         }
         else if (c === BACKSLASH) {
@@ -101,8 +111,8 @@ const parseTemplate = (template) => {
             startIndex = index;
             return true;
         }
-        else if ((c === OPEN_ANGLE || c === ASSIGN) && template.charCodeAt(index + 1) === c && template.charCodeAt(index + 2) === OPEN_BRACE) {
-            // Escape open block symbols <<{ =={
+        else if ((c === OPEN_ANGLE || c === ASSIGN || c === TILDE) && template.charCodeAt(index + 1) === c && template.charCodeAt(index + 2) === OPEN_BRACE) {
+            // Escape open block symbols <<{ =={ ~~{
             index++;
             appendResult();
             index++;
@@ -164,14 +174,15 @@ const parseTemplate = (template) => {
         }
         startIndex = index;
     };
-    const parseOutputBlock = () => {
+    const parseOutputBlock = (unsafe) => {
         startIndex = index;
+        const closeChar = unsafe ? TILDE : ASSIGN;
         let hasMeaningfulSymbol = false;
         for (; index < length;) {
             const c = template.charCodeAt(index);
-            if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === ASSIGN) {
+            if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === closeChar) {
                 if (hasMeaningfulSymbol) {
-                    appendOutput();
+                    appendOutput(unsafe);
                 }
                 index += 2;
                 break;

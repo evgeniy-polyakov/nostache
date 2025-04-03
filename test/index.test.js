@@ -126,6 +126,33 @@ test("Output expressions", async () => {
     expect(await Nostache("<{ if (true) {<p>={ 5 + 5 }=</p>={'aa'}=}}>")()).toBe("<p>10</p>aa");
 });
 
+test("Unsafe output expressions", async () => {
+    expect(await Nostache("~{ 10 }~")()).toBe("10");
+    expect(await Nostache("~{ 5 + 5 }~")()).toBe("10");
+    expect(await Nostache("~{ 'aa' }~")()).toBe("aa");
+    expect(await Nostache("~{ {a:'aa'}.a }~")()).toBe("aa");
+    expect(await Nostache("~{ (()=> 'aa')() }~")()).toBe("aa");
+    expect(await Nostache("~{ 10 }~ ~{ 'aa' }~")()).toBe("10 aa");
+    expect(await Nostache("<p>~{ 10 }~</p>")()).toBe("<p>10</p>");
+    expect(await Nostache("<p>~{ 5 + 5 }~</p>")()).toBe("<p>10</p>");
+    expect(await Nostache("<p>~{ 'aa' }~</p>")()).toBe("<p>aa</p>");
+    expect(await Nostache("<p>~{ {a:'aa'}.a }~</p>")()).toBe("<p>aa</p>");
+    expect(await Nostache("<p>~{ (() => 'aa')() }~</p>")()).toBe("<p>aa</p>");
+    expect(await Nostache("<p>~{ 10 }~</p>~{ 'aa' }~")()).toBe("<p>10</p>aa");
+    expect(await Nostache("<{ if (true) {<p>~{ 10 }~</p>}}>")()).toBe("<p>10</p>");
+    expect(await Nostache("<{ if (true) {<p>~{ 5 + 5 }~</p>}}>")()).toBe("<p>10</p>");
+    expect(await Nostache("<{ if (true) {<p>~{ 5 + 5 }~</p>~{'aa'}~}}>")()).toBe("<p>10</p>aa");
+});
+
+test("Safe output", async () => {
+    expect(await Nostache(`<p>={ "<p>&'\\"" }=</p>`)()).toBe("<p>&#60;p&#62;&#38;&#39;&#34;</p>");
+    expect(await Nostache(`<p>={ this[0] }=</p>`)("<p>&'\"")).toBe("<p>&#60;p&#62;&#38;&#39;&#34;</p>");
+    expect(await Nostache(`<p>={ new Promise(r => r(this[0])) }=</p>`)("<p>&'\"")).toBe("<p>&#60;p&#62;&#38;&#39;&#34;</p>");
+    expect(await Nostache(`<p class="={ "<p>&'\\"" }="></p>`)()).toBe(`<p class="&#60;p&#62;&#38;&#39;&#34;"></p>`);
+    expect(await Nostache(`<p class="={ this[0] }="></p>`)("<p>&'\"")).toBe(`<p class="&#60;p&#62;&#38;&#39;&#34;"></p>`);
+    expect(await Nostache(`<p class="={ new Promise(r => r(this[0])) }="></p>`)("<p>&'\"")).toBe(`<p class="&#60;p&#62;&#38;&#39;&#34;"></p>`);
+});
+
 test("This argument", async () => {
     expect(await Nostache("={ this[0] }=")(10)).toBe("10");
     expect(await Nostache("={ this[0] }=")(true)).toBe("true");
@@ -211,12 +238,6 @@ test("Promises", async () => {
 });
 
 test("Recursive templates", async () => {
-    expect(await Nostache("<li>={ this[0] }=</li><{if (this[0] < 13) }>={ this(this[0] + 1) }=")(10)).toBe("<li>10</li><li>11</li><li>12</li><li>13</li>");
-    expect(await Nostache("<li>={ a }=</li><{if (a < 13) }>={ this({a:++a}) }=")({a: 10})).toBe("<li>10</li><li>11</li><li>12</li><li>13</li>");
-});
-
-test("Escape html", async () => {
-    expect(await Nostache(`<p>={ "<p>&'\\"" }=</p>`)()).toBe("<p>&#60;p&#62;&#38;&#39;&#34;</p>");
-    expect(await Nostache(`<p>={ this[0] }=</p>`)("<p>&'\"")).toBe("<p>&#60;p&#62;&#38;&#39;&#34;</p>");
-    expect(await Nostache(`<p>={ new Promise(r => r(this[0])) }=</p>`)("<p>&'\"")).toBe("<p>&#60;p&#62;&#38;&#39;&#34;</p>");
+    expect(await Nostache("<li>={ this[0] }=</li><{if (this[0] < 13) }>~{ this(this[0] + 1) }~")(10)).toBe("<li>10</li><li>11</li><li>12</li><li>13</li>");
+    expect(await Nostache("<li>={ a }=</li><{if (a < 13) }>~{ this({a:++a}) }~")({a: 10})).toBe("<li>10</li><li>11</li><li>12</li><li>13</li>");
 });
