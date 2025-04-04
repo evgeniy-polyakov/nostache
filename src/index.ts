@@ -1,6 +1,9 @@
 const templateCache: Record<string, string> = {};
 
 // todo test for js in html
+// todo test for loops
+// todo replace ={ ~{ with {= {~ because the first one conflicts with JS syntax
+// todo allow ={ ~{ in code blocks, implement check for string literals
 // todo implement expressions like <{if (true) {>true<} else {>false<}> as alternative to <{if (true) }>true<{ else }>false<{}>
 // todo think about simplified expressions like <a class={"class"}>{"text"}</a>
 // todo table of control characters in readme.md
