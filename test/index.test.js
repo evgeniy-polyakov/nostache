@@ -153,6 +153,45 @@ test("Safe output", async () => {
     expect(await Nostache(`<p class="={ new Promise(r => r(this[0])) }="></p>`)("<p>&'\"")).toBe(`<p class="&#60;p&#62;&#38;&#39;&#34;"></p>`);
 });
 
+test("Strings in output expressions", async () => {
+    expect(await Nostache(`={ "}=" }=`)()).toBe("}=");
+    expect(await Nostache(`={ '}=' }=`)()).toBe("}=");
+    expect(await Nostache("={ `}=` }=")()).toBe("}=");
+    expect(await Nostache(`={ "'}=\`" }=`)()).toBe("&#39;}=`");
+    expect(await Nostache(`={ '"}=\`' }=`)()).toBe("&#34;}=`");
+    expect(await Nostache("={ `\"}='` }=")()).toBe("&#34;}=&#39;");
+    expect(await Nostache(`={ "\\"}=\\"" }=`)()).toBe("&#34;}=&#34;");
+    expect(await Nostache(`={ '\\'}=\\'' }=`)()).toBe("&#39;}=&#39;");
+    expect(await Nostache("={ `\\`}=\\`` }=")()).toBe("`}=`");
+    expect(await Nostache(`={ "a}=a" }=`)()).toBe("a}=a");
+    expect(await Nostache(`={ 'a}=a' }=`)()).toBe("a}=a");
+    expect(await Nostache("={ `a}=a` }=")()).toBe("a}=a");
+    expect(await Nostache(`={ " }= " }=`)()).toBe(" }= ");
+    expect(await Nostache(`={ ' }= ' }=`)()).toBe(" }= ");
+    expect(await Nostache("={ ` }= ` }=")()).toBe(" }= ");
+    expect(await Nostache(`={ (() => "a}=a")() }=`)()).toBe("a}=a");
+    expect(await Nostache(`={ (() => 'a}=a')() }=`)()).toBe("a}=a");
+    expect(await Nostache("={ (() => `a}=a`)() }=")()).toBe("a}=a");
+    expect(await Nostache(`~{ "}~" }~`)()).toBe("}~");
+    expect(await Nostache(`~{ '}~' }~`)()).toBe("}~");
+    expect(await Nostache("~{ `}~` }~")()).toBe("}~");
+    expect(await Nostache(`~{ "'}~\`" }~`)()).toBe("'}~`");
+    expect(await Nostache(`~{ '"}~\`' }~`)()).toBe("\"}~`");
+    expect(await Nostache("~{ `\"}~'` }~")()).toBe("\"}~'");
+    expect(await Nostache(`~{ "\\"}~\\"" }~`)()).toBe("\"}~\"");
+    expect(await Nostache(`~{ '\\'}~\\'' }~`)()).toBe("'}~'");
+    expect(await Nostache("~{ `\\`}~\\`` }~")()).toBe("`}~`");
+    expect(await Nostache(`~{ "a}~a" }~`)()).toBe("a}~a");
+    expect(await Nostache(`~{ 'a}~a' }~`)()).toBe("a}~a");
+    expect(await Nostache("~{ `a}~a` }~")()).toBe("a}~a");
+    expect(await Nostache(`~{ " }~ " }~`)()).toBe(" }~ ");
+    expect(await Nostache(`~{ ' }~ ' }~`)()).toBe(" }~ ");
+    expect(await Nostache("~{ ` }~ ` }~")()).toBe(" }~ ");
+    expect(await Nostache(`~{ (() => "a}~a")() }~`)()).toBe("a}~a");
+    expect(await Nostache(`~{ (() => 'a}~a')() }~`)()).toBe("a}~a");
+    expect(await Nostache("~{ (() => `a}~a`)() }~")()).toBe("a}~a");
+});
+
 test("This argument", async () => {
     expect(await Nostache("={ this[0] }=")(10)).toBe("10");
     expect(await Nostache("={ this[0] }=")(true)).toBe("true");

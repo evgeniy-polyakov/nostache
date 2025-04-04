@@ -2,7 +2,6 @@ const templateCache: Record<string, string> = {};
 
 // todo test for js in html
 // todo implement expressions like <{if (true) {>true<} else {>false<}> as alternative to <{if (true) }>true<{ else }>false<{}>
-// todo don't process }> }= }~ in strings "" '' ``
 // todo think about simplified expressions like <a class={"class"}>{"text"}</a>
 // todo table of control characters in readme.md
 const parseTemplate = (template: string) => {
@@ -26,6 +25,8 @@ const parseTemplate = (template: string) => {
     const ASSIGN = charCode("=");
     const TILDE = charCode("~");
     const BACKSLASH = charCode("\\");
+    const APOSTROPHE = charCode("'");
+    const QUOTE = charCode("\"");
     const BACKTICK = charCode("`");
     const DOLLAR = charCode("$");
 
@@ -155,9 +156,19 @@ const parseTemplate = (template: string) => {
         startIndex = index;
         const closeChar = unsafe ? TILDE : ASSIGN;
         let hasMeaningfulSymbol = false;
+        let isInString = 0;
         for (; index < length;) {
             const c = template.charCodeAt(index);
-            if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === closeChar) {
+            if (!isInString && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
+                isInString = c;
+                index++;
+                hasMeaningfulSymbol = true;
+            } else if (isInString && c === BACKSLASH) {
+                index += 2;
+            } else if (isInString && c === isInString) {
+                isInString = 0;
+                index++;
+            } else if (!isInString && c === CLOSE_BRACE && template.charCodeAt(index + 1) === closeChar) {
                 if (hasMeaningfulSymbol) {
                     appendOutput(unsafe);
                 }
