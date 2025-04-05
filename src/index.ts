@@ -101,10 +101,20 @@ const parseTemplate = (template: string) => {
 
     const parseLogicBlock = () => {
         startIndex = index;
+        let isInString = 0;
         let isPotentialHtml = true; // We can start html block right away
         for (; index < length;) {
             const c = template.charCodeAt(index);
-            if (c === OPEN_BRACE) {
+            if (!isInString && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
+                isInString = c;
+                index++;
+                isPotentialHtml = false;
+            } else if (isInString && c === BACKSLASH) {
+                index += 2;
+            } else if (isInString && c === isInString) {
+                isInString = 0;
+                index++;
+            } else if (!isInString && c === OPEN_BRACE) {
                 index++;
                 isPotentialHtml = true;
             } else if (isPotentialHtml && isWhitespace[c]) {
@@ -113,7 +123,7 @@ const parseTemplate = (template: string) => {
                 isPotentialHtml = false;
                 appendLogic();
                 parseHtmlBlock();
-            } else if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === CLOSE_ANGLE) {
+            } else if (!isInString && c === CLOSE_BRACE && template.charCodeAt(index + 1) === CLOSE_ANGLE) {
                 appendLogic();
                 index += 2;
                 break;

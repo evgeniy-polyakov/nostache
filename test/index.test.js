@@ -192,6 +192,33 @@ test("Strings in output expressions", async () => {
     expect(await Nostache("{~ (() => `a~}a`)() ~}")()).toBe("a~}a");
 });
 
+test("Strings in logic expressions", async () => {
+    expect(await Nostache(`<{ yield "}>" }>`)()).toBe("}>");
+    expect(await Nostache(`<{ yield '}>' }>`)()).toBe("}>");
+    expect(await Nostache("<{ yield `}>` }>")()).toBe("}>");
+    expect(await Nostache(`<{ yield "'}>\`" }>`)()).toBe("'}>`");
+    expect(await Nostache(`<{ yield '"}>\`' }>`)()).toBe("\"}>`");
+    expect(await Nostache("<{ yield `\"}>'` }>")()).toBe("\"}>'");
+    expect(await Nostache(`<{ yield "\\"}>\\"" }>`)()).toBe("\"}>\"");
+    expect(await Nostache(`<{ yield '\\'}>\\'' }>`)()).toBe("'}>'");
+    expect(await Nostache("<{ yield `\\`}>\\`` }>")()).toBe("`}>`");
+    expect(await Nostache(`<{ yield "a}>a" }>`)()).toBe("a}>a");
+    expect(await Nostache(`<{ yield 'a}>a' }>`)()).toBe("a}>a");
+    expect(await Nostache("<{ yield `a}>a` }>")()).toBe("a}>a");
+    expect(await Nostache(`<{ yield " }> " }>`)()).toBe(" }> ");
+    expect(await Nostache(`<{ yield ' }> ' }>`)()).toBe(" }> ");
+    expect(await Nostache("<{ yield ` }> ` }>")()).toBe(" }> ");
+    expect(await Nostache(`<{ yield (() => "a}>a")() }>`)()).toBe("a}>a");
+    expect(await Nostache(`<{ yield (() => 'a}>a')() }>`)()).toBe("a}>a");
+    expect(await Nostache("<{ yield (() => `a}>a`)() }>")()).toBe("a}>a");
+    expect(await Nostache(`<{ let a = "}>"; if (true) { <a>{= a =}</a> } a = "<{";}><a>{= a =}</a>`)()).toBe("<a>}&#62;</a><a>&#60;{</a>");
+    expect(await Nostache(`<{ let a = "<{"; if (true) { <a>{= a =}</a> } a = "}>";}><a>{= a =}</a>`)()).toBe("<a>&#60;{</a><a>}&#62;</a>");
+    expect(await Nostache(`<{ let a = "{="; if (true) { <a>{= a =}</a> } a = "=}";}><a>{= a =}</a>`)()).toBe("<a>{=</a><a>=}</a>");
+    expect(await Nostache(`<{ let a = "{~"; if (true) { <a>{= a =}</a> } a = "~}";}><a>{= a =}</a>`)()).toBe("<a>{~</a><a>~}</a>");
+    expect(await Nostache(`<{ const a = {"a": "aa"}; {<div>"{= a.a =}"</div>} }>`)()).toBe("<div>\"aa\"</div>");
+    expect(await Nostache(`<{ const a = {"a": "aa"}; {<div class="{= a.a =}"></div>} }>`)()).toBe("<div class=\"aa\"></div>");
+});
+
 test("This argument", async () => {
     expect(await Nostache("{= this[0] =}")(10)).toBe("10");
     expect(await Nostache("{= this[0] =}")(true)).toBe("true");
