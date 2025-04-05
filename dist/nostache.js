@@ -30,8 +30,11 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
     return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
 };const templateCache = {};
 // todo test for js in html
+// todo test for loops
+// todo allow ={ ~{ in code blocks, implement check for string literals
 // todo implement expressions like <{if (true) {>true<} else {>false<}> as alternative to <{if (true) }>true<{ else }>false<{}>
 // todo think about simplified expressions like <a class={"class"}>{"text"}</a>
+// todo errors for unfinished expressions
 // todo table of control characters in readme.md
 const parseTemplate = (template) => {
     const charCode = (char) => {
@@ -85,14 +88,14 @@ const parseTemplate = (template) => {
             parseLogicBlock();
             return true;
         }
-        else if (c === ASSIGN && template.charCodeAt(index + 1) === OPEN_BRACE) {
+        else if (c === OPEN_BRACE && template.charCodeAt(index + 1) === ASSIGN) {
             // Assignment block ={
             appendResult();
             index += 2;
             parseOutputBlock(false);
             return true;
         }
-        else if (c === TILDE && template.charCodeAt(index + 1) === OPEN_BRACE) {
+        else if (c === OPEN_BRACE && template.charCodeAt(index + 1) === TILDE) {
             // Unsafe assignment block ~{
             appendResult();
             index += 2;
@@ -116,14 +119,6 @@ const parseTemplate = (template) => {
         else if (c === DOLLAR) {
             // Escape dollar
             appendResult(index, "\\$");
-            index++;
-            startIndex = index;
-            return true;
-        }
-        else if ((c === OPEN_ANGLE || c === ASSIGN || c === TILDE) && template.charCodeAt(index + 1) === c && template.charCodeAt(index + 2) === OPEN_BRACE) {
-            // Escape open block symbols <<{ =={ ~~{
-            index++;
-            appendResult();
             index++;
             startIndex = index;
             return true;
@@ -202,7 +197,7 @@ const parseTemplate = (template) => {
                 isInString = 0;
                 index++;
             }
-            else if (!isInString && c === CLOSE_BRACE && template.charCodeAt(index + 1) === closeChar) {
+            else if (!isInString && c === closeChar && template.charCodeAt(index + 1) === CLOSE_BRACE) {
                 if (hasMeaningfulSymbol) {
                     appendOutput(unsafe);
                 }
