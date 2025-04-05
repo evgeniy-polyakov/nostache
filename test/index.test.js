@@ -60,6 +60,33 @@ test("Nested blocks", async () => {
     expect(await Nostache("<{ if (true) { <p><{ if (true) { <b><{ if (true) }><i>simple</i><{}> text</b> }}></p> }}>")()).toBe("<p><b><i>simple</i> text</b></p>");
 });
 
+test("Script blocks", async () => {
+    expect(await Nostache(`<script>let o = {"a": "{=a=}", "b": "{=b=}"};</script>`)({a:1,b:2})).toBe(`<script>let o = {"a": "1", "b": "2"};</script>`);
+    expect(await Nostache(`<script>let o = {"a": "{=a=}"<{if (b) }>, "b": "{=b=}"<{}>};</script>`)({a:1,b:2})).toBe(`<script>let o = {"a": "1", "b": "2"};</script>`);
+    expect(await Nostache(`<script>let o = {"a": "{=a=}"<{if (!b) {
+}>, "b": "{=b=}"<{
+}}>};</script>`)({a:1,b:2})).toBe(`<script>let o = {"a": "1"};</script>`);
+    expect(await Nostache(`<script><{if (a) {}>if (a) {console.log(a);}<{}}></script>`)({a:1})).toBe(`<script>if (a) {console.log(a);}</script>`);
+});
+
+test("Loops", async () => {
+    expect(await Nostache("<ul><{for (let i=0; i<3; i++) {<li>{=i=}</li>} }></ul>")()).toBe("<ul><li>0</li><li>1</li><li>2</li></ul>");
+    expect(await Nostache(`<table><{
+for (let i=0; i<3; i++) {
+    <tr><{for (let j=0; j<3; j++) {
+        <td>{=i=}{=j=}</td>
+    }}></tr>
+}}></table>`)())
+        .toBe("<table><tr><td>00</td><td>01</td><td>02</td></tr><tr><td>10</td><td>11</td><td>12</td></tr><tr><td>20</td><td>21</td><td>22</td></tr></table>");
+    expect(await Nostache("<ul><{let i = 3; while (i-->0) {<li>{=i=}</li>} }></ul>")()).toBe("<ul><li>2</li><li>1</li><li>0</li></ul>");
+    expect(await Nostache(`<ul><{
+let i = 0;
+while (true) {
+    {<li>{=i=}</li>}
+    if (++i>=3) break;
+}}></ul>`)()).toBe("<ul><li>0</li><li>1</li><li>2</li></ul>");
+});
+
 test("Whitespace", async () => {
     expect(await Nostache(" <{ }> ")()).toBe("  ");
     expect(await Nostache(" <{ <p>simple text</p> }> ")()).toBe(" <p>simple text</p> ");

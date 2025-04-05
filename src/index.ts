@@ -1,8 +1,5 @@
 const templateCache: Record<string, string> = {};
 
-// todo test for js in html
-// todo test for loops
-// todo allow ={ ~{ in code blocks, implement check for string literals
 // todo errors for unfinished expressions
 // todo extension functions
 // todo table of control characters in readme.md

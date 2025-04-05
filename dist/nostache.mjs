@@ -29,9 +29,6 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
     var e = new Error(message);
     return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
 };const templateCache = {};
-// todo test for js in html
-// todo test for loops
-// todo allow ={ ~{ in code blocks, implement check for string literals
 // todo errors for unfinished expressions
 // todo extension functions
 // todo table of control characters in readme.md
