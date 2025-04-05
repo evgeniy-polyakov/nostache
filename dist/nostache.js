@@ -32,9 +32,8 @@ typeof SuppressedError === "function" ? SuppressedError : function (error, suppr
 // todo test for js in html
 // todo test for loops
 // todo allow ={ ~{ in code blocks, implement check for string literals
-// todo implement expressions like <{if (true) {>true<} else {>false<}> as alternative to <{if (true) }>true<{ else }>false<{}>
-// todo think about simplified expressions like <a class={"class"}>{"text"}</a>
 // todo errors for unfinished expressions
+// todo extension functions
 // todo table of control characters in readme.md
 const parseTemplate = (template) => {
     const charCode = (char) => {
@@ -154,6 +153,13 @@ const parseTemplate = (template) => {
                 isPotentialHtml = false;
                 appendLogic();
                 parseHtmlBlock();
+            }
+            else if (isPotentialHtml && (c === ASSIGN || c === TILDE)) {
+                isPotentialHtml = false;
+                appendLogic();
+                index++;
+                parseOutputBlock(c === TILDE);
+                startIndex--;
             }
             else if (!isInString && c === CLOSE_BRACE && template.charCodeAt(index + 1) === CLOSE_ANGLE) {
                 appendLogic();
@@ -293,8 +299,9 @@ const Nostache = (template) => {
         }
     });
     templateFunc.verbose = Nostache.verbose;
-    templateFunc.toString = () => funcBody;
     templateFunc.escape = escape;
+    templateFunc.toString = () => funcBody;
     return templateFunc;
 };
-Nostache.verbose = false;return Nostache;}));//# sourceMappingURL=nostache.js.map
+Nostache.verbose = false;
+Nostache.escape = escape;return Nostache;}));//# sourceMappingURL=nostache.js.map

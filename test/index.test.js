@@ -219,6 +219,17 @@ test("Strings in logic expressions", async () => {
     expect(await Nostache(`<{ const a = {"a": "aa"}; {<div class="{= a.a =}"></div>} }>`)()).toBe("<div class=\"aa\"></div>");
 });
 
+test("Output in logic expressions", async () => {
+    expect(await Nostache(`<{{=10=}}>`)()).toBe("10");
+    expect(await Nostache(`<{{="<>&'\\""=}}>`)()).toBe("&#60;&#62;&#38;&#39;&#34;");
+    expect(await Nostache(`<{ {= 10 =} }>`)()).toBe("10");
+    expect(await Nostache(`<{ {= "<>&'\\"" =} }>`)()).toBe("&#60;&#62;&#38;&#39;&#34;");
+    expect(await Nostache(`<p><{ const a = 10; {<a>{=a=}</a>} }></p>`)()).toBe("<p><a>10</a></p>");
+    expect(await Nostache(`<{{~"<>&'\\""~}}>`)()).toBe("<>&'\"");
+    expect(await Nostache(`<{ {~ 10 ~} }>`)()).toBe("10");
+    expect(await Nostache(`<p><{ const a = 10; {<a>{=a=}</a>} }></p>`)()).toBe("<p><a>10</a></p>");
+});
+
 test("This argument", async () => {
     expect(await Nostache("{= this[0] =}")(10)).toBe("10");
     expect(await Nostache("{= this[0] =}")(true)).toBe("true");
