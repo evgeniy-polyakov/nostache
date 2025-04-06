@@ -2,6 +2,8 @@ const templateCache: Record<string, string> = {};
 
 // todo errors for unfinished expressions
 // todo extension functions
+// todo expressions like <{ if (true) {>true<} else {>false<}>. Remove whitespace before and after text nodes.
+// todo support of older browsers
 // todo table of control characters in readme.md
 const parseTemplate = (template: string) => {
 

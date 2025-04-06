@@ -1,36 +1,8 @@
-(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';/******************************************************************************
-Copyright (c) Microsoft Corporation.
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
-***************************************************************************** */
-/* global Reflect, Promise, SuppressedError, Symbol, Iterator */
-
-
-function __awaiter(thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-}
-
-typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
-    var e = new Error(message);
-    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
-};const templateCache = {};
+(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const templateCache = {};
 // todo errors for unfinished expressions
 // todo extension functions
+// todo expressions like <{ if (true) {>true<} else {>false<}>. Remove whitespace before and after text nodes.
+// todo support of older browsers
 // todo table of control characters in readme.md
 const parseTemplate = (template) => {
     const charCode = (char) => {
@@ -240,13 +212,12 @@ const parseTemplate = (template) => {
     appendResult();
     return `return(async function*(){\n${funcBody}}).call(this)`;
 };
-const escape = (value) => __awaiter(void 0, void 0, void 0, function* () {
-    return String(yield value).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
-});
+const escape = async (value) => {
+    return String(await value).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+};
 const Nostache = (template) => {
-    var _a;
-    const funcBody = (_a = templateCache[template]) !== null && _a !== void 0 ? _a : (templateCache[template] = parseTemplate(template));
-    const templateFunc = (...context) => __awaiter(void 0, void 0, void 0, function* () {
+    const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
+    const templateFunc = async (...context) => {
         const argNames = [];
         const argValues = [];
         for (const c of context) {
@@ -280,7 +251,7 @@ const Nostache = (template) => {
             const asyncGenerator = Function(...argNames, funcBody).apply(contextFunc, argValues);
             let result = "";
             while (true) {
-                const chunk = yield asyncGenerator.next();
+                const chunk = await asyncGenerator.next();
                 if (chunk.done) {
                     break;
                 }
@@ -294,7 +265,7 @@ const Nostache = (template) => {
             error.message += `\nat function (${argNames.join(", ")}) {\n${funcBody}\n})(${argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;
             throw error;
         }
-    });
+    };
     templateFunc.verbose = Nostache.verbose;
     templateFunc.escape = escape;
     templateFunc.toString = () => funcBody;
