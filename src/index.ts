@@ -4,6 +4,8 @@ const templateCache: Record<string, string> = {};
 // todo extension functions
 // todo expressions like <{ if (true) {>true<} else {>false<}>. Remove whitespace before and after text nodes.
 // todo support of older browsers
+// todo expressions like <{ const a = <{ <div>Inner Template<div/> }> }> for inner templates in JS strings
+// todo layout/block/region technics
 // todo table of control characters in readme.md
 const parseTemplate = (template: string) => {
 
@@ -100,13 +102,13 @@ const parseTemplate = (template: string) => {
     const parseLogicBlock = () => {
         startIndex = index;
         let isInString = 0;
-        let isPotentialHtml = true; // We can start html block right away
+        let isPotentialText = true; // We can start html block right away
         for (; index < length;) {
             const c = template.charCodeAt(index);
             if (!isInString && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
                 isInString = c;
                 index++;
-                isPotentialHtml = false;
+                isPotentialText = false;
             } else if (isInString && c === BACKSLASH) {
                 index += 2;
             } else if (isInString && c === isInString) {
@@ -114,15 +116,20 @@ const parseTemplate = (template: string) => {
                 index++;
             } else if (!isInString && c === OPEN_BRACE) {
                 index++;
-                isPotentialHtml = true;
-            } else if (isPotentialHtml && isWhitespace[c]) {
+                isPotentialText = true;
+            } else if (isPotentialText && isWhitespace[c]) {
                 index++;
-            } else if (isPotentialHtml && c === OPEN_ANGLE) {
-                isPotentialHtml = false;
+            } else if (isPotentialText && c === OPEN_ANGLE) {
+                isPotentialText = false;
                 appendLogic();
                 parseHtmlBlock();
-            } else if (isPotentialHtml && (c === ASSIGN || c === TILDE)) {
-                isPotentialHtml = false;
+            } else if (isPotentialText && c === CLOSE_ANGLE) {
+                isPotentialText = false;
+                appendLogic();
+                index++;
+                parseTextBlock();
+            } else if (isPotentialText && (c === ASSIGN || c === TILDE)) {
+                isPotentialText = false;
                 appendLogic();
                 index++;
                 parseOutputBlock(c === TILDE);
@@ -133,13 +140,37 @@ const parseTemplate = (template: string) => {
                 break;
             } else {
                 index++;
-                isPotentialHtml = false;
+                isPotentialText = false;
             }
         }
         startIndex = index;
     };
 
     const parseHtmlBlock = () => {
+        startIndex = index;
+        let potentialEnd = -1;
+        for (; index < length;) {
+            const c = template.charCodeAt(index);
+            if (c === CLOSE_ANGLE) {
+                index++;
+                potentialEnd = index;
+            } else if (potentialEnd >= 0 && isWhitespace[c]) {
+                index++;
+            } else if (potentialEnd >= 0 && c === CLOSE_BRACE) {
+                appendResult(potentialEnd);
+                break;
+            } else if (parseOpenBlock(c)) {
+                // continue
+            } else {
+                index++;
+                potentialEnd = -1;
+            }
+        }
+        startIndex = index;
+    };
+
+    const parseTextBlock = () => {
+        // todo
         startIndex = index;
         let potentialEnd = -1;
         for (; index < length;) {
