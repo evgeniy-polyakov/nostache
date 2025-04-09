@@ -1,9 +1,11 @@
 const templateCache = {};
 // todo errors for unfinished expressions
 // todo extension functions
-// todo expressions like <{ if (true) {>true<} else {>false<}>. Remove whitespace before and after text nodes.
 // todo support of older browsers
+// todo expressions like <{ const f = function (i) <{ <div>Inner Template {=i=}<div/> }> }> for inner templates in JS strings
+// todo layout/block/region technics
 // todo table of control characters in readme.md
+// todo ; before yield
 const parseTemplate = (template) => {
     const charCode = (char) => {
         if (char.length > 1) {
@@ -96,13 +98,13 @@ const parseTemplate = (template) => {
     const parseLogicBlock = () => {
         startIndex = index;
         let isInString = 0;
-        let isPotentialHtml = true; // We can start html block right away
+        let isPotentialText = true; // We can start html block right away
         for (; index < length;) {
             const c = template.charCodeAt(index);
             if (!isInString && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
                 isInString = c;
                 index++;
-                isPotentialHtml = false;
+                isPotentialText = false;
             }
             else if (isInString && c === BACKSLASH) {
                 index += 2;
@@ -113,18 +115,24 @@ const parseTemplate = (template) => {
             }
             else if (!isInString && c === OPEN_BRACE) {
                 index++;
-                isPotentialHtml = true;
+                isPotentialText = true;
             }
-            else if (isPotentialHtml && isWhitespace[c]) {
+            else if (isPotentialText && isWhitespace[c]) {
                 index++;
             }
-            else if (isPotentialHtml && c === OPEN_ANGLE) {
-                isPotentialHtml = false;
+            else if (isPotentialText && c === OPEN_ANGLE) {
+                isPotentialText = false;
                 appendLogic();
                 parseHtmlBlock();
             }
-            else if (isPotentialHtml && (c === ASSIGN || c === TILDE)) {
-                isPotentialHtml = false;
+            else if (isPotentialText && c === CLOSE_ANGLE) {
+                isPotentialText = false;
+                appendLogic();
+                index++;
+                parseTextBlock();
+            }
+            else if (isPotentialText && (c === ASSIGN || c === TILDE)) {
+                isPotentialText = false;
                 appendLogic();
                 index++;
                 parseOutputBlock(c === TILDE);
@@ -137,7 +145,7 @@ const parseTemplate = (template) => {
             }
             else {
                 index++;
-                isPotentialHtml = false;
+                isPotentialText = false;
             }
         }
         startIndex = index;
@@ -166,6 +174,43 @@ const parseTemplate = (template) => {
         }
         startIndex = index;
     };
+    const parseTextBlock = () => {
+        startIndex = index;
+        let potentialEnd = -1;
+        let potentialEndWhitespace = -1;
+        let hasMeaningfulSymbol = false;
+        for (; index < length;) {
+            const c = template.charCodeAt(index);
+            if (!hasMeaningfulSymbol && isWhitespace[c]) {
+                startIndex++;
+                index++;
+            }
+            else if (hasMeaningfulSymbol && (c === OPEN_ANGLE || isWhitespace[c])) {
+                if (potentialEndWhitespace < 0)
+                    potentialEndWhitespace = index;
+                if (c === OPEN_ANGLE)
+                    potentialEnd = index;
+                index++;
+            }
+            else if (potentialEnd >= 0 && isWhitespace[c]) {
+                index++;
+            }
+            else if (potentialEnd >= 0 && c === CLOSE_BRACE) {
+                appendResult(potentialEndWhitespace);
+                break;
+            }
+            else if (parseOpenBlock(c)) {
+                hasMeaningfulSymbol = true;
+            }
+            else {
+                index++;
+                potentialEnd = -1;
+                potentialEndWhitespace = -1;
+                hasMeaningfulSymbol = true;
+            }
+        }
+        startIndex = index;
+    };
     const parseOutputBlock = (unsafe) => {
         startIndex = index;
         const closeChar = unsafe ? TILDE : ASSIGN;
@@ -173,7 +218,10 @@ const parseTemplate = (template) => {
         let isInString = 0;
         for (; index < length;) {
             const c = template.charCodeAt(index);
-            if (!isInString && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
+            if (!hasMeaningfulSymbol && isWhitespace[c]) {
+                index++;
+            }
+            else if (!isInString && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
                 isInString = c;
                 index++;
                 hasMeaningfulSymbol = true;
@@ -191,9 +239,6 @@ const parseTemplate = (template) => {
                 }
                 index += 2;
                 break;
-            }
-            else if (isWhitespace[c]) {
-                index++;
             }
             else {
                 index++;

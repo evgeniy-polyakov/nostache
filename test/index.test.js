@@ -45,12 +45,38 @@ test("HTML in logic block", async () => {
     }} }>`)()).toBe("<p>simple text</p>");
 });
 
+test("Text in logic block", async () => {
+    expect(await Nostache("<{>simple text<}>")()).toBe("simple text");
+    expect(await Nostache(`<{>
+    simple text
+    <}>`)()).toBe("simple text");
+    expect(await Nostache("<{> a<p><b>simple</b> text</p>a <}>")()).toBe("a<p><b>simple</b> text</p>a");
+    expect(await Nostache("<{ if (true) {> a<p>simple text</p>a <} }>")()).toBe("a<p>simple text</p>a");
+    expect(await Nostache(`<{ if (true) {>
+    _<p>simple text</p>_
+    <} }>`)()).toBe("_<p>simple text</p>_");
+    expect(await Nostache("<{ if (false) {>false<} else {> p>simple text<p <}}>")()).toBe("p>simple text<p");
+    expect(await Nostache("<{ if (true) {>true<} }><p>simple text</p>")()).toBe("true<p>simple text</p>");
+    expect(await Nostache("<{ if (false) {>false<p>simple text</p><}}>")()).toBe("");
+    expect(await Nostache("<{ if (false) {><p>error</p><} else {><p>simple text</p><} }>")()).toBe("<p>simple text</p>");
+    expect(await Nostache(`<{ if (false) {>
+    p>error</p
+    <} else {>
+    p>simple text</p
+    <} }>`)()).toBe("p>simple text</p");
+    expect(await Nostache("<{ let i = 0; while (i === 0) {i++; {>p>simple text</p<}}}>")()).toBe("p>simple text</p");
+    expect(await Nostache(`<{ let i = 0; while (i === 0) {i++; {>
+    p>simple text</p
+    <}}}>`)()).toBe("p>simple text</p");
+});
+
 test("Mixed blocks", async () => {
     expect(await Nostache("<p><{ if (true) { <b>simple text</b> }}></p>")()).toBe("<p><b>simple text</b></p>");
     expect(await Nostache("<p><{ if (true) }>simple text<{}></p>")()).toBe("<p>simple text</p>");
     expect(await Nostache("<p><{ if (true) {}>simple text<{}}></p>")()).toBe("<p>simple text</p>");
     expect(await Nostache("one<{ if (true) }>simple text<{}>two")()).toBe("onesimple texttwo");
     expect(await Nostache("one<{ if (true) }> simple text <{}>two")()).toBe("one simple text two");
+    expect(await Nostache("one <{ if (true) {> simple text <}}> two")()).toBe("one simple text two");
 });
 
 test("Nested blocks", async () => {

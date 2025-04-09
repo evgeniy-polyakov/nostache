@@ -2,11 +2,11 @@ const templateCache: Record<string, string> = {};
 
 // todo errors for unfinished expressions
 // todo extension functions
-// todo expressions like <{ if (true) {>true<} else {>false<}>. Remove whitespace before and after text nodes.
 // todo support of older browsers
-// todo expressions like <{ const a = <{ <div>Inner Template<div/> }> }> for inner templates in JS strings
+// todo expressions like <{ const f = function (i) <{ <div>Inner Template {=i=}<div/> }> }> for inner templates in JS strings
 // todo layout/block/region technics
 // todo table of control characters in readme.md
+// todo ; before yield
 const parseTemplate = (template: string) => {
 
     const charCode = (char: string) => {
@@ -170,24 +170,31 @@ const parseTemplate = (template: string) => {
     };
 
     const parseTextBlock = () => {
-        // todo
         startIndex = index;
         let potentialEnd = -1;
+        let potentialEndWhitespace = -1;
+        let hasMeaningfulSymbol = false;
         for (; index < length;) {
             const c = template.charCodeAt(index);
-            if (c === CLOSE_ANGLE) {
+            if (!hasMeaningfulSymbol && isWhitespace[c]) {
+                startIndex++;
                 index++;
-                potentialEnd = index;
+            } else if (hasMeaningfulSymbol && (c === OPEN_ANGLE || isWhitespace[c])) {
+                if (potentialEndWhitespace < 0) potentialEndWhitespace = index;
+                if (c === OPEN_ANGLE) potentialEnd = index;
+                index++;
             } else if (potentialEnd >= 0 && isWhitespace[c]) {
                 index++;
             } else if (potentialEnd >= 0 && c === CLOSE_BRACE) {
-                appendResult(potentialEnd);
+                appendResult(potentialEndWhitespace);
                 break;
             } else if (parseOpenBlock(c)) {
-                // continue
+                hasMeaningfulSymbol = true;
             } else {
                 index++;
                 potentialEnd = -1;
+                potentialEndWhitespace = -1;
+                hasMeaningfulSymbol = true;
             }
         }
         startIndex = index;
@@ -200,7 +207,9 @@ const parseTemplate = (template: string) => {
         let isInString = 0;
         for (; index < length;) {
             const c = template.charCodeAt(index);
-            if (!isInString && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
+            if (!hasMeaningfulSymbol && isWhitespace[c]) {
+                index++;
+            } else if (!isInString && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
                 isInString = c;
                 index++;
                 hasMeaningfulSymbol = true;
@@ -215,8 +224,6 @@ const parseTemplate = (template: string) => {
                 }
                 index += 2;
                 break;
-            } else if (isWhitespace[c]) {
-                index++;
             } else {
                 index++;
                 hasMeaningfulSymbol = true;
