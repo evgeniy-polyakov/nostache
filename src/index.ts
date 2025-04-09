@@ -1,5 +1,6 @@
 const templateCache: Record<string, string> = {};
 
+// todo don't process control symbols in comments
 // todo errors for unfinished expressions
 // todo extension functions
 // todo support of older browsers
@@ -248,6 +249,23 @@ const escape = async (value: unknown) => {
     return String(await value).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 };
 
+const iterateGenerator = async (generator: AsyncGenerator<any>) => {
+    let result = '';
+    while (true) {
+        const chunk = await generator.next();
+        if (chunk.done) {
+            break;
+        } else {
+            if (typeof chunk.value?.next === "function") {
+                result += await iterateGenerator(chunk.value);
+            } else {
+                result += await chunk.value;
+            }
+        }
+    }
+    return result;
+};
+
 const Nostache = (template: string): ((...context: unknown[]) => Promise<string>) & {
     verbose: boolean,
     toString(): string,
@@ -284,17 +302,8 @@ const Nostache = (template: string): ((...context: unknown[]) => Promise<string>
                 (contextFunc as any)[i] = context[i];
             }
             contextFunc.escape = templateFunc.escape;
-            const asyncGenerator: AsyncGenerator<string> = Function(...argNames, funcBody).apply(contextFunc, argValues);
-            let result = "";
-            while (true) {
-                const chunk = await asyncGenerator.next();
-                if (chunk.done) {
-                    break;
-                } else {
-                    result += chunk.value;
-                }
-            }
-            return result;
+            const generator = Function(...argNames, funcBody).apply(contextFunc, argValues);
+            return iterateGenerator(generator);
         } catch (error: any) {
             error.message += `\nat function (${argNames.join(", ")}) {\n${funcBody}\n})(${
                 argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")

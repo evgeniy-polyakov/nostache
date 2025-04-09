@@ -260,6 +260,24 @@ const parseTemplate = (template) => {
 const escape = async (value) => {
     return String(await value).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 };
+const iterateGenerator = async (generator) => {
+    let result = '';
+    while (true) {
+        const chunk = await generator.next();
+        if (chunk.done) {
+            break;
+        }
+        else {
+            if (typeof chunk.value?.next === "function") {
+                result += await iterateGenerator(chunk.value);
+            }
+            else {
+                result += await chunk.value;
+            }
+        }
+    }
+    return result;
+};
 const Nostache = (template) => {
     const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
     const templateFunc = async (...context) => {
@@ -293,18 +311,8 @@ const Nostache = (template) => {
                 contextFunc[i] = context[i];
             }
             contextFunc.escape = templateFunc.escape;
-            const asyncGenerator = Function(...argNames, funcBody).apply(contextFunc, argValues);
-            let result = "";
-            while (true) {
-                const chunk = await asyncGenerator.next();
-                if (chunk.done) {
-                    break;
-                }
-                else {
-                    result += chunk.value;
-                }
-            }
-            return result;
+            const generator = Function(...argNames, funcBody).apply(contextFunc, argValues);
+            return iterateGenerator(generator);
         }
         catch (error) {
             error.message += `\nat function (${argNames.join(", ")}) {\n${funcBody}\n})(${argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;
