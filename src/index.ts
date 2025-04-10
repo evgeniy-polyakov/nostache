@@ -1,6 +1,5 @@
 const templateCache: Record<string, string> = {};
 
-// todo don't process control symbols in comments
 // todo errors for unfinished expressions
 // todo extension functions
 // todo support of older browsers
@@ -31,6 +30,9 @@ const parseTemplate = (template: string) => {
     const CLOSE_BRACE = charCode("}");
     const ASSIGN = charCode("=");
     const TILDE = charCode("~");
+    const SLASH = charCode("/");
+    const ASTERISK = charCode("*");
+    const NEWLINE = charCode("\n");
     const BACKSLASH = charCode("\\");
     const APOSTROPHE = charCode("'");
     const QUOTE = charCode("\"");
@@ -51,7 +53,7 @@ const parseTemplate = (template: string) => {
     const appendOutput = (unsafe: boolean) => {
         if (index > startIndex) {
             funcBody += unsafe ?
-                `yield ${template.slice(startIndex, index)};\n` :
+                `yield (${template.slice(startIndex, index)});\n` :
                 `yield this.escape(${template.slice(startIndex, index)});\n`;
         }
     };
@@ -105,20 +107,14 @@ const parseTemplate = (template: string) => {
 
     const parseLogicBlock = () => {
         startIndex = index;
-        let isInString = 0;
         let isPotentialText = true; // We can start html block right away
         for (; index < length;) {
-            const c = template.charCodeAt(index);
-            if (!isInString && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
-                isInString = c;
-                index++;
+            if (parseStringOrComment()) {
                 isPotentialText = false;
-            } else if (isInString && c === BACKSLASH) {
-                index += 2;
-            } else if (isInString && c === isInString) {
-                isInString = 0;
-                index++;
-            } else if (!isInString && c === OPEN_BRACE) {
+                continue;
+            }
+            const c = template.charCodeAt(index);
+            if (c === OPEN_BRACE) {
                 index++;
                 isPotentialText = true;
             } else if (isPotentialText && isWhitespace[c]) {
@@ -138,7 +134,7 @@ const parseTemplate = (template: string) => {
                 index++;
                 parseOutputBlock(c === TILDE);
                 startIndex--;
-            } else if (!isInString && c === CLOSE_BRACE && template.charCodeAt(index + 1) === CLOSE_ANGLE) {
+            } else if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === CLOSE_ANGLE) {
                 appendLogic();
                 index += 2;
                 break;
@@ -208,21 +204,15 @@ const parseTemplate = (template: string) => {
         startIndex = index;
         const closeChar = unsafe ? TILDE : ASSIGN;
         let hasMeaningfulSymbol = false;
-        let isInString = 0;
         for (; index < length;) {
+            if (parseStringOrComment()) {
+                hasMeaningfulSymbol = true;
+                continue;
+            }
             const c = template.charCodeAt(index);
             if (!hasMeaningfulSymbol && isWhitespace[c]) {
                 index++;
-            } else if (!isInString && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
-                isInString = c;
-                index++;
-                hasMeaningfulSymbol = true;
-            } else if (isInString && c === BACKSLASH) {
-                index += 2;
-            } else if (isInString && c === isInString) {
-                isInString = 0;
-                index++;
-            } else if (!isInString && c === closeChar && template.charCodeAt(index + 1) === CLOSE_BRACE) {
+            } else if (c === closeChar && template.charCodeAt(index + 1) === CLOSE_BRACE) {
                 if (hasMeaningfulSymbol) {
                     appendOutput(unsafe);
                 }
@@ -234,6 +224,43 @@ const parseTemplate = (template: string) => {
             }
         }
         startIndex = index;
+    };
+
+    const parseStringOrComment = () => {
+        let isInString = 0;
+        let isInComment = 0;
+        let result = false;
+        for (; index < length;) {
+            const c = template.charCodeAt(index);
+            let n = 0;
+            if (!isInString && !isInComment && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
+                isInString = c;
+                index++;
+                result = true;
+            } else if (isInString && c === BACKSLASH) {
+                index += 2;
+            } else if (isInString && c === isInString) {
+                isInString = 0;
+                index++;
+                return true;
+            } else if (!isInString && !isInComment && c === SLASH && ((n = template.charCodeAt(index + 1)) === SLASH || n === ASTERISK)) {
+                isInComment = n;
+                index += 2;
+                result = true;
+            } else if (isInComment === SLASH && c === NEWLINE) {
+                isInComment = 0;
+                index++;
+            } else if (isInComment === ASTERISK && c === ASTERISK && template.charCodeAt(index + 1) === SLASH) {
+                isInComment = 0;
+                index += 2;
+                return true;
+            } else if (isInComment || isInString) {
+                index++;
+            } else {
+                return false;
+            }
+        }
+        return result;
     };
 
     for (; index < length;) {

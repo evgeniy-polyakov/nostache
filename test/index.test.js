@@ -272,6 +272,114 @@ test("Strings in logic expressions", async () => {
     expect(await Nostache(`<{ const a = {"a": "aa"}; {<div class="{= a.a =}"></div>} }>`)()).toBe("<div class=\"aa\"></div>");
 });
 
+test("Comments in output expressions", async () => {
+    expect(await Nostache(`{= //=}
+    1 =}`)()).toBe("1");
+    expect(await Nostache(`{= //=}abc=}
+    1 =}`)()).toBe("1");
+    expect(await Nostache(`{= /*=}*/1 =}`)()).toBe("1");
+    expect(await Nostache(`{= /*=}abc=}*/1 =}`)()).toBe("1");
+    expect(await Nostache(`{= // =} 
+    1 =}`)()).toBe("1");
+    expect(await Nostache(`{= //=} abc =} 
+    1 =}`)()).toBe("1");
+    expect(await Nostache(`{= /* =} */ 1 =}`)()).toBe("1");
+    expect(await Nostache(`{= /* =} abc =} */ 1 =}`)()).toBe("1");
+    expect(await Nostache(`{= 1 //=}
+    =}`)()).toBe("1");
+    expect(await Nostache(`{= 1 //=}abc=}
+    =}`)()).toBe("1");
+    expect(await Nostache(`{= 1/*=}*/ =}`)()).toBe("1");
+    expect(await Nostache(`{= 1/*=}abc=}*/ =}`)()).toBe("1");
+    expect(await Nostache(`{= 1// =} 
+    =}`)()).toBe("1");
+    expect(await Nostache(`{= 1// =} abc =} 
+    =}`)()).toBe("1");
+    expect(await Nostache(`{= 1 /* =} */ =}`)()).toBe("1");
+    expect(await Nostache(`{= 1 /* =} abc =} */ =}`)()).toBe("1");
+    expect(await Nostache(`{= 1 //=}
+    +2 =}`)()).toBe("3");
+    expect(await Nostache(`{= 1 //abc=}def
+    +2 =}`)()).toBe("3");
+    expect(await Nostache(`{= 1/*=}*/+2 =}`)()).toBe("3");
+    expect(await Nostache(`{= 1/*abc=}def*/+2 =}`)()).toBe("3");
+    expect(await Nostache(`{= 1// =} 
+    + 2 =}`)()).toBe("3");
+    expect(await Nostache(`{= 1// abc =} def
+    + 2 =}`)()).toBe("3");
+    expect(await Nostache(`{= 1 /* =} */ + 2 =}`)()).toBe("3");
+    expect(await Nostache(`{= 1 /* abc =} def */ + 2 =}`)()).toBe("3");
+    expect(await Nostache(`{~ //~}
+    1 ~}`)()).toBe("1");
+    expect(await Nostache(`{~ //~}abc~}
+    1 ~}`)()).toBe("1");
+    expect(await Nostache(`{~ /*~}*/1 ~}`)()).toBe("1");
+    expect(await Nostache(`{~ /*~}abc~}*/1 ~}`)()).toBe("1");
+    expect(await Nostache(`{~ // ~} 
+    1 ~}`)()).toBe("1");
+    expect(await Nostache(`{~ //~} abc ~} 
+    1 ~}`)()).toBe("1");
+    expect(await Nostache(`{~ /* ~} */ 1 ~}`)()).toBe("1");
+    expect(await Nostache(`{~ /*~} abc ~} */ 1 ~}`)()).toBe("1");
+    expect(await Nostache(`{~ 1 //~}
+    ~}`)()).toBe("1");
+    expect(await Nostache(`{~ 1 //~}abc~}
+    ~}`)()).toBe("1");
+    expect(await Nostache(`{~ 1/*~}*/ ~}`)()).toBe("1");
+    expect(await Nostache(`{~ 1/*~}abc~}*/ ~}`)()).toBe("1");
+    expect(await Nostache(`{~ 1// ~} 
+    ~}`)()).toBe("1");
+    expect(await Nostache(`{~ 1// ~} abc ~} 
+    ~}`)()).toBe("1");
+    expect(await Nostache(`{~ 1 /* ~} */ ~}`)()).toBe("1");
+    expect(await Nostache(`{~ 1 /* ~} abc ~} */ ~}`)()).toBe("1");
+    expect(await Nostache(`{~ 1 //~}
+    +2 ~}`)()).toBe("3");
+    expect(await Nostache(`{~ 1 //abc~}def
+    +2 ~}`)()).toBe("3");
+    expect(await Nostache(`{~ 1/*~}*/+2 ~}`)()).toBe("3");
+    expect(await Nostache(`{~ 1/*abc~}def*/+2 ~}`)()).toBe("3");
+    expect(await Nostache(`{~ 1// ~} 
+    + 2 ~}`)()).toBe("3");
+    expect(await Nostache(`{~ 1// abc ~} def
+    + 2 ~}`)()).toBe("3");
+    expect(await Nostache(`{~ 1 /* ~} */ + 2 ~}`)()).toBe("3");
+    expect(await Nostache(`{~ 1 /* abc ~} def */ + 2 ~}`)()).toBe("3");
+});
+
+test("Comments in logic expressions", async () => {
+    expect(await Nostache(`<{ //}>
+    yield 1 }>`)()).toBe("1");
+    expect(await Nostache(`<{ //}>abc}>
+    yield 1 }>`)()).toBe("1");
+    expect(await Nostache(`<{ /*}>*/yield 1 }>`)()).toBe("1");
+    expect(await Nostache(`<{ /*}>abc}>*/yield 1 }>`)()).toBe("1");
+    expect(await Nostache(`<{ // }> 
+    yield 1 }>`)()).toBe("1");
+    expect(await Nostache(`<{ //}> abc }> 
+    yield 1 }>`)()).toBe("1");
+    expect(await Nostache(`<{ /* }> */ yield 1 }>`)()).toBe("1");
+    expect(await Nostache(`<{ /*}> abc }> */ yield 1 }>`)()).toBe("1");
+    expect(await Nostache(`<{ yield 1 //}>
+    }>`)()).toBe("1");
+    expect(await Nostache(`<{ yield 1 //}>abc}>
+    }>`)()).toBe("1");
+    expect(await Nostache(`<{ yield 1/*}>*/ }>`)()).toBe("1");
+    expect(await Nostache(`<{ yield 1/*}>abc}>*/ }>`)()).toBe("1");
+    expect(await Nostache(`<{ yield 1// }> 
+    }>`)()).toBe("1");
+    expect(await Nostache(`<{ yield 1// }> abc }> 
+    }>`)()).toBe("1");
+    expect(await Nostache(`<{ yield 1 /* }> */ }>`)()).toBe("1");
+    expect(await Nostache(`<{ yield 1 /* }> abc }> */ }>`)()).toBe("1");
+    expect(await Nostache(`<{ yield 1 //}>
+    +2 }>`)()).toBe("3");
+    expect(await Nostache(`<{ yield 1 //abc}>def
+    +2 }>`)()).toBe("3");
+    expect(await Nostache(`<{ yield 1/*}>*/+2 }>`)()).toBe("3");
+    expect(await Nostache(`<{ yield 1/*abc}>def*/+2 }>`)()).toBe("3");
+});
+
 test("Output in logic expressions", async () => {
     expect(await Nostache(`<{{=10=}}>`)()).toBe("10");
     expect(await Nostache(`<{{="<>&'\\""=}}>`)()).toBe("&#60;&#62;&#38;&#39;&#34;");
