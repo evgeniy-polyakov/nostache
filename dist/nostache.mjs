@@ -1,11 +1,15 @@
 const templateCache = {};
+// todo don't process control symbols in comments
 // todo errors for unfinished expressions
 // todo extension functions
 // todo support of older browsers
-// todo expressions like <{ const f = function (i) <{ <div>Inner Template {=i=}<div/> }> }> for inner templates in JS strings
+// todo expressions like <{ const f = <(i){ <div>Inner Template {=i=}<div/> }> }> for inner templates in JS strings
+// todo expressions like <(a,b,c)> for template arguments (no whitespace at the end)
+// todo remove explicit object decomposition - this would allow to store the compiled template function instead of a string
+// todo don't allow whitespace between control characters in text and output blocks {> <} {= =} {~ ~}
 // todo layout/block/region technics
 // todo table of control characters in readme.md
-// todo ; before yield
+// todo ; before yield in some cases
 const parseTemplate = (template) => {
     const charCode = (char) => {
         if (char.length > 1) {
