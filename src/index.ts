@@ -6,7 +6,6 @@ const templateCache: Record<string, string> = {};
 // todo expressions like <{ const f = <(i){ <div>Inner Template {=i=}<div/> }> }> for inner templates in JS strings
 // todo expressions like <(a,b,c)> for template arguments (no whitespace at the end)
 // todo remove explicit object decomposition - this would allow to store the compiled template function instead of a string
-// todo don't allow whitespace between control characters in text and output blocks {> <} {= =} {~ ~}
 // todo layout/block/region technics
 // todo table of control characters in readme.md
 // todo ; before yield in some cases
@@ -107,40 +106,43 @@ const parseTemplate = (template: string) => {
 
     const parseLogicBlock = () => {
         startIndex = index;
-        let isPotentialText = true; // We can start html block right away
+        let isPotentialHtml = true; // We can start html block right away
         for (; index < length;) {
             if (parseStringOrComment()) {
-                isPotentialText = false;
+                isPotentialHtml = false;
                 continue;
             }
             const c = template.charCodeAt(index);
             if (c === OPEN_BRACE) {
                 index++;
-                isPotentialText = true;
-            } else if (isPotentialText && isWhitespace[c]) {
+                const n = template.charCodeAt(index);
+                if (n === CLOSE_ANGLE) {
+                    isPotentialHtml = false;
+                    appendLogic();
+                    index++;
+                    parseTextBlock();
+                } else if (n === ASSIGN || n === TILDE) {
+                    isPotentialHtml = false;
+                    appendLogic();
+                    index++;
+                    parseOutputBlock(n === TILDE);
+                    startIndex--;
+                } else {
+                    isPotentialHtml = true;
+                }
+            } else if (isPotentialHtml && isWhitespace[c]) {
                 index++;
-            } else if (isPotentialText && c === OPEN_ANGLE) {
-                isPotentialText = false;
+            } else if (isPotentialHtml && c === OPEN_ANGLE) {
+                isPotentialHtml = false;
                 appendLogic();
                 parseHtmlBlock();
-            } else if (isPotentialText && c === CLOSE_ANGLE) {
-                isPotentialText = false;
-                appendLogic();
-                index++;
-                parseTextBlock();
-            } else if (isPotentialText && (c === ASSIGN || c === TILDE)) {
-                isPotentialText = false;
-                appendLogic();
-                index++;
-                parseOutputBlock(c === TILDE);
-                startIndex--;
             } else if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === CLOSE_ANGLE) {
                 appendLogic();
                 index += 2;
                 break;
             } else {
                 index++;
-                isPotentialText = false;
+                isPotentialHtml = false;
             }
         }
         startIndex = index;
