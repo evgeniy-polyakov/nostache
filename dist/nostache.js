@@ -2,8 +2,9 @@
 // todo errors for unfinished expressions
 // todo extension functions
 // todo support of older browsers
-// todo expressions like <{ const f = <(i){ <div>Inner Template {=i=}<div/> }> }> for inner templates in JS strings
-// todo expressions like <(a,b,c)> for template arguments (no whitespace at the end)
+// todo expressions like <{ const f = {@ (a,b,c) <div>Inner Template {=i=}<div/> @} }> for inner templates in JS strings
+// todo expressions like {@ (a,b,c) @} for template arguments (no whitespace at the end)
+// todo expressions like <{ const f = {@ partials/partial.html @} }> for partials
 // todo remove explicit object decomposition - this would allow to store the compiled template function instead of a string
 // todo layout/block/region technics
 // todo table of control characters in readme.md
@@ -339,6 +340,9 @@ const Nostache = (template) => {
             }
             const contextFunc = (...context) => {
                 return templateFunc(...context);
+            };
+            contextFunc[Symbol.iterator] = function* () {
+                yield* context;
             };
             for (let i = 0; i < context.length; i++) {
                 contextFunc[i] = context[i];
