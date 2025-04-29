@@ -47,7 +47,7 @@ const parseTemplate = (template) => {
         if (index > startIndex) {
             funcBody += unsafe ?
                 `yield (${template.slice(startIndex, index)});\n` :
-                `yield this.escape(${template.slice(startIndex, index)});\n`;
+                `yield this.escapeHtml(${template.slice(startIndex, index)});\n`;
         }
     };
     const appendLogic = () => {
@@ -290,7 +290,7 @@ const parseTemplate = (template) => {
     appendResult();
     return `return(async function*(){\n${funcBody}}).call(this)`;
 };
-const escape = async (value) => {
+const escapeHtml = async (value) => {
     return String(await value).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 };
 const iterateGenerator = async (generator) => {
@@ -337,7 +337,7 @@ const Nostache = (template) => {
             for (let i = 0; i < context.length; i++) {
                 contextFunc[i] = context[i];
             }
-            contextFunc.escape = templateFunc.escape;
+            contextFunc.escapeHtml = templateFunc.escapeHtml;
             const generator = Function(funcBody).apply(contextFunc);
             return iterateGenerator(generator);
         }
@@ -347,10 +347,10 @@ const Nostache = (template) => {
         }
     };
     templateFunc.verbose = Nostache.verbose;
-    templateFunc.escape = escape;
+    templateFunc.escapeHtml = escapeHtml;
     templateFunc.toString = () => funcBody;
     templateCache[template] = templateFunc;
     return templateFunc;
 };
 Nostache.verbose = false;
-Nostache.escape = escape;return Nostache;}));//# sourceMappingURL=nostache.js.map
+Nostache.escapeHtml = escapeHtml;return Nostache;}));//# sourceMappingURL=nostache.js.map

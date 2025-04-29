@@ -1,7 +1,7 @@
 type TemplateFunction = ((...context: any[]) => Promise<string>) & {
     verbose: boolean,
     toString(): string,
-    escape(value: unknown): Promise<string>,
+    escapeHtml(value: unknown): Promise<string>,
 };
 const templateCache: Record<string, TemplateFunction> = {};
 
@@ -58,7 +58,7 @@ const parseTemplate = (template: string) => {
         if (index > startIndex) {
             funcBody += unsafe ?
                 `yield (${template.slice(startIndex, index)});\n` :
-                `yield this.escape(${template.slice(startIndex, index)});\n`;
+                `yield this.escapeHtml(${template.slice(startIndex, index)});\n`;
         }
     };
 
@@ -282,7 +282,7 @@ const parseTemplate = (template: string) => {
     return `return(async function*(){\n${funcBody}}).call(this)`;
 }
 
-const escape = async (value: unknown) => {
+const escapeHtml = async (value: unknown) => {
     return String(await value).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 };
 
@@ -303,11 +303,7 @@ const iterateGenerator = async (generator: AsyncGenerator<any>) => {
     return result;
 };
 
-const Nostache = (template: string): ((...context: any[]) => Promise<string>) & {
-    verbose: boolean,
-    toString(): string,
-    escape(value: unknown): Promise<string>,
-} => {
+const Nostache = (template: string): TemplateFunction => {
     if (templateCache[template]) {
         return templateCache[template];
     }
@@ -332,7 +328,7 @@ const Nostache = (template: string): ((...context: any[]) => Promise<string>) & 
             for (let i = 0; i < context.length; i++) {
                 (contextFunc as any)[i] = context[i];
             }
-            contextFunc.escape = templateFunc.escape;
+            contextFunc.escapeHtml = templateFunc.escapeHtml;
             const generator = Function(funcBody).apply(contextFunc);
             return iterateGenerator(generator);
         } catch (error: any) {
@@ -343,13 +339,13 @@ const Nostache = (template: string): ((...context: any[]) => Promise<string>) & 
         }
     };
     templateFunc.verbose = Nostache.verbose;
-    templateFunc.escape = escape;
+    templateFunc.escapeHtml = escapeHtml;
     templateFunc.toString = () => funcBody;
     templateCache[template] = templateFunc;
     return templateFunc;
 };
 
 Nostache.verbose = false;
-Nostache.escape = escape;
+Nostache.escapeHtml = escapeHtml;
 
 export default Nostache;
