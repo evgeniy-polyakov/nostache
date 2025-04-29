@@ -1,5 +1,5 @@
 declare const Nostache: {
-    (template: string): ((...context: unknown[]) => Promise<string>) & {
+    (template: string): ((...context: any[]) => Promise<string>) & {
         verbose: boolean;
         toString(): string;
         escape(value: unknown): Promise<string>;

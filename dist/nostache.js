@@ -5,7 +5,6 @@
 // todo expressions like <{ const f = {@ (a,b,c) <div>Inner Template {=i=}<div/> @} }> for inner templates in JS strings
 // todo expressions like {@ (a,b,c) @} for template arguments (no whitespace at the end)
 // todo expressions like <{ const f = {@ partials/partial.html @} }> for partials
-// todo remove explicit object decomposition - this would allow to store the compiled template function instead of a string
 // todo layout/block/region technics
 // todo table of control characters in readme.md
 // todo ; before yield in some cases
@@ -313,24 +312,15 @@ const iterateGenerator = async (generator) => {
     return result;
 };
 const Nostache = (template) => {
-    const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
+    if (templateCache[template]) {
+        return templateCache[template];
+    }
+    const funcBody = parseTemplate(template);
     const templateFunc = async (...context) => {
-        const argNames = [];
-        const argValues = [];
-        for (const c of context) {
-            if (c && typeof c === "object" && !Array.isArray(c)) {
-                for (const p in c) {
-                    if (/^[_a-z]\w*$/i.test(p)) {
-                        argNames.push(p);
-                        argValues.push(c[p]);
-                    }
-                }
-            }
-        }
         try {
             if (templateFunc.verbose) {
-                console.groupCollapsed(`(function Nostache(${argNames.join(", ")}) {`);
-                console.log(`${funcBody}})\n(`, ...argValues.reduce((a, t) => {
+                console.groupCollapsed(`(function () {`);
+                console.log(`${funcBody}})\n(`, ...context.reduce((a, t) => {
                     if (a.length > 0)
                         a.push(",");
                     a.push(typeof t === "string" ? `"${t}"` : t);
@@ -348,17 +338,18 @@ const Nostache = (template) => {
                 contextFunc[i] = context[i];
             }
             contextFunc.escape = templateFunc.escape;
-            const generator = Function(...argNames, funcBody).apply(contextFunc, argValues);
+            const generator = Function(funcBody).apply(contextFunc);
             return iterateGenerator(generator);
         }
         catch (error) {
-            error.message += `\nat function (${argNames.join(", ")}) {\n${funcBody}\n})(${argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;
+            error.message += `\nat function () {\n${funcBody}\n})(${context.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;
             throw error;
         }
     };
     templateFunc.verbose = Nostache.verbose;
     templateFunc.escape = escape;
     templateFunc.toString = () => funcBody;
+    templateCache[template] = templateFunc;
     return templateFunc;
 };
 Nostache.verbose = false;

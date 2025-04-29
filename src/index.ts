@@ -1,4 +1,9 @@
-const templateCache: Record<string, string> = {};
+type TemplateFunction = ((...context: any[]) => Promise<string>) & {
+    verbose: boolean,
+    toString(): string,
+    escape(value: unknown): Promise<string>,
+};
+const templateCache: Record<string, TemplateFunction> = {};
 
 // todo errors for unfinished expressions
 // todo extension functions
@@ -6,7 +11,6 @@ const templateCache: Record<string, string> = {};
 // todo expressions like <{ const f = {@ (a,b,c) <div>Inner Template {=i=}<div/> @} }> for inner templates in JS strings
 // todo expressions like {@ (a,b,c) @} for template arguments (no whitespace at the end)
 // todo expressions like <{ const f = {@ partials/partial.html @} }> for partials
-// todo remove explicit object decomposition - this would allow to store the compiled template function instead of a string
 // todo layout/block/region technics
 // todo table of control characters in readme.md
 // todo ; before yield in some cases
@@ -299,29 +303,20 @@ const iterateGenerator = async (generator: AsyncGenerator<any>) => {
     return result;
 };
 
-const Nostache = (template: string): ((...context: unknown[]) => Promise<string>) & {
+const Nostache = (template: string): ((...context: any[]) => Promise<string>) & {
     verbose: boolean,
     toString(): string,
     escape(value: unknown): Promise<string>,
 } => {
-    const funcBody = templateCache[template] ?? (templateCache[template] = parseTemplate(template));
-    const templateFunc = async (...context: unknown[]) => {
-        const argNames = [];
-        const argValues = [];
-        for (const c of context) {
-            if (c && typeof c === "object" && !Array.isArray(c)) {
-                for (const p in c) {
-                    if (/^[_a-z]\w*$/i.test(p)) {
-                        argNames.push(p);
-                        argValues.push((c as any)[p]);
-                    }
-                }
-            }
-        }
+    if (templateCache[template]) {
+        return templateCache[template];
+    }
+    const funcBody = parseTemplate(template);
+    const templateFunc = async (...context: any[]) => {
         try {
             if (templateFunc.verbose) {
-                console.groupCollapsed(`(function Nostache(${argNames.join(", ")}) {`);
-                console.log(`${funcBody}})\n(`, ...argValues.reduce((a, t) => {
+                console.groupCollapsed(`(function () {`);
+                console.log(`${funcBody}})\n(`, ...context.reduce((a, t) => {
                     if (a.length > 0) a.push(",");
                     a.push(typeof t === "string" ? `"${t}"` : t);
                     return a;
@@ -338,11 +333,11 @@ const Nostache = (template: string): ((...context: unknown[]) => Promise<string>
                 (contextFunc as any)[i] = context[i];
             }
             contextFunc.escape = templateFunc.escape;
-            const generator = Function(...argNames, funcBody).apply(contextFunc, argValues);
+            const generator = Function(funcBody).apply(contextFunc);
             return iterateGenerator(generator);
         } catch (error: any) {
-            error.message += `\nat function (${argNames.join(", ")}) {\n${funcBody}\n})(${
-                argValues.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")
+            error.message += `\nat function () {\n${funcBody}\n})(${
+                context.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")
             })`;
             throw error;
         }
@@ -350,6 +345,7 @@ const Nostache = (template: string): ((...context: unknown[]) => Promise<string>
     templateFunc.verbose = Nostache.verbose;
     templateFunc.escape = escape;
     templateFunc.toString = () => funcBody;
+    templateCache[template] = templateFunc;
     return templateFunc;
 };
 

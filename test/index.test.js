@@ -12,7 +12,7 @@ second line
 third line`)()).toBe("first line\nsecond line\nthird line");
 });
 
-test("HTML Tags", async () => {
+test("HTML tags", async () => {
     expect(await Nostache("<p>simple text</p>")()).toBe("<p>simple text</p>");
     expect(await Nostache("<p><b>simple</b> text</p>")()).toBe("<p><b>simple</b> text</p>");
 });
@@ -87,12 +87,12 @@ test("Nested blocks", async () => {
 });
 
 test("Script blocks", async () => {
-    expect(await Nostache(`<script>let o = {"a": "{=a=}", "b": "{=b=}"};</script>`)({a: 1, b: 2})).toBe(`<script>let o = {"a": "1", "b": "2"};</script>`);
-    expect(await Nostache(`<script>let o = {"a": "{=a=}"<{if (b) }>, "b": "{=b=}"<{}>};</script>`)({a: 1, b: 2})).toBe(`<script>let o = {"a": "1", "b": "2"};</script>`);
-    expect(await Nostache(`<script>let o = {"a": "{=a=}"<{if (!b) {
+    expect(await Nostache(`<{ const [a,b] = this; }><script>let o = {"a": "{=a=}", "b": "{=b=}"};</script>`)(1, 2)).toBe(`<script>let o = {"a": "1", "b": "2"};</script>`);
+    expect(await Nostache(`<{ const [a,b] = this; }><script>let o = {"a": "{=a=}"<{if (b) }>, "b": "{=b=}"<{}>};</script>`)(1, 2)).toBe(`<script>let o = {"a": "1", "b": "2"};</script>`);
+    expect(await Nostache(`<{ const [a,b] = this; }><script>let o = {"a": "{=a=}"<{if (!b) {
 }>, "b": "{=b=}"<{
-}}>};</script>`)({a: 1, b: 2})).toBe(`<script>let o = {"a": "1"};</script>`);
-    expect(await Nostache(`<script><{if (a) {}>if (a) {console.log(a);}<{}}></script>`)({a: 1})).toBe(`<script>if (a) {console.log(a);}</script>`);
+}}>};</script>`)(1, 2)).toBe(`<script>let o = {"a": "1"};</script>`);
+    expect(await Nostache(`<{ const [a] = this; }><script><{if (a) {}>if (a) {console.log(a);}<{}}></script>`)(1)).toBe(`<script>if (a) {console.log(a);}</script>`);
 });
 
 test("Loops", async () => {
@@ -419,7 +419,7 @@ test("Multiple arguments", async () => {
     expect(await Nostache("<{if (true) {<p>{= this[0] =}</p><p>{= this[1] =}</p>} }>")(true, false)).toBe("<p>true</p><p>false</p>");
     expect(await Nostache("<{if (true) {<p>{= this[0] =}</p><p>{= this[1] =}</p>} }>")("", "")).toBe("<p></p><p></p>");
     expect(await Nostache("<{if (true) {<p>{= this[0].a =}</p><p>{= this[1].b =}</p>} }>")({a: 'aa'}, {b: 'bb'})).toBe("<p>aa</p><p>bb</p>");
-    expect(await Nostache("<{if (true) {<p>{= a =}</p><p>{= b =}</p>} }>")({a: 0}, {a: 'aa', b: 'bb'})).toBe("<p>aa</p><p>bb</p>");
+    expect(await Nostache("<{ const [a,b] = this; }><{if (true) {<p>{= a =}</p><p>{= b =}</p>} }>")('aa', 'bb')).toBe("<p>aa</p><p>bb</p>");
 });
 
 test("Arguments iteration", async () => {
@@ -435,42 +435,42 @@ test("Arguments iteration", async () => {
 });
 
 test("Arguments", async () => {
-    expect(await Nostache("{= a =}")({a: 'bb'})).toBe("bb");
-    expect(await Nostache("{= A =}")({A: 'bb'})).toBe("bb");
-    expect(await Nostache("{= _a =}")({_a: 'bb'})).toBe("bb");
-    expect(await Nostache("<p>{= a =}</p>")({a: 'bb'})).toBe("<p>bb</p>");
-    expect(await Nostache("<p>{= A =}</p>")({A: 'bb'})).toBe("<p>bb</p>");
-    expect(await Nostache("<p>{= _a =}</p>")({_a: 'bb'})).toBe("<p>bb</p>");
-    expect(await Nostache("<{if (true) {<p>{= a =}</p>} }>")({a: 'bb'})).toBe("<p>bb</p>");
-    expect(await Nostache("<{if (true) {<p>{= A =}</p>} }>")({A: 'bb'})).toBe("<p>bb</p>");
-    expect(await Nostache("<{if (true) {<p>{= _a =}</p>} }>")({_a: 'bb'})).toBe("<p>bb</p>");
-    expect(await Nostache("<{if (a) {<p>{= b =}</p>} }>")({a: true, b: 'bb'})).toBe("<p>bb</p>");
-    expect(await Nostache("<{if (!a) {<p>{= b =}</p>} }>")({a: false, b: 'bb'})).toBe("<p>bb</p>");
-    expect(await Nostache("<{if (!a) {<p>{= b =}</p>} }>")({a: true, b: 'bb'})).toBe("");
-    expect(await Nostache("<{if (a) {<p>{= b =}</p>} }>")({a: false, b: 'bb'})).toBe("");
-    expect(await Nostache("{=a=} {=b=}")({a: 'aa', b: 'bb'})).toBe("aa bb");
-    expect(await Nostache("{=a=} {=b.c=}")({a: 'aa', b: {c: 'bb'}})).toBe("aa bb");
-    await (expect(Nostache("{= c =}")({a: 'aa', b: 'bb'}))).rejects.toBeInstanceOf(ReferenceError);
-    expect(await Nostache("{=a=} {=b=}")(Object.create({a: 'aa', b: 'bb'}))).toBe("aa bb");
+    expect(await Nostache("<{const [{a}] = this;}>{= a =}")({a: 'bb'})).toBe("bb");
+    expect(await Nostache("<{const [{A}] = this;}>{= A =}")({A: 'bb'})).toBe("bb");
+    expect(await Nostache("<{const [{_a}] = this;}>{= _a =}")({_a: 'bb'})).toBe("bb");
+    expect(await Nostache("<{const [{a}] = this;}><p>{= a =}</p>")({a: 'bb'})).toBe("<p>bb</p>");
+    expect(await Nostache("<{const [{A}] = this;}><p>{= A =}</p>")({A: 'bb'})).toBe("<p>bb</p>");
+    expect(await Nostache("<{const [{_a}] = this;}><p>{= _a =}</p>")({_a: 'bb'})).toBe("<p>bb</p>");
+    expect(await Nostache("<{const [{a}] = this;}><{if (true) {<p>{= a =}</p>} }>")({a: 'bb'})).toBe("<p>bb</p>");
+    expect(await Nostache("<{const [{A}] = this;}><{if (true) {<p>{= A =}</p>} }>")({A: 'bb'})).toBe("<p>bb</p>");
+    expect(await Nostache("<{const [{_a}] = this;}><{if (true) {<p>{= _a =}</p>} }>")({_a: 'bb'})).toBe("<p>bb</p>");
+    expect(await Nostache("<{const [{a,b}] = this;}><{if (a) {<p>{= b =}</p>} }>")({a: true, b: 'bb'})).toBe("<p>bb</p>");
+    expect(await Nostache("<{const [{a,b}] = this;}><{if (!a) {<p>{= b =}</p>} }>")({a: false, b: 'bb'})).toBe("<p>bb</p>");
+    expect(await Nostache("<{const [{a,b}] = this;}><{if (!a) {<p>{= b =}</p>} }>")({a: true, b: 'bb'})).toBe("");
+    expect(await Nostache("<{const [{a,b}] = this;}><{if (a) {<p>{= b =}</p>} }>")({a: false, b: 'bb'})).toBe("");
+    expect(await Nostache("<{const [{a,b}] = this;}>{=a=} {=b=}")({a: 'aa', b: 'bb'})).toBe("aa bb");
+    expect(await Nostache("<{const [{a,b,c}] = this;}>{=a=} {=b.c=}")({a: 'aa', b: {c: 'bb'}})).toBe("aa bb");
+    await (expect(Nostache("<{const [{a,b}] = this;}>{= c =}")({a: 'aa', b: 'bb'}))).rejects.toBeInstanceOf(ReferenceError);
+    expect(await Nostache("<{const [{a,b}] = this;}>{=a=} {=b=}")(Object.create({a: 'aa', b: 'bb'}))).toBe("aa bb");
 });
 
-test("Arguments Mutation", async () => {
-    expect(await Nostache("{= a++ =}<p>{= a =}</p>")({a: 0})).toBe("0<p>1</p>");
-    expect(await Nostache("{= ++a =}<p>{= a =}</p>")({a: 0})).toBe("1<p>1</p>");
-    expect(await Nostache("{= a = 'bb' =}<p>{= a =}</p>")({a: 'aa'})).toBe("bb<p>bb</p>");
-    expect(await Nostache("{= a =}<{ a = 'bb'; }><p>{= a =}</p>")({a: 'aa'})).toBe("aa<p>bb</p>");
-    expect(await Nostache("{= this[0].a++ =}<p>{= this[0].a =}</p>")({a: 0})).toBe("0<p>1</p>");
-    expect(await Nostache("{= ++this[0].a =}<p>{= this[0].a =}</p>")({a: 0})).toBe("1<p>1</p>");
+test("Arguments mutation", async () => {
+    expect(await Nostache("<{let [{a}] = this;}>{= a++ =}<p>{= a =}</p>")({a: 0})).toBe("0<p>1</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= ++a =}<p>{= a =}</p>")({a: 0})).toBe("1<p>1</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= a = 'bb' =}<p>{= a =}</p>")({a: 'aa'})).toBe("bb<p>bb</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= a =}<{ a = 'bb'; }><p>{= a =}</p>")({a: 'aa'})).toBe("aa<p>bb</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= this[0].a++ =}<p>{= this[0].a =}</p>")({a: 0})).toBe("0<p>1</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= ++this[0].a =}<p>{= this[0].a =}</p>")({a: 0})).toBe("1<p>1</p>");
     expect(await Nostache("{= this[0].a = 'bb' =}<p>{= this[0].a =}</p>")({a: 'aa'})).toBe("bb<p>bb</p>");
     expect(await Nostache("{= this[0].a =}<{ this[0].a = 'bb'; }><p>{= this[0].a =}</p>")({a: 'aa'})).toBe("aa<p>bb</p>");
-    expect(await Nostache("{= this[0].a++ =}<p>{= a =}</p>")({a: 0})).toBe("0<p>0</p>");
-    expect(await Nostache("{= ++this[0].a =}<p>{= a =}</p>")({a: 0})).toBe("1<p>0</p>");
-    expect(await Nostache("{= this[0].a = 'bb' =}<p>{= a =}</p>")({a: 'aa'})).toBe("bb<p>aa</p>");
-    expect(await Nostache("{= this[0].a =}<{ this[0].a = 'bb'; }><p>{= a =}</p>")({a: 'aa'})).toBe("aa<p>aa</p>");
-    expect(await Nostache("{= a++ =}<p>{= this[0].a =}</p>")({a: 0})).toBe("0<p>0</p>");
-    expect(await Nostache("{= ++a =}<p>{= this[0].a =}</p>")({a: 0})).toBe("1<p>0</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= this[0].a++ =}<p>{= a =}</p>")({a: 0})).toBe("0<p>0</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= ++this[0].a =}<p>{= a =}</p>")({a: 0})).toBe("1<p>0</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= this[0].a = 'bb' =}<p>{= a =}</p>")({a: 'aa'})).toBe("bb<p>aa</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= this[0].a =}<{ this[0].a = 'bb'; }><p>{= a =}</p>")({a: 'aa'})).toBe("aa<p>aa</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= a++ =}<p>{= this[0].a =}</p>")({a: 0})).toBe("0<p>0</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= ++a =}<p>{= this[0].a =}</p>")({a: 0})).toBe("1<p>0</p>");
     expect(await Nostache("{= a = 'bb' =}<p>{= this[0].a =}</p>")({a: 'aa'})).toBe("bb<p>aa</p>");
-    expect(await Nostache("{= a =}<{ a = 'bb'; }><p>{= this[0].a =}</p>")({a: 'aa'})).toBe("aa<p>aa</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= a =}<{ a = 'bb'; }><p>{= this[0].a =}</p>")({a: 'aa'})).toBe("aa<p>aa</p>");
 });
 
 test("Promises", async () => {
@@ -489,5 +489,14 @@ test("Promises", async () => {
 
 test("Recursive templates", async () => {
     expect(await Nostache("<li>{= this[0] =}</li><{if (this[0] < 13) }>{~ this(this[0] + 1) ~}")(10)).toBe("<li>10</li><li>11</li><li>12</li><li>13</li>");
-    expect(await Nostache("<li>{= a =}</li><{if (a < 13) }>{~ this({a:++a}) ~}")({a: 10})).toBe("<li>10</li><li>11</li><li>12</li><li>13</li>");
+    expect(await Nostache("<{let [{a}] = this;}><li>{= a =}</li><{if (a < 13) }>{~ this({a:++a}) ~}")({a: 10})).toBe("<li>10</li><li>11</li><li>12</li><li>13</li>");
+});
+
+test("Template reuse", async () => {
+    const t = Nostache("<a>{= this[0] =}</a>{= this[1] ?? '' =}");
+    expect(await t(10)).toBe("<a>10</a>");
+    expect(await t("aa")).toBe("<a>aa</a>");
+    expect(await t(true)).toBe("<a>true</a>");
+    expect(await t(false)).toBe("<a>false</a>");
+    expect(await t(10, 20)).toBe("<a>10</a>20");
 });
