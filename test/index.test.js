@@ -469,7 +469,7 @@ test("Arguments mutation", async () => {
     expect(await Nostache("<{let [{a}] = this;}>{= this[0].a =}<{ this[0].a = 'bb'; }><p>{= a =}</p>")({a: 'aa'})).toBe("aa<p>aa</p>");
     expect(await Nostache("<{let [{a}] = this;}>{= a++ =}<p>{= this[0].a =}</p>")({a: 0})).toBe("0<p>0</p>");
     expect(await Nostache("<{let [{a}] = this;}>{= ++a =}<p>{= this[0].a =}</p>")({a: 0})).toBe("1<p>0</p>");
-    expect(await Nostache("{= a = 'bb' =}<p>{= this[0].a =}</p>")({a: 'aa'})).toBe("bb<p>aa</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= a = 'bb' =}<p>{= this[0].a =}</p>")({a: 'aa'})).toBe("bb<p>aa</p>");
     expect(await Nostache("<{let [{a}] = this;}>{= a =}<{ a = 'bb'; }><p>{= this[0].a =}</p>")({a: 'aa'})).toBe("aa<p>aa</p>");
 });
 
@@ -499,4 +499,17 @@ test("Template reuse", async () => {
     expect(await t(true)).toBe("<a>true</a>");
     expect(await t(false)).toBe("<a>false</a>");
     expect(await t(10, 20)).toBe("<a>10</a>20");
+});
+
+test("Parameters declaration", async () => {
+    expect(await Nostache("{@ a, b @}{= a =}{= b =}")(10, 11)).toBe("1011");
+    expect(await Nostache("<{ {@ a, b @} let c = 12; }>{= a =}{= b =}{= c =}")(10, 11)).toBe("101112");
+    expect(await Nostache("<{ let c = 12; {@ a, b @} }>{= a =}{= b =}{= c =}")(10, 11)).toBe("101112");
+    expect(await Nostache("<{ let c = 12; {@ a, b @} let d = 13; }>{= a =}{= b =}{= c =}{= d =}")(10, 11)).toBe("10111213");
+    expect(await Nostache("{@ {a, b} @}{= a =}{= b =}")({a: 10, b: 11})).toBe("1011");
+    expect(await Nostache("{@ {a:{a}}, [{b}] @}{= a =}{= b =}")({a: {a: 10}}, [{b: 11}])).toBe("1011");
+    expect(await Nostache("{@ [a, b] @}{= a =}{= b =}")([10, 11])).toBe("1011");
+    expect(await Nostache("{@ [{a}, [b]] @}{= a =}{= b =}")([{a: 10}, [11]])).toBe("1011");
+    expect(await Nostache("{@ a, b, ...c @}{= a =}{= b =}{= c.join('') =}")(10, 11, 12, 13)).toBe("10111213");
+    expect(await Nostache("{@ ,b, c = 12 @}{= b =}{= c =}")(10, 11)).toBe("1112");
 });

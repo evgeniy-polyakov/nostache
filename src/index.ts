@@ -11,6 +11,7 @@ const templateCache: Record<string, TemplateFunction> = {};
 // todo expressions like <{ const f = {@ (a,b,c) <div>Inner Template {=i=}<div/> @} }> for inner templates in JS strings
 // todo expressions like {@ (a,b,c) @} for template arguments (no whitespace at the end)
 // todo expressions like <{ const f = {@ partials/partial.html @} }> for partials
+// todo output {=  =} or {~  ~} as whitespace `  `
 // todo layout/block/region technics
 // todo table of control characters in readme.md
 // todo ; before yield in some cases
@@ -28,10 +29,14 @@ const parseTemplate = (template: string) => {
     };
 
     const isWhitespace = charCode(" \t\r\n") as Record<number, boolean>;
+    const isAlphabetic = (c: number) => c === 95 || (c >= 65 && c <= 90) || (c >= 97 && c <= 122);
+    const isAlphanumeric = (c: number) => isAlphabetic(c) || (c >= 48 && c <= 57);
     const OPEN_ANGLE = charCode("<");
     const CLOSE_ANGLE = charCode(">");
     const OPEN_BRACE = charCode("{");
     const CLOSE_BRACE = charCode("}");
+    const OPEN_PARENTHESES = charCode("(");
+    const CLOSE_PARENTHESES = charCode(")");
     const ASSIGN = charCode("=");
     const TILDE = charCode("~");
     const SLASH = charCode("/");
@@ -42,6 +47,7 @@ const parseTemplate = (template: string) => {
     const QUOTE = charCode("\"");
     const BACKTICK = charCode("`");
     const DOLLAR = charCode("$");
+    const AT_SIGN = charCode("@");
 
     let index = 0;
     let startIndex = 0;
@@ -69,23 +75,30 @@ const parseTemplate = (template: string) => {
     };
 
     const parseOpenBlock = (c: number) => {
-        if (c === OPEN_ANGLE && template.charCodeAt(index + 1) === OPEN_BRACE) {
+        const n = template.charCodeAt(index + 1);
+        if (c === OPEN_ANGLE && n === OPEN_BRACE) {
             // Logic block <{
             appendResult();
             index += 2;
             parseLogicBlock();
             return true;
-        } else if (c === OPEN_BRACE && template.charCodeAt(index + 1) === ASSIGN) {
-            // Assignment block ={
+        } else if (c === OPEN_BRACE && n === ASSIGN) {
+            // Assignment block {=
             appendResult();
             index += 2;
             parseOutputBlock(false);
             return true;
-        } else if (c === OPEN_BRACE && template.charCodeAt(index + 1) === TILDE) {
-            // Unsafe assignment block ~{
+        } else if (c === OPEN_BRACE && n === TILDE) {
+            // Unsafe assignment block {~
             appendResult();
             index += 2;
             parseOutputBlock(true);
+            return true;
+        } else if (c === OPEN_BRACE && n === AT_SIGN) {
+            // Declaration block {@
+            appendResult();
+            index += 2;
+            parseDeclaration();
             return true;
         } else if (c === BACKSLASH) {
             // Escape backslash \
@@ -132,6 +145,12 @@ const parseTemplate = (template: string) => {
                     index++;
                     parseOutputBlock(n === TILDE);
                     startIndex--;
+                } else if (n === AT_SIGN) {
+                    isPotentialHtml = false;
+                    index--;
+                    appendLogic();
+                    index += 2;
+                    parseDeclaration();
                 } else {
                     isPotentialHtml = true;
                 }
@@ -268,6 +287,94 @@ const parseTemplate = (template: string) => {
             }
         }
         return result;
+    };
+
+    const parseDeclaration = () => {
+        startIndex = index;
+        let firstChar = 0;
+        let potentialName = false;
+        let name = '';
+        for (; index < length;) {
+            let c = template.charCodeAt(index);
+            if (!firstChar) {
+                c = skipWhitespace(c);
+                startIndex = index;
+                firstChar = c;
+                if (c === OPEN_PARENTHESES) {
+                    index++;
+                    parseFunctionDeclaration();
+                    break;
+                } else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
+                    parseTemplateDeclaration();
+                    break;
+                } else if (isAlphabetic(firstChar)) {
+                    index++;
+                    potentialName = true;
+                } else {
+                    parseParametersDeclaration();
+                    break;
+                }
+            } else if (potentialName && isAlphanumeric(c)) {
+                index++;
+            } else if (potentialName && !isAlphanumeric(c)) {
+                name = template.slice(startIndex, index);
+                c = skipWhitespace(c);
+                if (c === OPEN_PARENTHESES) {
+                    index++;
+                    startIndex = index;
+                    parseFunctionDeclaration(name);
+                    break;
+                } else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
+                    startIndex = index;
+                    parseTemplateDeclaration(name);
+                    break;
+                } else {
+                    parseParametersDeclaration();
+                    break;
+                }
+            } else {
+                parseParametersDeclaration();
+                break;
+            }
+        }
+        skipWhitespace(template.charCodeAt(index));
+        startIndex = index;
+    };
+
+    const parseParametersDeclaration = () => {
+        while (index < length) {
+            if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
+                funcBody += `let[${template.slice(startIndex, index)}]=this;\n`;
+                index += 2;
+                break;
+            } else {
+                index++;
+            }
+        }
+    };
+
+    const parseTemplateDeclaration = (name?: string) => {
+        while (index < length) {
+            if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
+                if (name) funcBody += `${name}=`;
+                funcBody += `this.load(${template.slice(startIndex, index)});\n`;
+                index += 2;
+            } else {
+                index++;
+            }
+        }
+    };
+
+    const parseFunctionDeclaration = (name?: string) => {
+
+    };
+
+    const skipWhitespace = (c: number) => {
+        while (index < length && isWhitespace[c]) {
+            index++;
+            c = template.charCodeAt(index);
+        }
+        return c;
     };
 
     for (; index < length;) {
