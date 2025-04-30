@@ -2,6 +2,7 @@ type TemplateFunction = ((...context: any[]) => Promise<string>) & {
     verbose: boolean,
     toString(): string,
     escapeHtml(value: unknown): Promise<string>,
+    fetch(input: string | URL | Request, init?: RequestInit): Promise<TemplateFunction>;
 };
 const templateCache: Record<string, TemplateFunction> = {};
 
@@ -9,8 +10,6 @@ const templateCache: Record<string, TemplateFunction> = {};
 // todo extension functions
 // todo support of older browsers
 // todo expressions like <{ const f = {@ (a,b,c) <div>Inner Template {=i=}<div/> @} }> for inner templates in JS strings
-// todo expressions like {@ (a,b,c) @} for template arguments (no whitespace at the end)
-// todo expressions like <{ const f = {@ partials/partial.html @} }> for partials
 // todo output {=  =} or {~  ~} as whitespace `  `
 // todo layout/block/region technics
 // todo table of control characters in readme.md
@@ -305,7 +304,7 @@ const parseTemplate = (template: string) => {
                     parseFunctionDeclaration();
                     break;
                 } else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
-                    parseTemplateDeclaration();
+                    parseFetchDeclaration();
                     break;
                 } else if (isAlphabetic(firstChar)) {
                     index++;
@@ -326,7 +325,7 @@ const parseTemplate = (template: string) => {
                     break;
                 } else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
                     startIndex = index;
-                    parseTemplateDeclaration(name);
+                    parseFetchDeclaration(name);
                     break;
                 } else {
                     parseParametersDeclaration();
@@ -353,12 +352,13 @@ const parseTemplate = (template: string) => {
         }
     };
 
-    const parseTemplateDeclaration = (name?: string) => {
+    const parseFetchDeclaration = (name?: string) => {
         while (index < length) {
             if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
-                if (name) funcBody += `${name}=`;
-                funcBody += `this.load(${template.slice(startIndex, index)});\n`;
+                if (name) funcBody += `let ${name}=`;
+                funcBody += `await this.fetch(${template.slice(startIndex, index)});\n`;
                 index += 2;
+                break;
             } else {
                 index++;
             }
@@ -392,6 +392,11 @@ const parseTemplate = (template: string) => {
 const escapeHtml = async (value: unknown) => {
     return String(await value).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 };
+
+const fetchTemplate = async (input: string | URL | Request, init?: RequestInit) => {
+    const response = await fetch(input, init);
+    return Nostache(await response.text());
+}
 
 const iterateGenerator = async (generator: AsyncGenerator<any>) => {
     let result = '';
@@ -435,7 +440,9 @@ const Nostache = (template: string): TemplateFunction => {
             for (let i = 0; i < context.length; i++) {
                 (contextFunc as any)[i] = context[i];
             }
+            contextFunc.fetch = templateFunc.fetch;
             contextFunc.escapeHtml = templateFunc.escapeHtml;
+            contextFunc.toString = templateFunc.toString;
             const generator = Function(funcBody).apply(contextFunc);
             return iterateGenerator(generator);
         } catch (error: any) {
@@ -446,6 +453,7 @@ const Nostache = (template: string): TemplateFunction => {
         }
     };
     templateFunc.verbose = Nostache.verbose;
+    templateFunc.fetch = Nostache.fetch;
     templateFunc.escapeHtml = escapeHtml;
     templateFunc.toString = () => funcBody;
     templateCache[template] = templateFunc;
@@ -453,6 +461,7 @@ const Nostache = (template: string): TemplateFunction => {
 };
 
 Nostache.verbose = false;
+Nostache.fetch = fetchTemplate;
 Nostache.escapeHtml = escapeHtml;
 
 export default Nostache;

@@ -502,14 +502,71 @@ test("Template reuse", async () => {
 });
 
 test("Parameters declaration", async () => {
-    expect(await Nostache("{@ a, b @}{= a =}{= b =}")(10, 11)).toBe("1011");
+    expect(await Nostache("{@ a, b @}  {= a =}{= b =}")(10, 11)).toBe("1011");
     expect(await Nostache("<{ {@ a, b @} let c = 12; }>{= a =}{= b =}{= c =}")(10, 11)).toBe("101112");
     expect(await Nostache("<{ let c = 12; {@ a, b @} }>{= a =}{= b =}{= c =}")(10, 11)).toBe("101112");
     expect(await Nostache("<{ let c = 12; {@ a, b @} let d = 13; }>{= a =}{= b =}{= c =}{= d =}")(10, 11)).toBe("10111213");
-    expect(await Nostache("{@ {a, b} @}{= a =}{= b =}")({a: 10, b: 11})).toBe("1011");
-    expect(await Nostache("{@ {a:{a}}, [{b}] @}{= a =}{= b =}")({a: {a: 10}}, [{b: 11}])).toBe("1011");
-    expect(await Nostache("{@ [a, b] @}{= a =}{= b =}")([10, 11])).toBe("1011");
-    expect(await Nostache("{@ [{a}, [b]] @}{= a =}{= b =}")([{a: 10}, [11]])).toBe("1011");
-    expect(await Nostache("{@ a, b, ...c @}{= a =}{= b =}{= c.join('') =}")(10, 11, 12, 13)).toBe("10111213");
-    expect(await Nostache("{@ ,b, c = 12 @}{= b =}{= c =}")(10, 11)).toBe("1112");
+    expect(await Nostache("{@ {a, b} @}  {= a =}{= b =}")({a: 10, b: 11})).toBe("1011");
+    expect(await Nostache("{@ {a:{a}}, [{b}] @}  {= a =}{= b =}")({a: {a: 10}}, [{b: 11}])).toBe("1011");
+    expect(await Nostache("{@ [a, b] @}  {= a =}{= b =}")([10, 11])).toBe("1011");
+    expect(await Nostache("{@ [{a}, [b]] @}  {= a =}{= b =}")([{a: 10}, [11]])).toBe("1011");
+    expect(await Nostache("{@ a, b, ...c @}  {= a =}{= b =}{= c.join('') =}")(10, 11, 12, 13)).toBe("10111213");
+    expect(await Nostache("{@ ,b, c = 12 @}  {= b =}{= c =}")(10, 11)).toBe("1112");
+});
+
+test("Fetch declaration", async () => {
+    Nostache.fetch = (value) => Nostache(value === 'partials/li.htm' ? "<li>{~ this[0] + 1 ~}</li>" : "");
+    expect(await Nostache("<ul>{@ li 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache('<ul>{@ li "partials/li.htm" @} <{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>')(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache('<ul>{@ li `partials/li.htm` @}  <{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache('<ul>{@ li `partials/${"li"}.htm` @}   <{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ li 'partials/' + 'li.htm' @}    <{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache("<ul><{ {@ li 'partials/li.htm' @} for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache('<ul><{ {@ li "partials/li.htm" @} for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache('<ul><{ {@ li `partials/li.htm` @} for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>')(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache('<ul><{ {@ li `partials/${"li"}.htm` @} for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache("<ul><{ {@ li 'partials/' + 'li.htm' @} for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{ for (let i = 0; i < this[0]; i++) { {@ li 'partials/li.htm' @} {~ li(i) ~}} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache('<ul><{ for (let i = 0; i < this[0]; i++) { {@ li "partials/li.htm" @} {~ li(i) ~}} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache('<ul><{ for (let i = 0; i < this[0]; i++) { {@ li `partials/li.htm` @} {~ li(i) ~}} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache('<ul><{ for (let i = 0; i < this[0]; i++) { {@ li `partials/${"li"}.htm` @} {~ li(i) ~}} }></ul>')(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache("<ul><{ for (let i = 0; i < this[0]; i++) { {@ li 'partials/' + 'li.htm' @} {~ li(i) ~}} }></ul>")(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+
+    expect(await Nostache("<ul><{ let li = {@ 'partials/li.htm' @} for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache('<ul><{ let li = {@ "partials/li.htm" @} for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache('<ul><{ let li = {@ `partials/li.htm` @} for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>')(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache('<ul><{ let li = {@ `partials/${"li"}.htm` @} for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache("<ul><{ let li = {@ 'partials/' + 'li.htm' @} for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{ for (let i = 0; i < this[0]; i++) { let li = {@ 'partials/li.htm' @} {~ li(i) ~}} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache('<ul><{ for (let i = 0; i < this[0]; i++) { let li = {@ "partials/li.htm" @} {~ li(i) ~}} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache('<ul><{ for (let i = 0; i < this[0]; i++) { let li = {@ `partials/li.htm` @} {~ li(i) ~}} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache('<ul><{ for (let i = 0; i < this[0]; i++) { let li = {@ `partials/${"li"}.htm` @} {~ li(i) ~}} }></ul>')(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache("<ul><{ for (let i = 0; i < this[0]; i++) { let li = {@ 'partials/' + 'li.htm' @} {~ li(i) ~}} }></ul>")(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+
+    expect(await Nostache("{@ n @}<ul>{@ li 'partials/li.htm' @}<{for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache('<ul>{@ n @} {@ li "partials/li.htm" @}<{for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>')(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache('<ul>{@ li `partials/li.htm` @} {@ n @} <{for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache('<ul>{@ li `partials/${"li"}.htm` @}<{ {@ n @} for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("{@ n @} <ul>{@ li 'partials/' + 'li.htm' @}<{for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache("<ul>{@ n @} <{ {@ li 'partials/li.htm' @} for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>")(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache('<ul><{ {@ li "partials/li.htm" @} {@ n @} for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache('{@ n @} <ul><{ {@ li `partials/li.htm` @} for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>')(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache('<ul>{@ n @} <{ {@ li `partials/${"li"}.htm` @} for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache("<ul><{ {@ n @} {@ li 'partials/' + 'li.htm' @} for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("{@ n @}<ul><{ for (let i = 0; i < n; i++) { {@ li 'partials/li.htm' @} {~ li(i) ~}} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache('<ul> {@ n @} <{ for (let i = 0; i < n; i++) { {@ li "partials/li.htm" @} {~ li(i) ~}} }> </ul>')(3)).toBe("<ul> <li>1</li><li>2</li><li>3</li> </ul>");
+    expect(await Nostache('<ul><{ {@ n @} for (let i = 0; i < n; i++) { {@ li `partials/li.htm` @} {~ li(i) ~}} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache('{@ n @}<ul><{ for (let i = 0; i < n; i++) { {@ li `partials/${"li"}.htm` @} {~ li(i) ~}} }></ul>')(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache("<ul>{@ n @} <{ for (let i = 0; i < n; i++) { {@ li 'partials/' + 'li.htm' @} {~ li(i) ~}} }></ul>")(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+
+    expect(await Nostache("{@ n @}<ul><{ let li = {@ 'partials/li.htm' @} for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>")(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache('<ul>{@ n @} <{ let li = {@ "partials/li.htm" @} for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache('<ul><{ {@ n @} let li = {@ `partials/li.htm` @} for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>')(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache('<ul><{ let li = {@ `partials/${"li"}.htm` @} {@ n @} for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache("{@ n @}<ul><{ let li = {@ 'partials/' + 'li.htm' @} for (let i = 0; i < n; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ n @} <{ for (let i = 0; i < n; i++) { let li = {@ 'partials/li.htm' @} {~ li(i) ~}} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache('<ul><{ {@ n @} for (let i = 0; i < n; i++) { let li = {@ "partials/li.htm" @} {~ li(i) ~}} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache('{@ n @}<ul><{ for (let i = 0; i < n; i++) { let li = {@ `partials/li.htm` @} {~ li(i) ~}} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache('<ul> {@ n @} <{ for (let i = 0; i < n; i++) { let li = {@ `partials/${"li"}.htm` @} {~ li(i) ~}} }> </ul>')(2)).toBe("<ul> <li>1</li><li>2</li> </ul>");
+    expect(await Nostache("{@ n @} <ul><{ for (let i = 0; i < n; i++) { let li = {@ 'partials/' + 'li.htm' @} {~ li(i) ~}} }></ul>")(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
 });
