@@ -115,7 +115,7 @@ const parseTemplate = (template) => {
     const parseLogicBlock = () => {
         startIndex = index;
         let isPotentialHtml = true; // We can start html block right away
-        for (; index < length;) {
+        while (index < length) {
             if (parseStringOrComment()) {
                 isPotentialHtml = false;
                 continue;
@@ -171,7 +171,7 @@ const parseTemplate = (template) => {
     const parseHtmlBlock = () => {
         startIndex = index;
         let potentialEnd = -1;
-        for (; index < length;) {
+        while (index < length) {
             const c = template.charCodeAt(index);
             if (c === CLOSE_ANGLE) {
                 index++;
@@ -197,7 +197,7 @@ const parseTemplate = (template) => {
         let potentialEnd = -1;
         let potentialEndWhitespace = -1;
         let hasMeaningfulSymbol = false;
-        for (; index < length;) {
+        while (index < length) {
             const c = template.charCodeAt(index);
             if (!hasMeaningfulSymbol && isWhitespace[c]) {
                 startIndex++;
@@ -233,7 +233,7 @@ const parseTemplate = (template) => {
         startIndex = index;
         const closeChar = unsafe ? TILDE : ASSIGN;
         let hasMeaningfulSymbol = false;
-        for (; index < length;) {
+        while (index < length) {
             if (parseStringOrComment()) {
                 hasMeaningfulSymbol = true;
                 continue;
@@ -260,7 +260,7 @@ const parseTemplate = (template) => {
         let isInString = 0;
         let isInComment = 0;
         let result = false;
-        for (; index < length;) {
+        while (index < length) {
             const c = template.charCodeAt(index);
             let n = 0;
             if (!isInString && !isInComment && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
@@ -304,7 +304,7 @@ const parseTemplate = (template) => {
         let firstChar = 0;
         let potentialName = false;
         let name = '';
-        for (; index < length;) {
+        while (index < length) {
             let c = template.charCodeAt(index);
             if (!firstChar) {
                 c = skipWhitespace(c);
@@ -389,7 +389,7 @@ const parseTemplate = (template) => {
         }
         return c;
     };
-    for (; index < length;) {
+    while (index < length) {
         const c = template.charCodeAt(index);
         if (parseOpenBlock(c)) ;
         else {
