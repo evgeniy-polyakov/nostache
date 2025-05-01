@@ -2,7 +2,7 @@
 // todo errors for unfinished expressions
 // todo extension functions
 // todo support of older browsers
-// todo expressions like <{ const f = {@ (a,b,c) <div>Inner Template {=i=}<div/> @} }> for inner templates in JS strings
+// todo fix html escape in expressions like {@ a() <a></a> @} {= a() =}
 // todo output {=  =} or {~  ~} as whitespace `  `
 // todo layout/block/region technics
 // todo table of control characters in readme.md
@@ -26,7 +26,7 @@ const parseTemplate = (template) => {
     const OPEN_BRACE = charCode("{");
     const CLOSE_BRACE = charCode("}");
     const OPEN_PARENTHESES = charCode("(");
-    charCode(")");
+    const CLOSE_PARENTHESES = charCode(")");
     const ASSIGN = charCode("=");
     const TILDE = charCode("~");
     const SLASH = charCode("/");
@@ -312,9 +312,11 @@ const parseTemplate = (template) => {
                 firstChar = c;
                 if (c === OPEN_PARENTHESES) {
                     index++;
+                    parseTemplateDeclaration();
                     break;
                 }
                 else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
+                    index++;
                     parseFetchDeclaration();
                     break;
                 }
@@ -335,11 +337,12 @@ const parseTemplate = (template) => {
                 c = skipWhitespace(c);
                 if (c === OPEN_PARENTHESES) {
                     index++;
-                    startIndex = index;
+                    parseTemplateDeclaration(name);
                     break;
                 }
                 else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
                     startIndex = index;
+                    index++;
                     parseFetchDeclaration(name);
                     break;
                 }
@@ -373,10 +376,62 @@ const parseTemplate = (template) => {
             if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
                 if (name)
                     funcBody += `let ${name}=`;
-                funcBody += `await this.fetch(${template.slice(startIndex, index)});\n`;
+                funcBody += `(await this.fetch(${template.slice(startIndex, index)}))\n`;
                 index += 2;
                 break;
             }
+            else {
+                index++;
+            }
+        }
+    };
+    const parseTemplateDeclaration = (name) => {
+        startIndex = index;
+        let parameters = '';
+        let parentheses = 0;
+        while (index < length) {
+            const c = template.charCodeAt(index);
+            if (c === OPEN_PARENTHESES) {
+                parentheses++;
+            }
+            else if (c === CLOSE_PARENTHESES) {
+                if (parentheses) {
+                    parentheses--;
+                    index++;
+                }
+                else {
+                    parameters = template.slice(startIndex, index);
+                    index++;
+                    skipWhitespace(template.charCodeAt(index));
+                    startIndex = index;
+                    break;
+                }
+            }
+            else {
+                index++;
+            }
+        }
+        const tempFuncBody = funcBody;
+        let lastWhitespace = -1;
+        funcBody = '';
+        while (index < length) {
+            const c = template.charCodeAt(index);
+            if (isWhitespace[c]) {
+                lastWhitespace = index;
+                index++;
+            }
+            else if (c === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE) {
+                appendResult(lastWhitespace > -1 ? lastWhitespace : index);
+                const innerFuncBody = funcBody;
+                funcBody = tempFuncBody;
+                if (name) {
+                    funcBody += `let ${name}=`;
+                }
+                funcBody += `(async function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
+                index += 2;
+                break;
+            }
+            else if (parseOpenBlock(c)) ;
             else {
                 index++;
             }

@@ -516,6 +516,9 @@ test("Parameters declaration", async () => {
 
 test("Fetch declaration", async () => {
     Nostache.fetch = (value) => Nostache(value === 'partials/li.htm' ? "<li>{~ this[0] + 1 ~}</li>" : "");
+    expect(await Nostache("<ul>{@ li '' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul></ul>");
+    expect(await Nostache("<ul>{@ li 'null' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul></ul>");
+
     expect(await Nostache("<ul>{@ li 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
     expect(await Nostache('<ul>{@ li "partials/li.htm" @} <{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>')(2)).toBe("<ul><li>1</li><li>2</li></ul>");
     expect(await Nostache('<ul>{@ li `partials/li.htm` @}  <{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
@@ -569,4 +572,42 @@ test("Fetch declaration", async () => {
     expect(await Nostache('{@ n @}<ul><{ for (let i = 0; i < n; i++) { let li = {@ `partials/li.htm` @} {~ li(i) ~}} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
     expect(await Nostache('<ul> {@ n @} <{ for (let i = 0; i < n; i++) { let li = {@ `partials/${"li"}.htm` @} {~ li(i) ~}} }> </ul>')(2)).toBe("<ul> <li>1</li><li>2</li> </ul>");
     expect(await Nostache("{@ n @} <ul><{ for (let i = 0; i < n; i++) { let li = {@ 'partials/' + 'li.htm' @} {~ li(i) ~}} }></ul>")(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+
+    expect(await Nostache("<ul><{for (let i = 0; i < this[0]; i++) {let li = {@ 'partials/li.htm' @}(i); {~ li ~}} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache('<ul><{for (let i = 0; i < this[0]; i++) {const li = {@ "partials/li.htm" @}(i); {~ li ~}} }></ul>')(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache('<ul><{for (let i = 0; i < this[0]; i++) {let li = {@ `partials/li.htm` @}(i); {~ li ~}} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache('<ul><{for (let i = 0; i < this[0]; i++) {const li = {@ `partials/${"li"}.htm` @}(i); {~ li ~}} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{for (let i = 0; i < this[0]; i++) {let li = {@ 'partials/' + 'li.htm' @}(i); {~ li ~}} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+});
+
+test("Template declaration", async () => {
+    expect(await Nostache("{@ li (i) <li>{= i + 1 =}</li> @} <ul><{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ li (i) <li>{= i + 1 =}</li> @} <{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache("<ul><{ {@ li (i) <li>{= i + 1 =}</li> @} for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache("<{ let li = {@ (i) <li>{= i + 1 =}</li> @} }><ul><{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{ let li = {@ (i) <li>{= i + 1 =}</li> @} }><{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    expect(await Nostache("<ul><{ let li = {@ (i) <li>{= i + 1 =}</li> @} for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
+    expect(await Nostache("{@ b(t) <b>{=t=}</b> @} {@ i(t) <i>{=t=}</i> @} <p>{~ b(this[0]) ~}{~ i(this[1]) ~}</p>")(1, 2)).toBe("<p><b>1</b><i>2</i></p>");
+    expect(await Nostache("{@ b(t) <b>{=t=}</b> @} <p>{@ i(t) <i>{=t=}</i> @}{~ b(this[0]) ~}{~ i(this[1]) ~}</p>")(1, 2)).toBe("<p><b>1</b><i>2</i></p>");
+    expect(await Nostache("<p>{@ b(t) <b>{=t=}</b> @}{~ b(this[0]) ~}{@ i(t) <i>{=t=}</i> @}{~ i(this[1]) ~}</p>")(1, 2)).toBe("<p><b>1</b><i>2</i></p>");
+    expect(await Nostache("{@ tr (i) {@ td (i,j) <td>{=i=}{=j=}</td> @} <tr>{~td(i,1)~}{~td(i,2)~}</tr> @} <table><{for (let i = 0; i < this[0]; i++) {~ tr(i + 1) ~} }></table>")(1))
+        .toBe("<table><tr><td>11</td><td>12</td></tr></table>");
+    expect(await Nostache("{@ tr (i) <tr>{@ td (i,j) <td>{=i=}{=j=}</td> @} {~td(i,1)~}</tr> @} <table><{for (let i = 0; i < this[0]; i++) {~ tr(i + 1) ~} }></table>")(2))
+        .toBe("<table><tr><td>11</td></tr><tr><td>21</td></tr></table>");
+    expect(await Nostache("<table>{@ tr (i) <tr>{@ td (i,j) <td>{=i=}{=j=}</td> @} {~td(i,1)~}</tr> @} <{for (let i = 0; i < this[0]; i++) {~ tr(i + 1) ~} }></table>")(2))
+        .toBe("<table><tr><td>11</td></tr><tr><td>21</td></tr></table>");
+    expect(await Nostache("<table><{ {@ tr (i) <tr>{@ td (i,j) <td>{=i=}{=j=}</td> @} {~td(i,1)~}</tr> @} for (let i = 0; i < this[0]; i++) {~ tr(i + 1) ~} }></table>")(2))
+        .toBe("<table><tr><td>11</td></tr><tr><td>21</td></tr></table>");
+    expect(await Nostache("{@ biu() {@ t,p,q @} <b>{=t=}</b><i>{= p =}</i><u>{= q =}</u> @} <p>{~ biu() ~}</p>")(1, 2, 3)).toBe("<p><b>1</b><i>2</i><u>3</u></p>");
+    expect(await Nostache("{@ biu(t) <b>{=t=}</b>{@ ,p,q @} <i>{= p =}</i><u>{= q =}</u> @} <p>{~ biu(this[0]) ~}</p>")(1, 2, 3)).toBe("<p><b>1</b><i>2</i><u>3</u></p>");
+
+    Nostache.fetch = (value) => Nostache(value === 'partials/td.htm' ? "{@ i, j @}<td>{= i =}{= j =}</td>" : "");
+    expect(await Nostache("{@ tr (i) {@ td 'partials/td.htm' @} <tr>{~td(i,1)~}{~td(i,2)~}</tr> @} <table><{for (let i = 0; i < this[0]; i++) {~ tr(i + 1) ~} }></table>")(1))
+        .toBe("<table><tr><td>11</td><td>12</td></tr></table>");
+    expect(await Nostache("{@ tr (i) <tr>{@ td 'partials/td.htm' @} {~td(i,1)~}</tr> @} <table><{for (let i = 0; i < this[0]; i++) {~ tr(i + 1) ~} }></table>")(2))
+        .toBe("<table><tr><td>11</td></tr><tr><td>21</td></tr></table>");
+    expect(await Nostache("<table>{@ tr (i) <tr>{@ td 'partials/td.htm' @} {~td(i,1)~}</tr> @} <{for (let i = 0; i < this[0]; i++) {~ tr(i + 1) ~} }></table>")(2))
+        .toBe("<table><tr><td>11</td></tr><tr><td>21</td></tr></table>");
+    expect(await Nostache("<table><{ {@ tr (i) <tr>{@ td 'partials/td.htm' @} {~td(i,1)~}</tr> @} for (let i = 0; i < this[0]; i++) {~ tr(i + 1) ~} }></table>")(2))
+        .toBe("<table><tr><td>11</td></tr><tr><td>21</td></tr></table>");
 });
