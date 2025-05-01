@@ -519,6 +519,7 @@ test("Fetch declaration", async () => {
     expect(await Nostache("<ul>{@ li '' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul></ul>");
     expect(await Nostache("<ul>{@ li 'null' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul></ul>");
 
+    expect(await Nostache("<ul>{@ li 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {= li(i) =} }></ul>")(1)).toBe("<ul>&#60;li&#62;1&#60;/li&#62;</ul>");
     expect(await Nostache("<ul>{@ li 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
     expect(await Nostache('<ul>{@ li "partials/li.htm" @} <{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>')(2)).toBe("<ul><li>1</li><li>2</li></ul>");
     expect(await Nostache('<ul>{@ li `partials/li.htm` @}  <{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
@@ -581,6 +582,7 @@ test("Fetch declaration", async () => {
 });
 
 test("Template declaration", async () => {
+    expect(await Nostache("{@ li (i) <li>{= i + 1 =}</li> @} <ul><{for (let i = 0; i < this[0]; i++) {= li(i) =} }></ul>")(1)).toBe("<ul>&#60;li&#62;1&#60;/li&#62;</ul>");
     expect(await Nostache("{@ li (i) <li>{= i + 1 =}</li> @} <ul><{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
     expect(await Nostache("<ul>{@ li (i) <li>{= i + 1 =}</li> @} <{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");
     expect(await Nostache("<ul><{ {@ li (i) <li>{= i + 1 =}</li> @} for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");

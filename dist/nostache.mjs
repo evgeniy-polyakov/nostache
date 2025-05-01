@@ -2,7 +2,6 @@ const templateCache = {};
 // todo errors for unfinished expressions
 // todo extension functions
 // todo support of older browsers
-// todo fix html escape in expressions like {@ a() <a></a> @} {= a() =}
 // todo output {=  =} or {~  ~} as whitespace `  `
 // todo layout/block/region technics
 // todo table of control characters in readme.md
@@ -455,29 +454,27 @@ const parseTemplate = (template) => {
     return `return(async function*(){\n${funcBody}}).call(this)`;
 };
 const escapeHtml = async (value) => {
-    return String(await value).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+    return String(await iterateRecursively(value)).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 };
 const fetchTemplate = async (input, init) => {
     const response = await fetch(input, init);
     return Nostache(await response.text());
 };
-const iterateGenerator = async (generator) => {
-    let result = '';
-    while (true) {
-        const chunk = await generator.next();
-        if (chunk.done) {
-            break;
-        }
-        else {
-            if (typeof chunk.value?.next === "function") {
-                result += await iterateGenerator(chunk.value);
+const iterateRecursively = async (value, transform) => {
+    if (typeof value.next === "function") {
+        let result = '';
+        while (true) {
+            const chunk = await value.next();
+            if (chunk.done) {
+                break;
             }
             else {
-                result += await chunk.value;
+                result += await iterateRecursively(chunk.value);
             }
         }
+        return result;
     }
-    return result;
+    return transform ? transform(await value) : await value;
 };
 const Nostache = (template) => {
     if (templateCache[template]) {
@@ -508,8 +505,7 @@ const Nostache = (template) => {
             contextFunc.fetch = templateFunc.fetch;
             contextFunc.escapeHtml = templateFunc.escapeHtml;
             contextFunc.toString = templateFunc.toString;
-            const generator = Function(funcBody).apply(contextFunc);
-            return iterateGenerator(generator);
+            return iterateRecursively(Function(funcBody).apply(contextFunc));
         }
         catch (error) {
             error.message += `\nat function () {\n${funcBody}\n})(${context.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;

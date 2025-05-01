@@ -9,7 +9,6 @@ const templateCache: Record<string, TemplateFunction> = {};
 // todo errors for unfinished expressions
 // todo extension functions
 // todo support of older browsers
-// todo fix html escape in expressions like {@ a() <a></a> @} {= a() =}
 // todo output {=  =} or {~  ~} as whitespace `  `
 // todo layout/block/region technics
 // todo table of control characters in readme.md
@@ -436,7 +435,7 @@ const parseTemplate = (template: string) => {
 }
 
 const escapeHtml = async (value: unknown) => {
-    return String(await value).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+    return String(await iterateRecursively(value)).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 };
 
 const fetchTemplate = async (input: string | URL | Request, init?: RequestInit) => {
@@ -444,21 +443,20 @@ const fetchTemplate = async (input: string | URL | Request, init?: RequestInit) 
     return Nostache(await response.text());
 }
 
-const iterateGenerator = async (generator: AsyncGenerator<any>) => {
-    let result = '';
-    while (true) {
-        const chunk = await generator.next();
-        if (chunk.done) {
-            break;
-        } else {
-            if (typeof chunk.value?.next === "function") {
-                result += await iterateGenerator(chunk.value);
+const iterateRecursively = async (value: any, transform?: (value: any) => string) => {
+    if (typeof value.next === "function") {
+        let result = '';
+        while (true) {
+            const chunk = await value.next();
+            if (chunk.done) {
+                break;
             } else {
-                result += await chunk.value;
+                result += await iterateRecursively(chunk.value);
             }
         }
+        return result;
     }
-    return result;
+    return transform ? transform(await value) : await value;
 };
 
 const Nostache = (template: string): TemplateFunction => {
@@ -489,8 +487,7 @@ const Nostache = (template: string): TemplateFunction => {
             contextFunc.fetch = templateFunc.fetch;
             contextFunc.escapeHtml = templateFunc.escapeHtml;
             contextFunc.toString = templateFunc.toString;
-            const generator = Function(funcBody).apply(contextFunc);
-            return iterateGenerator(generator);
+            return iterateRecursively(Function(funcBody).apply(contextFunc));
         } catch (error: any) {
             error.message += `\nat function () {\n${funcBody}\n})(${
                 context.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")
