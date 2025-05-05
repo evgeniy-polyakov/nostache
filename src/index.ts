@@ -3,14 +3,17 @@ type TemplateFunction = (this: TemplateFunction & {
     load(input: string | URL | Request, init?: RequestInit): Promise<TemplateFunction>;
 }, ...context: any[]) => Promise<string>;
 type TemplateOptions = {
+    verbose?: boolean;
     async?: boolean;
+    load?(input: string | URL | Request, init?: RequestInit): string | Promise<string>;
+    escape?(value: string): string;
 };
 const templateCache: Record<string, TemplateFunction> = {};
 
 // todo errors for unfinished expressions
 // todo extension functions
 // todo cache tests, cache clear function
-// todo loader option
+// todo options tests, make sure options are not stored in cache
 // todo default template options
 // todo output {=  =} or {~  ~} as whitespace `  `
 // todo layout/block/region technics
@@ -437,14 +440,6 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
     return `return(${options?.async ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
 }
 
-const escape = (value: unknown) => {
-    return iterateRecursively(value).then(s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`));
-};
-
-const load = (input: string | URL | Request, init?: RequestInit) => {
-    return Nostache(fetch(input, init).then(r => r.text()));
-};
-
 const getTemplateKey = (template: string, options?: TemplateOptions) => {
     return options?.async ? `async ${template}` : template;
 };
@@ -466,6 +461,16 @@ const Nostache = (template: string | Promise<string>, options?: TemplateOptions)
             return templateCache[key];
         }
     }
+    options = {
+        ...Nostache.options,
+        ...options,
+    };
+    const escape = (value: unknown) => {
+        return iterateRecursively(value).then(options?.escape ?? (s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
+    };
+    const load = (input: string | URL | Request, init?: RequestInit) => {
+        return Nostache(options?.load?.(input, init) ?? fetch(input, init).then(r => r.text()));
+    };
     const templateFunc = (...context: any[]) => new Promise<string>(r => r(template)).then((templateString: string) => {
         const key = getTemplateKey(templateString, options);
         if (templateCache[key] && templateCache[key] !== templateFunc) {
@@ -474,7 +479,7 @@ const Nostache = (template: string | Promise<string>, options?: TemplateOptions)
         const funcBody = parseTemplate(templateString, options);
         templateCache[key] = templateFunc;
         try {
-            if (Nostache.verbose) {
+            if (options?.verbose) {
                 console.groupCollapsed(`(function () {`);
                 console.log(`${funcBody}})\n(`, ...context.reduce((a, t) => {
                     if (a.length > 0) a.push(",");
@@ -492,8 +497,8 @@ const Nostache = (template: string | Promise<string>, options?: TemplateOptions)
             for (let i = 0; i < context.length; i++) {
                 (contextFunc as any)[i] = context[i];
             }
-            contextFunc.load = Nostache.load;
-            contextFunc.escape = Nostache.escape;
+            contextFunc.load = load;
+            contextFunc.escape = escape;
             return iterateRecursively(Function(funcBody).apply(contextFunc));
         } catch (error: any) {
             error.message += `\nat function () {\n${funcBody}\n})(${
@@ -505,8 +510,6 @@ const Nostache = (template: string | Promise<string>, options?: TemplateOptions)
     return templateFunc;
 };
 
-Nostache.verbose = false;
-Nostache.load = load;
-Nostache.escape = escape;
+Nostache.options = {} as TemplateOptions;
 
 export default Nostache;

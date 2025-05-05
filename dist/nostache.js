@@ -2,7 +2,7 @@
 // todo errors for unfinished expressions
 // todo extension functions
 // todo cache tests, cache clear function
-// todo loader option
+// todo options tests, make sure options are not stored in cache
 // todo default template options
 // todo output {=  =} or {~  ~} as whitespace `  `
 // todo layout/block/region technics
@@ -455,12 +455,6 @@ const parseTemplate = (template, options) => {
     appendResult();
     return `return(${(options === null || options === void 0 ? void 0 : options.async) ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
 };
-const escape = (value) => {
-    return iterateRecursively(value).then(s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`));
-};
-const load = (input, init) => {
-    return Nostache(fetch(input, init).then(r => r.text()));
-};
 const getTemplateKey = (template, options) => {
     return (options === null || options === void 0 ? void 0 : options.async) ? `async ${template}` : template;
 };
@@ -479,6 +473,15 @@ const Nostache = (template, options) => {
             return templateCache[key];
         }
     }
+    options = Object.assign(Object.assign({}, Nostache.options), options);
+    const escape = (value) => {
+        var _a;
+        return iterateRecursively(value).then((_a = options === null || options === void 0 ? void 0 : options.escape) !== null && _a !== void 0 ? _a : (s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
+    };
+    const load = (input, init) => {
+        var _a, _b;
+        return Nostache((_b = (_a = options === null || options === void 0 ? void 0 : options.load) === null || _a === void 0 ? void 0 : _a.call(options, input, init)) !== null && _b !== void 0 ? _b : fetch(input, init).then(r => r.text()));
+    };
     const templateFunc = (...context) => new Promise(r => r(template)).then((templateString) => {
         const key = getTemplateKey(templateString, options);
         if (templateCache[key] && templateCache[key] !== templateFunc) {
@@ -487,7 +490,7 @@ const Nostache = (template, options) => {
         const funcBody = parseTemplate(templateString, options);
         templateCache[key] = templateFunc;
         try {
-            if (Nostache.verbose) {
+            if (options === null || options === void 0 ? void 0 : options.verbose) {
                 console.groupCollapsed(`(function () {`);
                 console.log(`${funcBody}})\n(`, ...context.reduce((a, t) => {
                     if (a.length > 0)
@@ -506,8 +509,8 @@ const Nostache = (template, options) => {
             for (let i = 0; i < context.length; i++) {
                 contextFunc[i] = context[i];
             }
-            contextFunc.load = Nostache.load;
-            contextFunc.escape = Nostache.escape;
+            contextFunc.load = load;
+            contextFunc.escape = escape;
             return iterateRecursively(Function(funcBody).apply(contextFunc));
         }
         catch (error) {
@@ -517,6 +520,4 @@ const Nostache = (template, options) => {
     });
     return templateFunc;
 };
-Nostache.verbose = false;
-Nostache.load = load;
-Nostache.escape = escape;return Nostache;}));//# sourceMappingURL=nostache.js.map
+Nostache.options = {};return Nostache;}));//# sourceMappingURL=nostache.js.map
