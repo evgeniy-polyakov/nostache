@@ -428,7 +428,7 @@ const parseTemplate = (template, options) => {
                 if (name) {
                     funcBody += `let ${name}=`;
                 }
-                funcBody += `(${(options === null || options === void 0 ? void 0 : options.async) ? "async " : ""}function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
+                funcBody += `(${options.async ? "async " : ""}function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
                 index += 2;
                 break;
             }
@@ -453,10 +453,7 @@ const parseTemplate = (template, options) => {
         }
     }
     appendResult();
-    return `return(${(options === null || options === void 0 ? void 0 : options.async) ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
-};
-const getTemplateKey = (template, options) => {
-    return (options === null || options === void 0 ? void 0 : options.async) ? `async ${template}` : template;
+    return `return(${options.async ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
 };
 const iterateRecursively = (value) => {
     if (typeof value.next === "function") {
@@ -467,30 +464,25 @@ const iterateRecursively = (value) => {
     return new Promise(r => r(value));
 };
 const Nostache = (template, options) => {
-    if (typeof template === "string") {
-        const key = getTemplateKey(template, options);
-        if (templateCache[key]) {
-            return templateCache[key];
-        }
-    }
     options = Object.assign(Object.assign({}, Nostache.options), options);
     const escape = (value) => {
-        var _a;
-        return iterateRecursively(value).then((_a = options === null || options === void 0 ? void 0 : options.escape) !== null && _a !== void 0 ? _a : (s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
+        return iterateRecursively(value).then(typeof options.escape === "function" ? options.escape :
+            (s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
     const load = (input, init) => {
-        var _a, _b;
-        return Nostache((_b = (_a = options === null || options === void 0 ? void 0 : options.load) === null || _a === void 0 ? void 0 : _a.call(options, input, init)) !== null && _b !== void 0 ? _b : fetch(input, init).then(r => r.text()));
+        return Nostache(typeof options.load === "function" ? options.load(input, init) : fetch(input, init).then(r => r.text()));
     };
     const templateFunc = (...context) => new Promise(r => r(template)).then((templateString) => {
-        const key = getTemplateKey(templateString, options);
-        if (templateCache[key] && templateCache[key] !== templateFunc) {
-            templateCache[key](...context);
-        }
-        const funcBody = parseTemplate(templateString, options);
-        templateCache[key] = templateFunc;
+        const key = options.async ? `async ${templateString}` : templateString;
+        let func = templateCache[key];
+        const funcBody = func ? func.toString() : parseTemplate(templateString, options);
         try {
-            if (options === null || options === void 0 ? void 0 : options.verbose) {
+            if (!func) {
+                func = Function(funcBody);
+                func.toString = () => funcBody;
+                templateCache[key] = func;
+            }
+            if (options.verbose) {
                 console.groupCollapsed(`(function () {`);
                 console.log(`${funcBody}})\n(`, ...context.reduce((a, t) => {
                     if (a.length > 0)
@@ -500,9 +492,7 @@ const Nostache = (template, options) => {
                 }, []), ")");
                 console.groupEnd();
             }
-            const contextFunc = (...context) => {
-                return templateFunc(...context);
-            };
+            const contextFunc = (...context) => templateFunc(...context);
             contextFunc[Symbol.iterator] = function* () {
                 yield* context;
             };
@@ -511,7 +501,7 @@ const Nostache = (template, options) => {
             }
             contextFunc.load = load;
             contextFunc.escape = escape;
-            return iterateRecursively(Function(funcBody).apply(contextFunc));
+            return iterateRecursively(func.apply(contextFunc));
         }
         catch (error) {
             error.message += `\nat function () {\n${funcBody}\n})(${context.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;

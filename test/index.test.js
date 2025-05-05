@@ -1,6 +1,6 @@
 const Nostache = require("../dist/nostache.js");
 
-Nostache.verbose = true;
+Nostache.options.verbose = true;
 
 test("Simple text", async () => {
     expect(await Nostache("")()).toBe("");

@@ -1,6 +1,6 @@
 type TemplateFunction = (this: TemplateFunction & {
     escape(value: unknown): Promise<string>;
-    load(input: string | URL | Request, init?: RequestInit): Promise<TemplateFunction>;
+    load(input: string | URL | Request, init?: RequestInit): TemplateFunction;
 }, ...context: any[]) => Promise<string>;
 type TemplateOptions = {
     verbose?: boolean;

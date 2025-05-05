@@ -1,6 +1,6 @@
 type TemplateFunction = (this: TemplateFunction & {
     escape(value: unknown): Promise<string>,
-    load(input: string | URL | Request, init?: RequestInit): Promise<TemplateFunction>;
+    load(input: string | URL | Request, init?: RequestInit): TemplateFunction;
 }, ...context: any[]) => Promise<string>;
 type TemplateOptions = {
     verbose?: boolean;
@@ -19,7 +19,7 @@ const templateCache: Record<string, TemplateFunction> = {};
 // todo layout/block/region technics
 // todo table of control characters in readme.md
 // todo ; before yield in some cases
-const parseTemplate = (template: string, options?: TemplateOptions) => {
+const parseTemplate = (template: string, options: TemplateOptions) => {
 
     const charCode = (char: string) => {
         if (char.length > 1) {
@@ -409,7 +409,7 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
                 if (name) {
                     funcBody += `let ${name}=`;
                 }
-                funcBody += `(${options?.async ? "async " : ""}function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
+                funcBody += `(${options.async ? "async " : ""}function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
                 index += 2;
                 break;
             } else if (parseOpenBlock(c)) {
@@ -437,12 +437,8 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
         }
     }
     appendResult();
-    return `return(${options?.async ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
+    return `return(${options.async ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
 }
-
-const getTemplateKey = (template: string, options?: TemplateOptions) => {
-    return options?.async ? `async ${template}` : template;
-};
 
 const iterateRecursively = (value: any) => {
     if (typeof value.next === "function") {
@@ -455,42 +451,38 @@ const iterateRecursively = (value: any) => {
 };
 
 const Nostache = (template: string | Promise<string>, options?: TemplateOptions): TemplateFunction => {
-    if (typeof template === "string") {
-        const key = getTemplateKey(template, options);
-        if (templateCache[key]) {
-            return templateCache[key];
-        }
-    }
     options = {
         ...Nostache.options,
         ...options,
     };
     const escape = (value: unknown) => {
-        return iterateRecursively(value).then(options?.escape ?? (s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
+        return iterateRecursively(value).then(
+            typeof options.escape === "function" ? options.escape :
+                (s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
     const load = (input: string | URL | Request, init?: RequestInit) => {
-        return Nostache(options?.load?.(input, init) ?? fetch(input, init).then(r => r.text()));
+        return Nostache(typeof options.load === "function" ? options.load(input, init) : fetch(input, init).then(r => r.text()));
     };
-    const templateFunc = (...context: any[]) => new Promise<string>(r => r(template)).then((templateString: string) => {
-        const key = getTemplateKey(templateString, options);
-        if (templateCache[key] && templateCache[key] !== templateFunc) {
-            (templateCache as any)[key](...context);
-        }
-        const funcBody = parseTemplate(templateString, options);
-        templateCache[key] = templateFunc;
+    const templateFunc = (...context: unknown[]) => new Promise<string>(r => r(template)).then((templateString: string) => {
+        const key = options.async ? `async ${templateString}` : templateString;
+        let func = templateCache[key];
+        const funcBody = func ? func.toString() : parseTemplate(templateString, options);
         try {
-            if (options?.verbose) {
+            if (!func) {
+                func = Function(funcBody) as TemplateFunction;
+                func.toString = () => funcBody;
+                templateCache[key] = func;
+            }
+            if (options.verbose) {
                 console.groupCollapsed(`(function () {`);
-                console.log(`${funcBody}})\n(`, ...context.reduce((a, t) => {
+                console.log(`${funcBody}})\n(`, ...(context as any[]).reduce((a, t) => {
                     if (a.length > 0) a.push(",");
                     a.push(typeof t === "string" ? `"${t}"` : t);
                     return a;
                 }, []), ")")
                 console.groupEnd();
             }
-            const contextFunc = (...context: unknown[]) => {
-                return templateFunc(...context);
-            };
+            const contextFunc: ThisParameterType<TemplateFunction> = (...context: unknown[]) => templateFunc(...context);
             (contextFunc as any)[Symbol.iterator] = function* () {
                 yield* context;
             };
@@ -499,7 +491,7 @@ const Nostache = (template: string | Promise<string>, options?: TemplateOptions)
             }
             contextFunc.load = load;
             contextFunc.escape = escape;
-            return iterateRecursively(Function(funcBody).apply(contextFunc));
+            return iterateRecursively(func.apply(contextFunc));
         } catch (error: any) {
             error.message += `\nat function () {\n${funcBody}\n})(${
                 context.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")
