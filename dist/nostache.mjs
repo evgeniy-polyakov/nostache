@@ -49,11 +49,11 @@ const parseTemplate = (template, options) => {
             funcBody += `yield \`${template.slice(startIndex, endIndex)}${extra}\`;\n`;
         }
     };
-    const appendOutput = (unsafe) => {
+    const appendOutput = (unescape) => {
         if (index > startIndex) {
-            funcBody += unsafe ?
+            funcBody += unescape ?
                 `yield (${template.slice(startIndex, index)});\n` :
-                `yield this.escapeHtml(${template.slice(startIndex, index)});\n`;
+                `yield this.escape(${template.slice(startIndex, index)});\n`;
         }
     };
     const appendLogic = () => {
@@ -78,7 +78,7 @@ const parseTemplate = (template, options) => {
             return true;
         }
         else if (c === OPEN_BRACE && n === TILDE) {
-            // Unsafe assignment block {~
+            // Unescape assignment block {~
             appendResult();
             index += 2;
             parseOutputBlock(true);
@@ -92,21 +92,21 @@ const parseTemplate = (template, options) => {
             return true;
         }
         else if (c === BACKSLASH) {
-            // Escape backslash \
+            // escape backslash \
             appendResult(index, "\\\\");
             index++;
             startIndex = index;
             return true;
         }
         else if (c === BACKTICK) {
-            // Escape backtick
+            // escape backtick
             appendResult(index, "\\`");
             index++;
             startIndex = index;
             return true;
         }
         else if (c === DOLLAR) {
-            // Escape dollar
+            // escape dollar
             appendResult(index, "\\$");
             index++;
             startIndex = index;
@@ -231,9 +231,9 @@ const parseTemplate = (template, options) => {
         }
         startIndex = index;
     };
-    const parseOutputBlock = (unsafe) => {
+    const parseOutputBlock = (unescape) => {
         startIndex = index;
-        const closeChar = unsafe ? TILDE : ASSIGN;
+        const closeChar = unescape ? TILDE : ASSIGN;
         let hasMeaningfulSymbol = false;
         while (index < length) {
             if (parseStringOrComment()) {
@@ -246,7 +246,7 @@ const parseTemplate = (template, options) => {
             }
             else if (c === closeChar && template.charCodeAt(index + 1) === CLOSE_BRACE) {
                 if (hasMeaningfulSymbol) {
-                    appendOutput(unsafe);
+                    appendOutput(unescape);
                 }
                 index += 2;
                 break;
@@ -319,7 +319,7 @@ const parseTemplate = (template, options) => {
                 }
                 else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
                     index++;
-                    parseFetchDeclaration();
+                    parseloadDeclaration();
                     break;
                 }
                 else if (isAlphabetic(firstChar)) {
@@ -345,7 +345,7 @@ const parseTemplate = (template, options) => {
                 else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
                     startIndex = index;
                     index++;
-                    parseFetchDeclaration(name);
+                    parseloadDeclaration(name);
                     break;
                 }
                 else {
@@ -373,12 +373,12 @@ const parseTemplate = (template, options) => {
             }
         }
     };
-    const parseFetchDeclaration = (name) => {
+    const parseloadDeclaration = (name) => {
         while (index < length) {
             if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
                 if (name)
                     funcBody += `let ${name}=`;
-                funcBody += `this.fetch(${template.slice(startIndex, index)})\n`;
+                funcBody += `this.load(${template.slice(startIndex, index)})\n`;
                 index += 2;
                 break;
             }
@@ -456,10 +456,10 @@ const parseTemplate = (template, options) => {
     appendResult();
     return `return(${(options === null || options === void 0 ? void 0 : options.async) ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
 };
-const escapeHtml = (value) => {
+const escape = (value) => {
     return iterateRecursively(value).then(s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`));
 };
-const fetchTemplate = (input, init) => {
+const load = (input, init) => {
     return Nostache(fetch(input, init).then(r => r.text()));
 };
 const getTemplateKey = (template, options) => {
@@ -507,8 +507,8 @@ const Nostache = (template, options) => {
             for (let i = 0; i < context.length; i++) {
                 contextFunc[i] = context[i];
             }
-            contextFunc.fetch = Nostache.fetch;
-            contextFunc.escapeHtml = Nostache.escapeHtml;
+            contextFunc.load = Nostache.load;
+            contextFunc.escape = Nostache.escape;
             return iterateRecursively(Function(funcBody).apply(contextFunc));
         }
         catch (error) {
@@ -519,5 +519,5 @@ const Nostache = (template, options) => {
     return templateFunc;
 };
 Nostache.verbose = false;
-Nostache.fetch = fetchTemplate;
-Nostache.escapeHtml = escapeHtml;export{Nostache as default};//# sourceMappingURL=nostache.mjs.map
+Nostache.load = load;
+Nostache.escape = escape;export{Nostache as default};//# sourceMappingURL=nostache.mjs.map

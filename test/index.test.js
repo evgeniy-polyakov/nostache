@@ -516,7 +516,7 @@ test("Parameters declaration", async () => {
 });
 
 test("Fetch declaration", async () => {
-    Nostache.fetch = (value) => Nostache(value === 'partials/li.htm' ? "<li>{~ this[0] + 1 ~}</li>" : "");
+    Nostache.load = (value) => Nostache(value === 'partials/li.htm' ? "<li>{~ this[0] + 1 ~}</li>" : "");
     expect(await Nostache("<ul>{@ li '' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul></ul>");
     expect(await Nostache("<ul>{@ li 'null' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul></ul>");
 
@@ -604,7 +604,7 @@ test("Template declaration", async () => {
     expect(await Nostache("{@ biu() {@ t,p,q @} <b>{=t=}</b><i>{= p =}</i><u>{= q =}</u> @} <p>{~ biu() ~}</p>")(1, 2, 3)).toBe("<p><b>1</b><i>2</i><u>3</u></p>");
     expect(await Nostache("{@ biu(t) <b>{=t=}</b>{@ ,p,q @} <i>{= p =}</i><u>{= q =}</u> @} <p>{~ biu(this[0]) ~}</p>")(1, 2, 3)).toBe("<p><b>1</b><i>2</i><u>3</u></p>");
 
-    Nostache.fetch = (value) => Nostache(value === 'partials/td.htm' ? "{@ i, j @}<td>{= i =}{= j =}</td>" : "");
+    Nostache.load = (value) => Nostache(value === 'partials/td.htm' ? "{@ i, j @}<td>{= i =}{= j =}</td>" : "");
     expect(await Nostache("{@ tr (i) {@ td 'partials/td.htm' @} <tr>{~td(i,1)~}{~td(i,2)~}</tr> @} <table><{for (let i = 0; i < this[0]; i++) {~ tr(i + 1) ~} }></table>")(1))
         .toBe("<table><tr><td>11</td><td>12</td></tr></table>");
     expect(await Nostache("{@ tr (i) <tr>{@ td 'partials/td.htm' @} {~td(i,1)~}</tr> @} <table><{for (let i = 0; i < this[0]; i++) {~ tr(i + 1) ~} }></table>")(2))

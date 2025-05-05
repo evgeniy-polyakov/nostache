@@ -1,6 +1,6 @@
 type TemplateFunction = (this: TemplateFunction & {
-    escapeHtml(value: unknown): Promise<string>,
-    fetch(input: string | URL | Request, init?: RequestInit): Promise<TemplateFunction>;
+    escape(value: unknown): Promise<string>,
+    load(input: string | URL | Request, init?: RequestInit): Promise<TemplateFunction>;
 }, ...context: any[]) => Promise<string>;
 type TemplateOptions = {
     async?: boolean;
@@ -62,11 +62,11 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
         }
     };
 
-    const appendOutput = (unsafe: boolean) => {
+    const appendOutput = (unescape: boolean) => {
         if (index > startIndex) {
-            funcBody += unsafe ?
+            funcBody += unescape ?
                 `yield (${template.slice(startIndex, index)});\n` :
-                `yield this.escapeHtml(${template.slice(startIndex, index)});\n`;
+                `yield this.escape(${template.slice(startIndex, index)});\n`;
         }
     };
 
@@ -91,7 +91,7 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
             parseOutputBlock(false);
             return true;
         } else if (c === OPEN_BRACE && n === TILDE) {
-            // Unsafe assignment block {~
+            // Unescape assignment block {~
             appendResult();
             index += 2;
             parseOutputBlock(true);
@@ -103,19 +103,19 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
             parseDeclaration();
             return true;
         } else if (c === BACKSLASH) {
-            // Escape backslash \
+            // escape backslash \
             appendResult(index, "\\\\");
             index++;
             startIndex = index;
             return true;
         } else if (c === BACKTICK) {
-            // Escape backtick
+            // escape backtick
             appendResult(index, "\\`");
             index++;
             startIndex = index;
             return true;
         } else if (c === DOLLAR) {
-            // Escape dollar
+            // escape dollar
             appendResult(index, "\\$");
             index++;
             startIndex = index;
@@ -228,9 +228,9 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
         startIndex = index;
     };
 
-    const parseOutputBlock = (unsafe: boolean) => {
+    const parseOutputBlock = (unescape: boolean) => {
         startIndex = index;
-        const closeChar = unsafe ? TILDE : ASSIGN;
+        const closeChar = unescape ? TILDE : ASSIGN;
         let hasMeaningfulSymbol = false;
         while (index < length) {
             if (parseStringOrComment()) {
@@ -242,7 +242,7 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
                 index++;
             } else if (c === closeChar && template.charCodeAt(index + 1) === CLOSE_BRACE) {
                 if (hasMeaningfulSymbol) {
-                    appendOutput(unsafe);
+                    appendOutput(unescape);
                 }
                 index += 2;
                 break;
@@ -308,7 +308,7 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
                     break;
                 } else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
                     index++;
-                    parseFetchDeclaration();
+                    parseloadDeclaration();
                     break;
                 } else if (isAlphabetic(firstChar)) {
                     index++;
@@ -329,7 +329,7 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
                 } else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
                     startIndex = index;
                     index++;
-                    parseFetchDeclaration(name);
+                    parseloadDeclaration(name);
                     break;
                 } else {
                     parseParametersDeclaration();
@@ -356,11 +356,11 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
         }
     };
 
-    const parseFetchDeclaration = (name?: string) => {
+    const parseloadDeclaration = (name?: string) => {
         while (index < length) {
             if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
                 if (name) funcBody += `let ${name}=`;
-                funcBody += `this.fetch(${template.slice(startIndex, index)})\n`;
+                funcBody += `this.load(${template.slice(startIndex, index)})\n`;
                 index += 2;
                 break;
             } else {
@@ -438,11 +438,11 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
     return `return(${options?.async ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
 }
 
-const escapeHtml = (value: unknown) => {
+const escape = (value: unknown) => {
     return iterateRecursively(value).then(s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`));
 };
 
-const fetchTemplate = (input: string | URL | Request, init?: RequestInit) => {
+const load = (input: string | URL | Request, init?: RequestInit) => {
     return Nostache(fetch(input, init).then(r => r.text()));
 };
 
@@ -493,8 +493,8 @@ const Nostache = (template: string | Promise<string>, options?: TemplateOptions)
             for (let i = 0; i < context.length; i++) {
                 (contextFunc as any)[i] = context[i];
             }
-            contextFunc.fetch = Nostache.fetch;
-            contextFunc.escapeHtml = Nostache.escapeHtml;
+            contextFunc.load = Nostache.load;
+            contextFunc.escape = Nostache.escape;
             return iterateRecursively(Function(funcBody).apply(contextFunc));
         } catch (error: any) {
             error.message += `\nat function () {\n${funcBody}\n})(${
@@ -507,7 +507,7 @@ const Nostache = (template: string | Promise<string>, options?: TemplateOptions)
 };
 
 Nostache.verbose = false;
-Nostache.fetch = fetchTemplate;
-Nostache.escapeHtml = escapeHtml;
+Nostache.load = load;
+Nostache.escape = escape;
 
 export default Nostache;
