@@ -1,34 +1,5 @@
-(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';/******************************************************************************
-Copyright (c) Microsoft Corporation.
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
-***************************************************************************** */
-/* global Reflect, Promise, SuppressedError, Symbol, Iterator */
-
-
-function __awaiter(thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-}
-
-typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
-    var e = new Error(message);
-    return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
-};const templateCache = {};
+(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const templateCache = {};
+// todo template promise tests
 // todo errors for unfinished expressions
 // todo extension functions
 // todo cache tests, cache clear function
@@ -485,31 +456,23 @@ const parseTemplate = (template, options) => {
     appendResult();
     return `return(${(options === null || options === void 0 ? void 0 : options.async) ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
 };
-const escapeHtml = (value) => __awaiter(void 0, void 0, void 0, function* () {
-    return String(yield iterateRecursively(value)).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
-});
+const escapeHtml = (value) => {
+    return iterateRecursively(value).then(s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`));
+};
 const fetchTemplate = (input, init) => {
     return Nostache(fetch(input, init).then(r => r.text()));
 };
 const getTemplateKey = (template, options) => {
     return (options === null || options === void 0 ? void 0 : options.async) ? `async ${template}` : template;
 };
-const iterateRecursively = (value, transform) => __awaiter(void 0, void 0, void 0, function* () {
+const iterateRecursively = (value) => {
     if (typeof value.next === "function") {
-        let result = '';
-        while (true) {
-            const chunk = yield value.next();
-            if (chunk.done) {
-                break;
-            }
-            else {
-                result += yield iterateRecursively(chunk.value);
-            }
-        }
-        return result;
+        let result = "";
+        let loop = () => new Promise(r => r(value.next())).then((chunk) => chunk.done ? result : iterateRecursively(chunk.value).then(s => result = result + s).then(loop));
+        return loop().then(() => result);
     }
-    return yield value;
-});
+    return new Promise(r => r(value));
+};
 const Nostache = (template, options) => {
     if (typeof template === "string") {
         const key = getTemplateKey(template, options);
@@ -517,10 +480,12 @@ const Nostache = (template, options) => {
             return templateCache[key];
         }
     }
-    const templateFunc = (...context) => __awaiter(void 0, void 0, void 0, function* () {
-        template = yield template;
-        const key = getTemplateKey(template, options);
-        const funcBody = parseTemplate(template, options);
+    const templateFunc = (...context) => new Promise(r => r(template)).then((templateString) => {
+        const key = getTemplateKey(templateString, options);
+        if (templateCache[key] && templateCache[key] !== templateFunc) {
+            templateCache[key](...context);
+        }
+        const funcBody = parseTemplate(templateString, options);
         templateCache[key] = templateFunc;
         try {
             if (Nostache.verbose) {

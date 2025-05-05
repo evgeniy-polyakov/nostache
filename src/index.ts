@@ -7,6 +7,7 @@ type TemplateOptions = {
 };
 const templateCache: Record<string, TemplateFunction> = {};
 
+// todo template promise tests
 // todo errors for unfinished expressions
 // todo extension functions
 // todo cache tests, cache clear function
@@ -437,8 +438,8 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
     return `return(${options?.async ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
 }
 
-const escapeHtml = async (value: unknown) => {
-    return String(await iterateRecursively(value)).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+const escapeHtml = (value: unknown) => {
+    return iterateRecursively(value).then(s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`));
 };
 
 const fetchTemplate = (input: string | URL | Request, init?: RequestInit) => {
@@ -449,20 +450,14 @@ const getTemplateKey = (template: string, options?: TemplateOptions) => {
     return options?.async ? `async ${template}` : template;
 };
 
-const iterateRecursively = async (value: any, transform?: (value: any) => string) => {
+const iterateRecursively = (value: any) => {
     if (typeof value.next === "function") {
-        let result = '';
-        while (true) {
-            const chunk = await value.next();
-            if (chunk.done) {
-                break;
-            } else {
-                result += await iterateRecursively(chunk.value);
-            }
-        }
-        return result;
+        let result = "";
+        let loop = () => new Promise(r => r(value.next())).then((chunk: any): string | Promise<string> =>
+            chunk.done ? result : iterateRecursively(chunk.value).then(s => result = result + s).then(loop));
+        return loop().then(() => result);
     }
-    return transform ? transform(await value) : await value;
+    return new Promise<string>(r => r(value));
 };
 
 const Nostache = (template: string | Promise<string>, options?: TemplateOptions): TemplateFunction => {
@@ -472,10 +467,12 @@ const Nostache = (template: string | Promise<string>, options?: TemplateOptions)
             return templateCache[key];
         }
     }
-    const templateFunc = async (...context: any[]) => {
-        template = await template;
-        const key = getTemplateKey(template, options);
-        const funcBody = parseTemplate(template, options);
+    const templateFunc = (...context: any[]) => new Promise<string>(r => r(template)).then((templateString: string) => {
+        const key = getTemplateKey(templateString, options);
+        if (templateCache[key] && templateCache[key] !== templateFunc) {
+            (templateCache as any)[key](...context);
+        }
+        const funcBody = parseTemplate(templateString, options);
         templateCache[key] = templateFunc;
         try {
             if (Nostache.verbose) {
@@ -505,7 +502,7 @@ const Nostache = (template: string | Promise<string>, options?: TemplateOptions)
             })`;
             throw error;
         }
-    };
+    });
     return templateFunc;
 };
 
