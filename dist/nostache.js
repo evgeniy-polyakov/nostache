@@ -1,5 +1,4 @@
 (function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const templateCache = {};
-// todo template promise tests
 // todo errors for unfinished expressions
 // todo extension functions
 // todo cache tests, cache clear function
@@ -305,7 +304,7 @@ const parseTemplate = (template, options) => {
         startIndex = index;
         let firstChar = 0;
         let potentialName = false;
-        let name = '';
+        let name = "";
         while (index < length) {
             let c = template.charCodeAt(index);
             if (!firstChar) {
@@ -389,7 +388,7 @@ const parseTemplate = (template, options) => {
     };
     const parseTemplateDeclaration = (name) => {
         startIndex = index;
-        let parameters = '';
+        let parameters = "";
         let parentheses = 0;
         while (index < length) {
             const c = template.charCodeAt(index);
@@ -415,7 +414,7 @@ const parseTemplate = (template, options) => {
         }
         const tempFuncBody = funcBody;
         let lastWhitespace = -1;
-        funcBody = '';
+        funcBody = "";
         while (index < length) {
             const c = template.charCodeAt(index);
             if (isWhitespace[c]) {

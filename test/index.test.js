@@ -486,6 +486,9 @@ test("Promises", async () => {
     expect(await Nostache("<{let a = 1;}>{=new Promise(r => setTimeout(() => r(a), 10))=}<{a++;}> {=new Promise(r => setTimeout(() => r(a), 10))=}")()).toBe("1 2");
     expect(await Nostache("<{let a = 1;}>{=await new Promise(r => setTimeout(() => r(a), 10))=}<{a++;}> {=await new Promise(r => setTimeout(() => r(a), 10))=}", {async: true})()).toBe("1 2");
     expect(await Nostache("<{let a = 1; const p = new Promise(r => setTimeout(() => r(a), 10));}>{=p=}<{a++;}> {=p=}")()).toBe("1 1");
+
+    expect(await Nostache(new Promise(r => setTimeout(() => r("{= 1 =}"), 10)))()).toBe("1");
+    expect(await Nostache(new Promise(r => setTimeout(() => r("{= this[0] =} {= this[1] =}"), 10)))(1, 2)).toBe("1 2");
 });
 
 test("Recursive templates", async () => {

@@ -7,7 +7,6 @@ type TemplateOptions = {
 };
 const templateCache: Record<string, TemplateFunction> = {};
 
-// todo template promise tests
 // todo errors for unfinished expressions
 // todo extension functions
 // todo cache tests, cache clear function
@@ -295,7 +294,7 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
         startIndex = index;
         let firstChar = 0;
         let potentialName = false;
-        let name = '';
+        let name = "";
         while (index < length) {
             let c = template.charCodeAt(index);
             if (!firstChar) {
@@ -371,7 +370,7 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
 
     const parseTemplateDeclaration = (name?: string) => {
         startIndex = index;
-        let parameters = '';
+        let parameters = "";
         let parentheses = 0;
         while (index < length) {
             const c = template.charCodeAt(index);
@@ -394,7 +393,7 @@ const parseTemplate = (template: string, options?: TemplateOptions) => {
         }
         const tempFuncBody = funcBody;
         let lastWhitespace = -1;
-        funcBody = '';
+        funcBody = "";
         while (index < length) {
             const c = template.charCodeAt(index);
             if (isWhitespace[c]) {
