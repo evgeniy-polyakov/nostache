@@ -1,19 +1,22 @@
-type TemplateFunction = ((...context: any[]) => Promise<string>) & {
-    verbose: boolean,
-    toString(): string,
+type TemplateFunction = (this: TemplateFunction & {
     escapeHtml(value: unknown): Promise<string>,
     fetch(input: string | URL | Request, init?: RequestInit): Promise<TemplateFunction>;
+}, ...context: any[]) => Promise<string>;
+type TemplateOptions = {
+    async?: boolean;
 };
 const templateCache: Record<string, TemplateFunction> = {};
 
 // todo errors for unfinished expressions
 // todo extension functions
-// todo support of older browsers
+// todo cache tests, cache clear function
+// todo loader option
+// todo default template options
 // todo output {=  =} or {~  ~} as whitespace `  `
 // todo layout/block/region technics
 // todo table of control characters in readme.md
 // todo ; before yield in some cases
-const parseTemplate = (template: string) => {
+const parseTemplate = (template: string, options?: TemplateOptions) => {
 
     const charCode = (char: string) => {
         if (char.length > 1) {
@@ -356,7 +359,7 @@ const parseTemplate = (template: string) => {
         while (index < length) {
             if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
                 if (name) funcBody += `let ${name}=`;
-                funcBody += `(await this.fetch(${template.slice(startIndex, index)}))\n`;
+                funcBody += `this.fetch(${template.slice(startIndex, index)})\n`;
                 index += 2;
                 break;
             } else {
@@ -403,7 +406,7 @@ const parseTemplate = (template: string) => {
                 if (name) {
                     funcBody += `let ${name}=`;
                 }
-                funcBody += `(async function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
+                funcBody += `(${options?.async ? "async " : ""}function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
                 index += 2;
                 break;
             } else if (parseOpenBlock(c)) {
@@ -431,17 +434,20 @@ const parseTemplate = (template: string) => {
         }
     }
     appendResult();
-    return `return(async function*(){\n${funcBody}}).call(this)`;
+    return `return(${options?.async ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
 }
 
 const escapeHtml = async (value: unknown) => {
     return String(await iterateRecursively(value)).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 };
 
-const fetchTemplate = async (input: string | URL | Request, init?: RequestInit) => {
-    const response = await fetch(input, init);
-    return Nostache(await response.text());
-}
+const fetchTemplate = (input: string | URL | Request, init?: RequestInit) => {
+    return Nostache(fetch(input, init).then(r => r.text()));
+};
+
+const getTemplateKey = (template: string, options?: TemplateOptions) => {
+    return options?.async ? `async ${template}` : template;
+};
 
 const iterateRecursively = async (value: any, transform?: (value: any) => string) => {
     if (typeof value.next === "function") {
@@ -459,14 +465,20 @@ const iterateRecursively = async (value: any, transform?: (value: any) => string
     return transform ? transform(await value) : await value;
 };
 
-const Nostache = (template: string): TemplateFunction => {
-    if (templateCache[template]) {
-        return templateCache[template];
+const Nostache = (template: string | Promise<string>, options?: TemplateOptions): TemplateFunction => {
+    if (typeof template === "string") {
+        const key = getTemplateKey(template, options);
+        if (templateCache[key]) {
+            return templateCache[key];
+        }
     }
-    const funcBody = parseTemplate(template);
     const templateFunc = async (...context: any[]) => {
+        template = await template;
+        const key = getTemplateKey(template, options);
+        const funcBody = parseTemplate(template, options);
+        templateCache[key] = templateFunc;
         try {
-            if (templateFunc.verbose) {
+            if (Nostache.verbose) {
                 console.groupCollapsed(`(function () {`);
                 console.log(`${funcBody}})\n(`, ...context.reduce((a, t) => {
                     if (a.length > 0) a.push(",");
@@ -484,9 +496,8 @@ const Nostache = (template: string): TemplateFunction => {
             for (let i = 0; i < context.length; i++) {
                 (contextFunc as any)[i] = context[i];
             }
-            contextFunc.fetch = templateFunc.fetch;
-            contextFunc.escapeHtml = templateFunc.escapeHtml;
-            contextFunc.toString = templateFunc.toString;
+            contextFunc.fetch = Nostache.fetch;
+            contextFunc.escapeHtml = Nostache.escapeHtml;
             return iterateRecursively(Function(funcBody).apply(contextFunc));
         } catch (error: any) {
             error.message += `\nat function () {\n${funcBody}\n})(${
@@ -495,11 +506,6 @@ const Nostache = (template: string): TemplateFunction => {
             throw error;
         }
     };
-    templateFunc.verbose = Nostache.verbose;
-    templateFunc.fetch = Nostache.fetch;
-    templateFunc.escapeHtml = escapeHtml;
-    templateFunc.toString = () => funcBody;
-    templateCache[template] = templateFunc;
     return templateFunc;
 };
 
