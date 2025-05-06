@@ -11,16 +11,15 @@ type TemplateFunction = {
 type TemplateOptions = {
     verbose?: boolean;
     async?: boolean;
+    cache?: boolean;
     load?(input: string | URL | Request, init?: RequestInit): string | Promise<string>;
-    escape?(value: string): string;
+    escape?(value: string): string | Promise<string>;
 };
-const templateCache: Record<string, TemplateFunction> = {};
+type TemplateCache = Map<string, TemplateFunction>;
+const templateCache: TemplateCache = new Map<string, TemplateFunction>();
 
 // todo errors for unfinished expressions
 // todo extension functions
-// todo cache tests, cache clear function
-// todo options tests, make sure options are not stored in cache
-// todo default template options
 // todo output {=  =} or {~  ~} as whitespace `  `
 // todo layout/block/region technics
 // todo table of control characters in readme.md
@@ -80,7 +79,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
 
     const appendLogic = () => {
         if (index > startIndex) {
-            funcBody += `${template.slice(startIndex, index)}`;
+            funcBody += template.slice(startIndex, index);
         }
     };
 
@@ -444,7 +443,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     }
     appendResult();
     return `return(${options.async ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
-}
+};
 
 const iterateRecursively = (value: any) => {
     if (typeof value.next === "function") {
@@ -456,7 +455,11 @@ const iterateRecursively = (value: any) => {
     return new Promise<string>(r => r(value));
 };
 
-const Nostache = (template: string | Promise<string>, options?: TemplateOptions): TemplateFunction => {
+const Nostache: {
+    (template: string | Promise<string>, options?: TemplateOptions): TemplateFunction;
+    readonly options: TemplateOptions,
+    readonly cache: TemplateCache,
+} = ((template: string | Promise<string>, options?: TemplateOptions): TemplateFunction => {
     options = {
         ...Nostache.options,
         ...options,
@@ -473,13 +476,15 @@ const Nostache = (template: string | Promise<string>, options?: TemplateOptions)
         new Promise<string>(r => r(template))
             .then((templateString: string) => {
                 const key = options.async ? `async ${templateString}` : templateString;
-                let func = templateCache[key];
+                let func = templateCache.get(key);
                 const funcBody = func ? func.toString() : parseTemplate(templateString, options);
                 templateFunc.toString = () => `function () {\n${funcBody}\n}`;
                 if (!func) {
                     func = Function(funcBody) as TemplateFunction;
                     func.toString = () => funcBody;
-                    templateCache[key] = func;
+                    if (options.cache !== false) {
+                        templateCache.set(key, func);
+                    }
                 }
                 try {
                     if (options.verbose) {
@@ -509,8 +514,9 @@ const Nostache = (template: string | Promise<string>, options?: TemplateOptions)
                 }
             });
     return templateFunc;
-};
+}) as typeof Nostache;
 
-Nostache.options = {} as TemplateOptions;
+(Nostache as { options: TemplateOptions }).options = {} as TemplateOptions;
+(Nostache as { cache: TemplateCache }).cache = templateCache;
 
 export default Nostache;

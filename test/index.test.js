@@ -625,3 +625,79 @@ test("To string", async () => {
     await template();
     expect(template.toString()).toMatch(re);
 });
+
+test("Explicit options", async () => {
+    const template = "<a>{~ this.load('a')() ~}{~ this.escape('b') ~}</a>";
+    expect(await Nostache(template, {
+        load: a => a === 'a' ? '1' : '',
+        escape: b => b === 'b' ? '2' : '',
+    })()).toBe("<a>12</a>");
+    expect(await Nostache(template, {
+        load: a => new Promise(r => r(a === 'a' ? '3' : '')),
+        escape: b => new Promise(r => r(b === 'b' ? '4' : '')),
+    })()).toBe("<a>34</a>");
+    expect(await Nostache(template, {
+        load: a => a === 'a' ? '5' : '',
+        escape: b => b === 'b' ? '6' : '',
+    })()).toBe("<a>56</a>");
+    expect(await Nostache(template, {
+        load: a => new Promise(r => r(a === 'a' ? '7' : '')),
+        escape: b => new Promise(r => r(b === 'b' ? '8' : '')),
+    })()).toBe("<a>78</a>");
+});
+
+test("Implicit options", async () => {
+    const template = "{@ a 'a' @}<a>{~ a() ~}{= 'b' =}</a>";
+    expect(await Nostache(template, {
+        load: a => a === 'a' ? '1' : '',
+        escape: b => b === 'b' ? '2' : '',
+    })()).toBe("<a>12</a>");
+    expect(await Nostache(template, {
+        load: a => new Promise(r => r(a === 'a' ? '3' : '')),
+        escape: b => new Promise(r => r(b === 'b' ? '4' : '')),
+    })()).toBe("<a>34</a>");
+    expect(await Nostache(template, {
+        load: a => a === 'a' ? '5' : '',
+        escape: b => b === 'b' ? '6' : '',
+    })()).toBe("<a>56</a>");
+    expect(await Nostache(template, {
+        load: a => new Promise(r => r(a === 'a' ? '7' : '')),
+        escape: b => new Promise(r => r(b === 'b' ? '8' : '')),
+    })()).toBe("<a>78</a>");
+});
+
+test("Cache", async () => {
+    const t = "<a>{~ 1 ~}{= 2 =}</a>";
+    const f1 = Nostache(t);
+    const f2 = Nostache(new Promise(r => r(t)));
+    const f3 = Nostache(t, {async: true});
+    const f4 = Nostache(new Promise(r => r(t)), {async: true});
+    const f5 = Nostache(t, {cache: false});
+    const f6 = Nostache(new Promise(r => r(t)), {cache: false});
+    const f7 = Nostache(t, {async: true, cache: false});
+    const f8 = Nostache(new Promise(r => r(t)), {async: true, cache: false});
+    expect(Nostache.cache.has(t)).toBe(false);
+    await f1();
+    expect(Nostache.cache.has(t)).toBe(true);
+    Nostache.cache.clear();
+    await f2();
+    expect(Nostache.cache.has(t)).toBe(true);
+    Nostache.cache.clear();
+    await f3();
+    expect(Nostache.cache.has(`async ${t}`)).toBe(true);
+    Nostache.cache.clear();
+    await f4();
+    expect(Nostache.cache.has(`async ${t}`)).toBe(true);
+    Nostache.cache.clear();
+    await f5();
+    expect(Nostache.cache.has(t)).toBe(false);
+    Nostache.cache.clear();
+    await f6();
+    expect(Nostache.cache.has(t)).toBe(false);
+    Nostache.cache.clear();
+    await f7();
+    expect(Nostache.cache.has(`async ${t}`)).toBe(false);
+    Nostache.cache.clear();
+    await f8();
+    expect(Nostache.cache.has(`async ${t}`)).toBe(false);
+});

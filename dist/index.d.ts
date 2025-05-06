@@ -11,11 +11,14 @@ type TemplateFunction = {
 type TemplateOptions = {
     verbose?: boolean;
     async?: boolean;
+    cache?: boolean;
     load?(input: string | URL | Request, init?: RequestInit): string | Promise<string>;
-    escape?(value: string): string;
+    escape?(value: string): string | Promise<string>;
 };
+type TemplateCache = Map<string, TemplateFunction>;
 declare const Nostache: {
     (template: string | Promise<string>, options?: TemplateOptions): TemplateFunction;
-    options: TemplateOptions;
+    readonly options: TemplateOptions;
+    readonly cache: TemplateCache;
 };
 export default Nostache;

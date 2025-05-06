@@ -1,9 +1,6 @@
-(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const templateCache = {};
+(function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const templateCache = new Map();
 // todo errors for unfinished expressions
 // todo extension functions
-// todo cache tests, cache clear function
-// todo options tests, make sure options are not stored in cache
-// todo default template options
 // todo output {=  =} or {~  ~} as whitespace `  `
 // todo layout/block/region technics
 // todo table of control characters in readme.md
@@ -57,7 +54,7 @@ const parseTemplate = (template, options) => {
     };
     const appendLogic = () => {
         if (index > startIndex) {
-            funcBody += `${template.slice(startIndex, index)}`;
+            funcBody += template.slice(startIndex, index);
         }
     };
     const parseOpenBlock = (c) => {
@@ -463,7 +460,7 @@ const iterateRecursively = (value) => {
     }
     return new Promise(r => r(value));
 };
-const Nostache = (template, options) => {
+const Nostache = ((template, options) => {
     options = Object.assign(Object.assign({}, Nostache.options), options);
     const escape = (value) => {
         return iterateRecursively(value).then(typeof options.escape === "function" ? options.escape :
@@ -475,13 +472,15 @@ const Nostache = (template, options) => {
     const templateFunc = (...args) => new Promise(r => r(template))
         .then((templateString) => {
         const key = options.async ? `async ${templateString}` : templateString;
-        let func = templateCache[key];
+        let func = templateCache.get(key);
         const funcBody = func ? func.toString() : parseTemplate(templateString, options);
         templateFunc.toString = () => `function () {\n${funcBody}\n}`;
         if (!func) {
             func = Function(funcBody);
             func.toString = () => funcBody;
-            templateCache[key] = func;
+            if (options.cache !== false) {
+                templateCache.set(key, func);
+            }
         }
         try {
             if (options.verbose) {
@@ -511,5 +510,6 @@ const Nostache = (template, options) => {
         }
     });
     return templateFunc;
-};
-Nostache.options = {};return Nostache;}));//# sourceMappingURL=nostache.js.map
+});
+Nostache.options = {};
+Nostache.cache = templateCache;return Nostache;}));//# sourceMappingURL=nostache.js.map
