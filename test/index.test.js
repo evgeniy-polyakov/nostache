@@ -649,6 +649,7 @@ test("Fetch declaration", async () => {
     expect(await Nostache('<ul><{for (let i = 0; i < this[0]; i++) {let li = {@ `partials/li.htm` @}(i); {~ li ~}} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
     expect(await Nostache('<ul><{for (let i = 0; i < this[0]; i++) {const li = {@ `partials/${"li"}.htm` @}(i); {~ li ~}} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
     expect(await Nostache("<ul><{for (let i = 0; i < this[0]; i++) {let li = {@ 'partials/' + 'li.htm' @}(i); {~ li ~}} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    delete Nostache.options.load;
 });
 
 test("Template declaration", async () => {
@@ -691,6 +692,7 @@ test("Template declaration", async () => {
         .toBe("<table><tr><td>11</td></tr><tr><td>21</td></tr></table>");
     expect(await Nostache("<table><{ {@ tr (i) <tr>{@ td 'partials/td.htm' @} {~td(i,1)~}</tr> @} for (let i = 0; i < this[0]; i++) {~ tr(i + 1) ~} }></table>")(2))
         .toBe("<table><tr><td>11</td></tr><tr><td>21</td></tr></table>");
+    delete Nostache.options.load;
 });
 
 test("To string", async () => {

@@ -1,6 +1,5 @@
 (function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const templateCache = new Map();
 // todo errors for unfinished expressions
-// todo extension functions
 // todo layout/block/region technics
 // todo table of control characters in readme.md
 // todo ; before yield in some cases

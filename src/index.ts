@@ -23,7 +23,6 @@ type TemplateCache = Map<string, TemplateFunction>;
 const templateCache: TemplateCache = new Map<string, TemplateFunction>();
 
 // todo errors for unfinished expressions
-// todo extension functions
 // todo layout/block/region technics
 // todo table of control characters in readme.md
 // todo ; before yield in some cases
