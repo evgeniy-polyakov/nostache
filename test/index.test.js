@@ -1,4 +1,4 @@
-const Nostache = require("../dist/nostache.js");
+const Nostache = require("../dist/nostache.min.js");
 
 Nostache.options.verbose = true;
 
@@ -616,4 +616,12 @@ test("Template declaration", async () => {
         .toBe("<table><tr><td>11</td></tr><tr><td>21</td></tr></table>");
     expect(await Nostache("<table><{ {@ tr (i) <tr>{@ td 'partials/td.htm' @} {~td(i,1)~}</tr> @} for (let i = 0; i < this[0]; i++) {~ tr(i + 1) ~} }></table>")(2))
         .toBe("<table><tr><td>11</td></tr><tr><td>21</td></tr></table>");
+});
+
+test("To string", async () => {
+    const template = Nostache("<a>{= 10 =}</a>");
+    const re = /^function[^<]+<a>[^1]+10[^<]+<\/a>/i;
+    expect(template.toString()).not.toMatch(re);
+    await template();
+    expect(template.toString()).toMatch(re);
 });

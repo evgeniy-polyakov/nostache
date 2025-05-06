@@ -1,7 +1,13 @@
-type TemplateFunction = (this: TemplateFunction & {
+type ContextFunction<TArg> = Iterable<TArg> & {
+    (...args: TArg[]): Promise<string>;
+    [arg: number]: TArg;
     escape(value: unknown): Promise<string>;
     load(input: string | URL | Request, init?: RequestInit): TemplateFunction;
-}, ...context: any[]) => Promise<string>;
+};
+type TemplateFunction = {
+    <TArg>(this: ContextFunction<TArg>, ...context: TArg[]): Promise<string>;
+    toString(): string;
+};
 type TemplateOptions = {
     verbose?: boolean;
     async?: boolean;

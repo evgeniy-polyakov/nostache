@@ -1,7 +1,13 @@
-type TemplateFunction = (this: TemplateFunction & {
+type ContextFunction<TArg> = Iterable<TArg> & {
+    (...args: TArg[]): Promise<string>,
+    [arg: number]: TArg,
     escape(value: unknown): Promise<string>,
     load(input: string | URL | Request, init?: RequestInit): TemplateFunction;
-}, ...context: any[]) => Promise<string>;
+};
+type TemplateFunction = {
+    <TArg>(this: ContextFunction<TArg>, ...context: TArg[]): Promise<string>;
+    toString(): string;
+};
 type TemplateOptions = {
     verbose?: boolean;
     async?: boolean;
@@ -463,42 +469,45 @@ const Nostache = (template: string | Promise<string>, options?: TemplateOptions)
     const load = (input: string | URL | Request, init?: RequestInit) => {
         return Nostache(typeof options.load === "function" ? options.load(input, init) : fetch(input, init).then(r => r.text()));
     };
-    const templateFunc = (...context: unknown[]) => new Promise<string>(r => r(template)).then((templateString: string) => {
-        const key = options.async ? `async ${templateString}` : templateString;
-        let func = templateCache[key];
-        const funcBody = func ? func.toString() : parseTemplate(templateString, options);
-        try {
-            if (!func) {
-                func = Function(funcBody) as TemplateFunction;
-                func.toString = () => funcBody;
-                templateCache[key] = func;
-            }
-            if (options.verbose) {
-                console.groupCollapsed(`(function () {`);
-                console.log(`${funcBody}})\n(`, ...(context as any[]).reduce((a, t) => {
-                    if (a.length > 0) a.push(",");
-                    a.push(typeof t === "string" ? `"${t}"` : t);
-                    return a;
-                }, []), ")")
-                console.groupEnd();
-            }
-            const contextFunc: ThisParameterType<TemplateFunction> = (...context: unknown[]) => templateFunc(...context);
-            (contextFunc as any)[Symbol.iterator] = function* () {
-                yield* context;
-            };
-            for (let i = 0; i < context.length; i++) {
-                (contextFunc as any)[i] = context[i];
-            }
-            contextFunc.load = load;
-            contextFunc.escape = escape;
-            return iterateRecursively(func.apply(contextFunc));
-        } catch (error: any) {
-            error.message += `\nat function () {\n${funcBody}\n})(${
-                context.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")
-            })`;
-            throw error;
-        }
-    });
+    const templateFunc = (...args: unknown[]) =>
+        new Promise<string>(r => r(template))
+            .then((templateString: string) => {
+                const key = options.async ? `async ${templateString}` : templateString;
+                let func = templateCache[key];
+                const funcBody = func ? func.toString() : parseTemplate(templateString, options);
+                templateFunc.toString = () => `function () {\n${funcBody}\n}`;
+                if (!func) {
+                    func = Function(funcBody) as TemplateFunction;
+                    func.toString = () => funcBody;
+                    templateCache[key] = func;
+                }
+                try {
+                    if (options.verbose) {
+                        console.groupCollapsed(`(function () {`);
+                        console.log(`${funcBody}})\n(`, ...(args as any[]).reduce((a, t) => {
+                            if (a.length > 0) a.push(",");
+                            a.push(typeof t === "string" ? `"${t}"` : t);
+                            return a;
+                        }, []), ")")
+                        console.groupEnd();
+                    }
+                    const contextFunc = ((...args: unknown[]) => templateFunc(...args)) as ContextFunction<unknown>;
+                    contextFunc[Symbol.iterator] = function* () {
+                        yield* args;
+                    };
+                    for (let i = 0; i < args.length; i++) {
+                        contextFunc[i] = args[i];
+                    }
+                    contextFunc.load = load;
+                    contextFunc.escape = escape;
+                    return iterateRecursively(func.apply(contextFunc));
+                } catch (error: any) {
+                    error.message += `\nat function () {\n${funcBody}\n})(${
+                        args.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")
+                    })`;
+                    throw error;
+                }
+            });
     return templateFunc;
 };
 

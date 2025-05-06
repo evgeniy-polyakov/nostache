@@ -472,19 +472,21 @@ const Nostache = (template, options) => {
     const load = (input, init) => {
         return Nostache(typeof options.load === "function" ? options.load(input, init) : fetch(input, init).then(r => r.text()));
     };
-    const templateFunc = (...context) => new Promise(r => r(template)).then((templateString) => {
+    const templateFunc = (...args) => new Promise(r => r(template))
+        .then((templateString) => {
         const key = options.async ? `async ${templateString}` : templateString;
         let func = templateCache[key];
         const funcBody = func ? func.toString() : parseTemplate(templateString, options);
+        templateFunc.toString = () => `function () {\n${funcBody}\n}`;
+        if (!func) {
+            func = Function(funcBody);
+            func.toString = () => funcBody;
+            templateCache[key] = func;
+        }
         try {
-            if (!func) {
-                func = Function(funcBody);
-                func.toString = () => funcBody;
-                templateCache[key] = func;
-            }
             if (options.verbose) {
                 console.groupCollapsed(`(function () {`);
-                console.log(`${funcBody}})\n(`, ...context.reduce((a, t) => {
+                console.log(`${funcBody}})\n(`, ...args.reduce((a, t) => {
                     if (a.length > 0)
                         a.push(",");
                     a.push(typeof t === "string" ? `"${t}"` : t);
@@ -492,19 +494,19 @@ const Nostache = (template, options) => {
                 }, []), ")");
                 console.groupEnd();
             }
-            const contextFunc = (...context) => templateFunc(...context);
+            const contextFunc = ((...args) => templateFunc(...args));
             contextFunc[Symbol.iterator] = function* () {
-                yield* context;
+                yield* args;
             };
-            for (let i = 0; i < context.length; i++) {
-                contextFunc[i] = context[i];
+            for (let i = 0; i < args.length; i++) {
+                contextFunc[i] = args[i];
             }
             contextFunc.load = load;
             contextFunc.escape = escape;
             return iterateRecursively(func.apply(contextFunc));
         }
         catch (error) {
-            error.message += `\nat function () {\n${funcBody}\n})(${context.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;
+            error.message += `\nat function () {\n${funcBody}\n})(${args.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;
             throw error;
         }
     });
