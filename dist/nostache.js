@@ -2,7 +2,6 @@
 // todo errors for unfinished expressions
 // todo layout/block/region technics
 // todo table of control characters in readme.md
-// todo ; before yield in some cases
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
     const isAlphabetic = (c) => c === 95 || (c >= 97 && c <= 122) || (c >= 65 && c <= 90);

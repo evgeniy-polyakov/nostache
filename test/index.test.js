@@ -159,6 +159,10 @@ test("Escape", async () => {
 test("String interpolation", async () => {
     expect(await Nostache("<{const a = 10;}><div>{= `${a}px\\`` =}</div>")()).toBe("<div>10px`</div>");
     expect(await Nostache("<div>${a}px`</div>")({a: 10})).toBe("<div>${a}px`</div>");
+    expect(await Nostache("<script>let a = `{= '${0}' =}`;</script>")()).toBe("<script>let a = `${0}`;</script>");
+    expect(await Nostache("<script>let a = `{= `${0}` =}`;</script>")()).toBe("<script>let a = `0`;</script>");
+    expect(await Nostache("<{ let a = '${0}'; }><script>let a = `{= a =}`;</script>")()).toBe("<script>let a = `${0}`;</script>");
+    expect(await Nostache("<{ let a = `${0}`; }><script>let a = `{= a =}`;</script>")()).toBe("<script>let a = `0`;</script>");
 });
 
 test("Output expressions", async () => {
