@@ -507,6 +507,14 @@ test("Template reuse", async () => {
 
 test("Parameters declaration", async () => {
     expect(await Nostache("{@ a, b @}  {= a =}{= b =}")(10, 11)).toBe("1011");
+    expect(await Nostache("{@ z, x @}  {= z =}{= x =}")(10, 11)).toBe("1011");
+    expect(await Nostache("{@ A, B @}  {= A =}{= B =}")(10, 11)).toBe("1011");
+    expect(await Nostache("{@ Z, X @}  {= Z =}{= X =}")(10, 11)).toBe("1011");
+    expect(await Nostache("{@ _, _0 @}  {= _ =}{= _0 =}")(10, 11)).toBe("1011");
+    expect(await Nostache("{@ _, _9 @}  {= _ =}{= _9 =}")(10, 11)).toBe("1011");
+    expect(await Nostache("{@ _0, _ @}  {= _0 =}{= _ =}")(10, 11)).toBe("1011");
+    expect(await Nostache("{@ _9, _ @}  {= _9 =}{= _ =}")(10, 11)).toBe("1011");
+    await (expect(Nostache("{@ 0, _ @}  {= 0 =}{= _ =}")(10, 11))).rejects.toBeInstanceOf(SyntaxError);
     expect(await Nostache("<{ {@ a, b @} let c = 12; }>{= a =}{= b =}{= c =}")(10, 11)).toBe("101112");
     expect(await Nostache("<{ let c = 12; {@ a, b @} }>{= a =}{= b =}{= c =}")(10, 11)).toBe("101112");
     expect(await Nostache("<{ let c = 12; {@ a, b @} let d = 13; }>{= a =}{= b =}{= c =}{= d =}")(10, 11)).toBe("10111213");
@@ -522,6 +530,15 @@ test("Fetch declaration", async () => {
     Nostache.options.load = v => v === 'partials/li.htm' ? "<li>{~ this[0] + 1 ~}</li>" : "";
     expect(await Nostache("<ul>{@ li '' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul></ul>");
     expect(await Nostache("<ul>{@ li 'null' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul></ul>");
+
+    expect(await Nostache("<ul>{@ a 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ a(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ z 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ z(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ A 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ A(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ Z 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ Z(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ _ 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ _(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ _0 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ _0(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ _9 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ _9(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    await (expect(Nostache("<ul>{@ 0 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ 0(i) ~} }></ul>")(1))).rejects.toBeInstanceOf(SyntaxError);
 
     expect(await Nostache("<ul>{@ li 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {= li(i) =} }></ul>")(1)).toBe("<ul>&#60;li&#62;1&#60;/li&#62;</ul>");
     expect(await Nostache("<ul>{@ li 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
@@ -586,6 +603,15 @@ test("Fetch declaration", async () => {
 });
 
 test("Template declaration", async () => {
+    expect(await Nostache("<ul>{@ a (i) <li>{= i + 1 =}</li> @}<{for (let i = 0; i < this[0]; i++) {~ a(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ z (i) <li>{= i + 1 =}</li> @}<{for (let i = 0; i < this[0]; i++) {~ z(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ A (i) <li>{= i + 1 =}</li> @}<{for (let i = 0; i < this[0]; i++) {~ A(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ Z (i) <li>{= i + 1 =}</li> @}<{for (let i = 0; i < this[0]; i++) {~ Z(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ _ (i) <li>{= i + 1 =}</li> @}<{for (let i = 0; i < this[0]; i++) {~ _(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ _0 (i) <li>{= i + 1 =}</li> @}<{for (let i = 0; i < this[0]; i++) {~ _0(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ _9 (i) <li>{= i + 1 =}</li> @}<{for (let i = 0; i < this[0]; i++) {~ _9(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    await (expect(Nostache("<ul>{@ 0 (i) <li>{= i + 1 =}</li> @}<{for (let i = 0; i < this[0]; i++) {~ 0(i) ~} }></ul>")(1))).rejects.toBeInstanceOf(SyntaxError);
+
     expect(await Nostache("{@ li (i) <li>{= i + 1 =}</li> @} <ul><{for (let i = 0; i < this[0]; i++) {= li(i) =} }></ul>")(1)).toBe("<ul>&#60;li&#62;1&#60;/li&#62;</ul>");
     expect(await Nostache("{@ li (i) <li>{= i + 1 =}</li> @} <ul><{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
     expect(await Nostache("<ul>{@ li (i) <li>{= i + 1 =}</li> @} <{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");

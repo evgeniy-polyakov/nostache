@@ -26,37 +26,36 @@ const templateCache: TemplateCache = new Map<string, TemplateFunction>();
 // todo ; before yield in some cases
 const parseTemplate = (template: string, options: TemplateOptions) => {
 
-    const charCode = (char: string) => {
-        if (char.length > 1) {
-            const map: Record<number, boolean> = {};
-            for (let i = 0; i < char.length; i++) {
-                map[char.charCodeAt(i)] = true;
-            }
-            return map;
-        }
-        return char.charCodeAt(0);
-    };
-
-    const isWhitespace = charCode(" \t\r\n") as Record<number, boolean>;
-    const isAlphabetic = (c: number) => c === 95 || (c >= 65 && c <= 90) || (c >= 97 && c <= 122);
-    const isAlphanumeric = (c: number) => isAlphabetic(c) || (c >= 48 && c <= 57);
-    const OPEN_ANGLE = charCode("<");
-    const CLOSE_ANGLE = charCode(">");
-    const OPEN_BRACE = charCode("{");
-    const CLOSE_BRACE = charCode("}");
-    const OPEN_PARENTHESES = charCode("(");
-    const CLOSE_PARENTHESES = charCode(")");
-    const ASSIGN = charCode("=");
-    const TILDE = charCode("~");
-    const SLASH = charCode("/");
-    const ASTERISK = charCode("*");
-    const NEWLINE = charCode("\n");
-    const BACKSLASH = charCode("\\");
-    const APOSTROPHE = charCode("'");
-    const QUOTE = charCode("\"");
-    const BACKTICK = charCode("`");
-    const DOLLAR = charCode("$");
-    const AT_SIGN = charCode("@");
+    const WHITESPACE = " ".charCodeAt(0);
+    const TAB = "\t".charCodeAt(0);
+    const RETURN = "\r".charCodeAt(0);
+    const NEWLINE = "\n".charCodeAt(0);
+    const UNDERSCORE = "_".charCodeAt(0);
+    const LOWERCASE_A = "a".charCodeAt(0);
+    const LOWERCASE_Z = "z".charCodeAt(0);
+    const UPPERCASE_A = "A".charCodeAt(0);
+    const UPPERCASE_Z = "Z".charCodeAt(0);
+    const NUMBER_0 = "0".charCodeAt(0);
+    const NUMBER_9 = "9".charCodeAt(0);
+    const OPEN_ANGLE = "<".charCodeAt(0);
+    const CLOSE_ANGLE = ">".charCodeAt(0);
+    const OPEN_BRACE = "{".charCodeAt(0);
+    const CLOSE_BRACE = "}".charCodeAt(0);
+    const OPEN_PARENTHESES = "(".charCodeAt(0);
+    const CLOSE_PARENTHESES = ")".charCodeAt(0);
+    const ASSIGN = "=".charCodeAt(0);
+    const TILDE = "~".charCodeAt(0);
+    const SLASH = "/".charCodeAt(0);
+    const ASTERISK = "*".charCodeAt(0);
+    const BACKSLASH = "\\".charCodeAt(0);
+    const APOSTROPHE = "'".charCodeAt(0);
+    const QUOTE = "\"".charCodeAt(0);
+    const BACKTICK = "`".charCodeAt(0);
+    const DOLLAR = "$".charCodeAt(0);
+    const AT_SIGN = "@".charCodeAt(0);
+    const isWhitespace = (c: number) => c === WHITESPACE || c === TAB || c === RETURN || c === NEWLINE;
+    const isAlphabetic = (c: number) => c === UNDERSCORE || (c >= LOWERCASE_A && c <= LOWERCASE_Z) || (c >= UPPERCASE_A && c <= UPPERCASE_Z);
+    const isAlphanumeric = (c: number) => isAlphabetic(c) || (c >= NUMBER_0 && c <= NUMBER_9);
 
     let index = 0;
     let startIndex = 0;
@@ -163,7 +162,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 } else {
                     isPotentialHtml = true;
                 }
-            } else if (isPotentialHtml && isWhitespace[c]) {
+            } else if (isPotentialHtml && isWhitespace(c)) {
                 index++;
             } else if (isPotentialHtml && c === OPEN_ANGLE) {
                 isPotentialHtml = false;
@@ -189,7 +188,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             if (c === CLOSE_ANGLE) {
                 index++;
                 potentialEnd = index;
-            } else if (potentialEnd >= 0 && isWhitespace[c]) {
+            } else if (potentialEnd >= 0 && isWhitespace(c)) {
                 index++;
             } else if (potentialEnd >= 0 && c === CLOSE_BRACE) {
                 appendResult(potentialEnd);
@@ -211,14 +210,14 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         let hasMeaningfulSymbol = false;
         while (index < length) {
             const c = template.charCodeAt(index);
-            if (!hasMeaningfulSymbol && isWhitespace[c]) {
+            if (!hasMeaningfulSymbol && isWhitespace(c)) {
                 startIndex++;
                 index++;
-            } else if (hasMeaningfulSymbol && (c === OPEN_ANGLE || isWhitespace[c])) {
+            } else if (hasMeaningfulSymbol && (c === OPEN_ANGLE || isWhitespace(c))) {
                 if (potentialEndWhitespace < 0) potentialEndWhitespace = index;
                 if (c === OPEN_ANGLE) potentialEnd = index;
                 index++;
-            } else if (potentialEnd >= 0 && isWhitespace[c]) {
+            } else if (potentialEnd >= 0 && isWhitespace(c)) {
                 index++;
             } else if (potentialEnd >= 0 && c === CLOSE_BRACE) {
                 appendResult(potentialEndWhitespace);
@@ -245,7 +244,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 continue;
             }
             const c = template.charCodeAt(index);
-            if (!hasMeaningfulSymbol && isWhitespace[c]) {
+            if (!hasMeaningfulSymbol && isWhitespace(c)) {
                 index++;
             } else if (c === closeChar && template.charCodeAt(index + 1) === CLOSE_BRACE) {
                 if (hasMeaningfulSymbol) {
@@ -404,7 +403,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         funcBody = "";
         while (index < length) {
             const c = template.charCodeAt(index);
-            if (isWhitespace[c]) {
+            if (isWhitespace(c)) {
                 lastWhitespace = index;
                 index++;
             } else if (c === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE) {
@@ -426,7 +425,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     };
 
     const skipWhitespace = (c: number) => {
-        while (index < length && isWhitespace[c]) {
+        while (index < length && isWhitespace(c)) {
             index++;
             c = template.charCodeAt(index);
         }
@@ -479,14 +478,14 @@ const Nostache: {
                 let func = templateCache.get(key);
                 const funcBody = func ? func.toString() : parseTemplate(templateString, options);
                 templateFunc.toString = () => `function () {\n${funcBody}\n}`;
-                if (!func) {
-                    func = Function(funcBody) as TemplateFunction;
-                    func.toString = () => funcBody;
-                    if (options.cache !== false) {
-                        templateCache.set(key, func);
-                    }
-                }
                 try {
+                    if (!func) {
+                        func = Function(funcBody) as TemplateFunction;
+                        func.toString = () => funcBody;
+                        if (options.cache !== false) {
+                            templateCache.set(key, func);
+                        }
+                    }
                     if (options.verbose) {
                         console.groupCollapsed(`(function () {`);
                         console.log(`${funcBody}})\n(`, ...(args as any[]).reduce((a, t) => {

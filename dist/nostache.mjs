@@ -6,36 +6,9 @@ const templateCache = new Map();
 // todo table of control characters in readme.md
 // todo ; before yield in some cases
 const parseTemplate = (template, options) => {
-    const charCode = (char) => {
-        if (char.length > 1) {
-            const map = {};
-            for (let i = 0; i < char.length; i++) {
-                map[char.charCodeAt(i)] = true;
-            }
-            return map;
-        }
-        return char.charCodeAt(0);
-    };
-    const isWhitespace = charCode(" \t\r\n");
-    const isAlphabetic = (c) => c === 95 || (c >= 65 && c <= 90) || (c >= 97 && c <= 122);
+    const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
+    const isAlphabetic = (c) => c === 95 || (c >= 97 && c <= 122) || (c >= 65 && c <= 90);
     const isAlphanumeric = (c) => isAlphabetic(c) || (c >= 48 && c <= 57);
-    const OPEN_ANGLE = charCode("<");
-    const CLOSE_ANGLE = charCode(">");
-    const OPEN_BRACE = charCode("{");
-    const CLOSE_BRACE = charCode("}");
-    const OPEN_PARENTHESES = charCode("(");
-    const CLOSE_PARENTHESES = charCode(")");
-    const ASSIGN = charCode("=");
-    const TILDE = charCode("~");
-    const SLASH = charCode("/");
-    const ASTERISK = charCode("*");
-    const NEWLINE = charCode("\n");
-    const BACKSLASH = charCode("\\");
-    const APOSTROPHE = charCode("'");
-    const QUOTE = charCode("\"");
-    const BACKTICK = charCode("`");
-    const DOLLAR = charCode("$");
-    const AT_SIGN = charCode("@");
     let index = 0;
     let startIndex = 0;
     const length = template.length;
@@ -59,49 +32,49 @@ const parseTemplate = (template, options) => {
     };
     const parseOpenBlock = (c) => {
         const n = template.charCodeAt(index + 1);
-        if (c === OPEN_ANGLE && n === OPEN_BRACE) {
+        if (c === 60 && n === 123) {
             // Logic block <{
             appendResult();
             index += 2;
             parseLogicBlock();
             return true;
         }
-        else if (c === OPEN_BRACE && n === ASSIGN) {
+        else if (c === 123 && n === 61) {
             // Assignment block {=
             appendResult();
             index += 2;
             parseOutputBlock(false);
             return true;
         }
-        else if (c === OPEN_BRACE && n === TILDE) {
+        else if (c === 123 && n === 126) {
             // Unescape assignment block {~
             appendResult();
             index += 2;
             parseOutputBlock(true);
             return true;
         }
-        else if (c === OPEN_BRACE && n === AT_SIGN) {
+        else if (c === 123 && n === 64) {
             // Declaration block {@
             appendResult();
             index += 2;
             parseDeclaration();
             return true;
         }
-        else if (c === BACKSLASH) {
+        else if (c === 92) {
             // escape backslash \
             appendResult(index, "\\\\");
             index++;
             startIndex = index;
             return true;
         }
-        else if (c === BACKTICK) {
+        else if (c === 96) {
             // escape backtick
             appendResult(index, "\\`");
             index++;
             startIndex = index;
             return true;
         }
-        else if (c === DOLLAR) {
+        else if (c === 36) {
             // escape dollar
             appendResult(index, "\\$");
             index++;
@@ -119,23 +92,23 @@ const parseTemplate = (template, options) => {
                 continue;
             }
             const c = template.charCodeAt(index);
-            if (c === OPEN_BRACE) {
+            if (c === 123) {
                 index++;
                 const n = template.charCodeAt(index);
-                if (n === CLOSE_ANGLE) {
+                if (n === 62) {
                     isPotentialHtml = false;
                     appendLogic();
                     index++;
                     parseTextBlock();
                 }
-                else if (n === ASSIGN || n === TILDE) {
+                else if (n === 61 || n === 126) {
                     isPotentialHtml = false;
                     appendLogic();
                     index++;
-                    parseOutputBlock(n === TILDE);
+                    parseOutputBlock(n === 126);
                     startIndex--;
                 }
-                else if (n === AT_SIGN) {
+                else if (n === 64) {
                     isPotentialHtml = false;
                     index--;
                     appendLogic();
@@ -146,15 +119,15 @@ const parseTemplate = (template, options) => {
                     isPotentialHtml = true;
                 }
             }
-            else if (isPotentialHtml && isWhitespace[c]) {
+            else if (isPotentialHtml && isWhitespace(c)) {
                 index++;
             }
-            else if (isPotentialHtml && c === OPEN_ANGLE) {
+            else if (isPotentialHtml && c === 60) {
                 isPotentialHtml = false;
                 appendLogic();
                 parseHtmlBlock();
             }
-            else if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === CLOSE_ANGLE) {
+            else if (c === 125 && template.charCodeAt(index + 1) === 62) {
                 appendLogic();
                 index += 2;
                 break;
@@ -171,14 +144,14 @@ const parseTemplate = (template, options) => {
         let potentialEnd = -1;
         while (index < length) {
             const c = template.charCodeAt(index);
-            if (c === CLOSE_ANGLE) {
+            if (c === 62) {
                 index++;
                 potentialEnd = index;
             }
-            else if (potentialEnd >= 0 && isWhitespace[c]) {
+            else if (potentialEnd >= 0 && isWhitespace(c)) {
                 index++;
             }
-            else if (potentialEnd >= 0 && c === CLOSE_BRACE) {
+            else if (potentialEnd >= 0 && c === 125) {
                 appendResult(potentialEnd);
                 break;
             }
@@ -197,21 +170,21 @@ const parseTemplate = (template, options) => {
         let hasMeaningfulSymbol = false;
         while (index < length) {
             const c = template.charCodeAt(index);
-            if (!hasMeaningfulSymbol && isWhitespace[c]) {
+            if (!hasMeaningfulSymbol && isWhitespace(c)) {
                 startIndex++;
                 index++;
             }
-            else if (hasMeaningfulSymbol && (c === OPEN_ANGLE || isWhitespace[c])) {
+            else if (hasMeaningfulSymbol && (c === 60 || isWhitespace(c))) {
                 if (potentialEndWhitespace < 0)
                     potentialEndWhitespace = index;
-                if (c === OPEN_ANGLE)
+                if (c === 60)
                     potentialEnd = index;
                 index++;
             }
-            else if (potentialEnd >= 0 && isWhitespace[c]) {
+            else if (potentialEnd >= 0 && isWhitespace(c)) {
                 index++;
             }
-            else if (potentialEnd >= 0 && c === CLOSE_BRACE) {
+            else if (potentialEnd >= 0 && c === 125) {
                 appendResult(potentialEndWhitespace);
                 break;
             }
@@ -229,7 +202,7 @@ const parseTemplate = (template, options) => {
     };
     const parseOutputBlock = (unescape) => {
         startIndex = index;
-        const closeChar = unescape ? TILDE : ASSIGN;
+        const closeChar = unescape ? 126 : 61;
         let hasMeaningfulSymbol = false;
         while (index < length) {
             if (parseStringOrComment()) {
@@ -237,10 +210,10 @@ const parseTemplate = (template, options) => {
                 continue;
             }
             const c = template.charCodeAt(index);
-            if (!hasMeaningfulSymbol && isWhitespace[c]) {
+            if (!hasMeaningfulSymbol && isWhitespace(c)) {
                 index++;
             }
-            else if (c === closeChar && template.charCodeAt(index + 1) === CLOSE_BRACE) {
+            else if (c === closeChar && template.charCodeAt(index + 1) === 125) {
                 if (hasMeaningfulSymbol) {
                     appendOutput(unescape);
                 }
@@ -261,12 +234,12 @@ const parseTemplate = (template, options) => {
         while (index < length) {
             const c = template.charCodeAt(index);
             let n = 0;
-            if (!isInString && !isInComment && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
+            if (!isInString && !isInComment && (c === 39 || c === 34 || c === 96)) {
                 isInString = c;
                 index++;
                 result = true;
             }
-            else if (isInString && c === BACKSLASH) {
+            else if (isInString && c === 92) {
                 index += 2;
             }
             else if (isInString && c === isInString) {
@@ -274,16 +247,16 @@ const parseTemplate = (template, options) => {
                 index++;
                 return true;
             }
-            else if (!isInString && !isInComment && c === SLASH && ((n = template.charCodeAt(index + 1)) === SLASH || n === ASTERISK)) {
+            else if (!isInString && !isInComment && c === 47 && ((n = template.charCodeAt(index + 1)) === 47 || n === 42)) {
                 isInComment = n;
                 index += 2;
                 result = true;
             }
-            else if (isInComment === SLASH && c === NEWLINE) {
+            else if (isInComment === 47 && c === 10) {
                 isInComment = 0;
                 index++;
             }
-            else if (isInComment === ASTERISK && c === ASTERISK && template.charCodeAt(index + 1) === SLASH) {
+            else if (isInComment === 42 && c === 42 && template.charCodeAt(index + 1) === 47) {
                 isInComment = 0;
                 index += 2;
                 return true;
@@ -308,12 +281,12 @@ const parseTemplate = (template, options) => {
                 c = skipWhitespace(c);
                 startIndex = index;
                 firstChar = c;
-                if (c === OPEN_PARENTHESES) {
+                if (c === 40) {
                     index++;
                     parseTemplateDeclaration();
                     break;
                 }
-                else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
+                else if (c === 39 || c === 34 || c === 96) {
                     index++;
                     parseloadDeclaration();
                     break;
@@ -333,12 +306,12 @@ const parseTemplate = (template, options) => {
             else if (potentialName && !isAlphanumeric(c)) {
                 name = template.slice(startIndex, index);
                 c = skipWhitespace(c);
-                if (c === OPEN_PARENTHESES) {
+                if (c === 40) {
                     index++;
                     parseTemplateDeclaration(name);
                     break;
                 }
-                else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
+                else if (c === 39 || c === 34 || c === 96) {
                     startIndex = index;
                     index++;
                     parseloadDeclaration(name);
@@ -359,7 +332,7 @@ const parseTemplate = (template, options) => {
     };
     const parseParametersDeclaration = () => {
         while (index < length) {
-            if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
+            if (template.charCodeAt(index) === 64 && template.charCodeAt(index + 1) === 125 && index > startIndex) {
                 funcBody += `let[${template.slice(startIndex, index)}]=this;\n`;
                 index += 2;
                 break;
@@ -371,7 +344,7 @@ const parseTemplate = (template, options) => {
     };
     const parseloadDeclaration = (name) => {
         while (index < length) {
-            if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
+            if (template.charCodeAt(index) === 64 && template.charCodeAt(index + 1) === 125 && index > startIndex) {
                 if (name)
                     funcBody += `let ${name}=`;
                 funcBody += `this.load(${template.slice(startIndex, index)})\n`;
@@ -389,10 +362,10 @@ const parseTemplate = (template, options) => {
         let parentheses = 0;
         while (index < length) {
             const c = template.charCodeAt(index);
-            if (c === OPEN_PARENTHESES) {
+            if (c === 40) {
                 parentheses++;
             }
-            else if (c === CLOSE_PARENTHESES) {
+            else if (c === 41) {
                 if (parentheses) {
                     parentheses--;
                     index++;
@@ -414,11 +387,11 @@ const parseTemplate = (template, options) => {
         funcBody = "";
         while (index < length) {
             const c = template.charCodeAt(index);
-            if (isWhitespace[c]) {
+            if (isWhitespace(c)) {
                 lastWhitespace = index;
                 index++;
             }
-            else if (c === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE) {
+            else if (c === 64 && template.charCodeAt(index + 1) === 125) {
                 appendResult(lastWhitespace > -1 ? lastWhitespace : index);
                 const innerFuncBody = funcBody;
                 funcBody = tempFuncBody;
@@ -436,7 +409,7 @@ const parseTemplate = (template, options) => {
         }
     };
     const skipWhitespace = (c) => {
-        while (index < length && isWhitespace[c]) {
+        while (index < length && isWhitespace(c)) {
             index++;
             c = template.charCodeAt(index);
         }
@@ -475,14 +448,14 @@ const Nostache = ((template, options) => {
         let func = templateCache.get(key);
         const funcBody = func ? func.toString() : parseTemplate(templateString, options);
         templateFunc.toString = () => `function () {\n${funcBody}\n}`;
-        if (!func) {
-            func = Function(funcBody);
-            func.toString = () => funcBody;
-            if (options.cache !== false) {
-                templateCache.set(key, func);
-            }
-        }
         try {
+            if (!func) {
+                func = Function(funcBody);
+                func.toString = () => funcBody;
+                if (options.cache !== false) {
+                    templateCache.set(key, func);
+                }
+            }
             if (options.verbose) {
                 console.groupCollapsed(`(function () {`);
                 console.log(`${funcBody}})\n(`, ...args.reduce((a, t) => {
