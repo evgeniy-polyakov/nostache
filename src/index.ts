@@ -20,7 +20,6 @@ const templateCache: TemplateCache = new Map<string, TemplateFunction>();
 
 // todo errors for unfinished expressions
 // todo extension functions
-// todo output {=  =} or {~  ~} as whitespace `  `
 // todo layout/block/region technics
 // todo table of control characters in readme.md
 // todo ; before yield in some cases
@@ -68,9 +67,9 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         }
     };
 
-    const appendOutput = (unescape: boolean) => {
+    const appendOutput = (unsafe: boolean) => {
         if (index > startIndex) {
-            funcBody += unescape ?
+            funcBody += unsafe ?
                 `yield (${template.slice(startIndex, index)});\n` :
                 `yield this.escape(${template.slice(startIndex, index)});\n`;
         }
@@ -249,6 +248,8 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             } else if (c === closeChar && template.charCodeAt(index + 1) === CLOSE_BRACE) {
                 if (hasMeaningfulSymbol) {
                     appendOutput(unescape);
+                } else {
+                    funcBody += `yield \`${template.slice(startIndex, index)}\`;`;
                 }
                 index += 2;
                 break;

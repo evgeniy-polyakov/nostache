@@ -1,7 +1,6 @@
 (function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const templateCache = new Map();
 // todo errors for unfinished expressions
 // todo extension functions
-// todo output {=  =} or {~  ~} as whitespace `  `
 // todo layout/block/region technics
 // todo table of control characters in readme.md
 // todo ; before yield in some cases
@@ -18,9 +17,9 @@ const parseTemplate = (template, options) => {
             funcBody += `yield \`${template.slice(startIndex, endIndex)}${extra}\`;\n`;
         }
     };
-    const appendOutput = (unescape) => {
+    const appendOutput = (unsafe) => {
         if (index > startIndex) {
-            funcBody += unescape ?
+            funcBody += unsafe ?
                 `yield (${template.slice(startIndex, index)});\n` :
                 `yield this.escape(${template.slice(startIndex, index)});\n`;
         }
@@ -216,6 +215,9 @@ const parseTemplate = (template, options) => {
             else if (c === closeChar && template.charCodeAt(index + 1) === 125) {
                 if (hasMeaningfulSymbol) {
                     appendOutput(unescape);
+                }
+                else {
+                    funcBody += `yield \`${template.slice(startIndex, index)}\`;`;
                 }
                 index += 2;
                 break;

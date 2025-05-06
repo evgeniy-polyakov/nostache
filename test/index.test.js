@@ -206,6 +206,45 @@ test("Safe output", async () => {
     expect(await Nostache(`<p class="{= new Promise(r => r(this[0])) =}"></p>`)("<p>&'\"")).toBe(`<p class="&#60;p&#62;&#38;&#39;&#34;"></p>`);
 });
 
+test("Whitespace output", async () => {
+    expect(await Nostache("{==}")()).toBe("");
+    expect(await Nostache("{= =}")()).toBe(" ");
+    expect(await Nostache("{=  =}")()).toBe("  ");
+    expect(await Nostache("{= \t\n=}")()).toBe(" \t\n");
+    expect(await Nostache(`{=
+
+=}`)()).toBe(`
+
+`);
+    expect(await Nostache("{~~}")()).toBe("");
+    expect(await Nostache("{~ ~}")()).toBe(" ");
+    expect(await Nostache("{~  ~}")()).toBe("  ");
+    expect(await Nostache("{= \t\n=}")()).toBe(" \t\n");
+    expect(await Nostache(`{~
+
+~}`)()).toBe(`
+
+`);
+    expect(await Nostache("<p>{==}</p>")()).toBe("<p></p>");
+    expect(await Nostache("<p>{= =}</p>")()).toBe("<p> </p>");
+    expect(await Nostache("<p>{=  =}</p>")()).toBe("<p>  </p>");
+    expect(await Nostache("<p>{= \t\n=}</p>")()).toBe("<p> \t\n</p>");
+    expect(await Nostache(`<p>{=
+
+=}</p>`)()).toBe(`<p>
+
+</p>`);
+    expect(await Nostache("<p>{~~}</p>")()).toBe("<p></p>");
+    expect(await Nostache("<p>{~ ~}</p>")()).toBe("<p> </p>");
+    expect(await Nostache("<p>{~  ~}</p>")()).toBe("<p>  </p>");
+    expect(await Nostache("<p>{= \t\n=}</p>")()).toBe("<p> \t\n</p>");
+    expect(await Nostache(`<p>{~
+
+~}</p>`)()).toBe(`<p>
+
+</p>`);
+});
+
 test("Strings in output expressions", async () => {
     expect(await Nostache(`{= "=}" =}`)()).toBe("=}");
     expect(await Nostache(`{= '=}' =}`)()).toBe("=}");
