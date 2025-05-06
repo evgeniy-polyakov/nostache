@@ -428,7 +428,7 @@ const parseTemplate = (template, options) => {
     return `return(${options.async ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
 };
 const iterateRecursively = (value) => {
-    if (typeof value.next === "function") {
+    if (value && typeof value.next === "function") {
         let result = "";
         let loop = () => new Promise(r => r(value.next())).then((chunk) => chunk.done ? result : iterateRecursively(chunk.value).then(s => result = result + s).then(loop));
         return loop().then(() => result);
@@ -437,9 +437,10 @@ const iterateRecursively = (value) => {
 };
 const Nostache = ((template, options) => {
     options = Object.assign(Object.assign({}, Nostache.options), options);
+    const extensions = Object.assign(Object.assign({}, (Nostache.options ? Nostache.options.extensions : undefined)), (options ? options.extensions : undefined));
     const escape = (value) => {
         return iterateRecursively(value).then(typeof options.escape === "function" ? options.escape :
-            (s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
+            (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
     const load = (input, init) => {
         return Nostache(typeof options.load === "function" ? options.load(input, init) : fetch(input, init).then(r => r.text()));
@@ -477,6 +478,9 @@ const Nostache = ((template, options) => {
             }
             contextFunc.load = load;
             contextFunc.escape = escape;
+            for (const name in extensions) {
+                contextFunc[name] = extensions[name];
+            }
             return iterateRecursively(func.apply(contextFunc));
         }
         catch (error) {

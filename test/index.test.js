@@ -162,6 +162,11 @@ test("String interpolation", async () => {
 });
 
 test("Output expressions", async () => {
+    expect(await Nostache("{= undefined =}")()).toBe("");
+    expect(await Nostache("{= null =}")()).toBe("");
+    expect(await Nostache("{= 0 =}")()).toBe("0");
+    expect(await Nostache("{= false =}")()).toBe("false");
+    expect(await Nostache("{= '' =}")()).toBe("");
     expect(await Nostache("{= 10 =}")()).toBe("10");
     expect(await Nostache("{= 5 + 5 =}")()).toBe("10");
     expect(await Nostache("{= 'aa' =}")()).toBe("aa");
@@ -180,6 +185,11 @@ test("Output expressions", async () => {
 });
 
 test("Unsafe output expressions", async () => {
+    expect(await Nostache("{~ undefined ~}")()).toBe("undefined");
+    expect(await Nostache("{~ null ~}")()).toBe("null");
+    expect(await Nostache("{~ 0 ~}")()).toBe("0");
+    expect(await Nostache("{~ false ~}")()).toBe("false");
+    expect(await Nostache("{~ '' ~}")()).toBe("");
     expect(await Nostache("{~ 10 ~}")()).toBe("10");
     expect(await Nostache("{~ 5 + 5 ~}")()).toBe("10");
     expect(await Nostache("{~ 'aa' ~}")()).toBe("aa");
@@ -709,10 +719,27 @@ test("Explicit options", async () => {
         load: a => new Promise(r => r(a === 'a' ? '7' : '')),
         escape: b => new Promise(r => r(b === 'b' ? '8' : '')),
     })()).toBe("<a>78</a>");
+
+    Nostache.options.load = a => a === 'a' ? '1' : '';
+    Nostache.options.escape = b => b === 'b' ? '2' : '';
+    expect(await Nostache(template)()).toBe("<a>12</a>");
+
+    Nostache.options.load = a => new Promise(r => r(a === 'a' ? '3' : ''));
+    Nostache.options.escape = b => new Promise(r => r(b === 'b' ? '4' : ''));
+    expect(await Nostache(template, {})()).toBe("<a>34</a>");
+
+    Nostache.options.load = a => a === 'a' ? '5' : '';
+    Nostache.options.escape = b => b === 'b' ? '6' : '';
+    expect(await Nostache(template)()).toBe("<a>56</a>");
+
+    Nostache.options.load = a => new Promise(r => r(a === 'a' ? '7' : ''));
+    Nostache.options.escape = b => new Promise(r => r(b === 'b' ? '8' : ''));
+    expect(await Nostache(template, {})()).toBe("<a>78</a>");
 });
 
 test("Implicit options", async () => {
     const template = "{@ a 'a' @}<a>{~ a() ~}{= 'b' =}</a>";
+
     expect(await Nostache(template, {
         load: a => a === 'a' ? '1' : '',
         escape: b => b === 'b' ? '2' : '',
@@ -729,6 +756,25 @@ test("Implicit options", async () => {
         load: a => new Promise(r => r(a === 'a' ? '7' : '')),
         escape: b => new Promise(r => r(b === 'b' ? '8' : '')),
     })()).toBe("<a>78</a>");
+
+    Nostache.options.load = a => a === 'a' ? '1' : '';
+    Nostache.options.escape = b => b === 'b' ? '2' : '';
+    expect(await Nostache(template)()).toBe("<a>12</a>");
+
+    Nostache.options.load = a => new Promise(r => r(a === 'a' ? '3' : ''));
+    Nostache.options.escape = b => new Promise(r => r(b === 'b' ? '4' : ''));
+    expect(await Nostache(template, {})()).toBe("<a>34</a>");
+
+    Nostache.options.load = a => a === 'a' ? '5' : '';
+    Nostache.options.escape = b => b === 'b' ? '6' : '';
+    expect(await Nostache(template)()).toBe("<a>56</a>");
+
+    Nostache.options.load = a => new Promise(r => r(a === 'a' ? '7' : ''));
+    Nostache.options.escape = b => new Promise(r => r(b === 'b' ? '8' : ''));
+    expect(await Nostache(template, {})()).toBe("<a>78</a>");
+
+    delete Nostache.options.load;
+    delete Nostache.options.escape;
 });
 
 test("Cache", async () => {
@@ -765,4 +811,13 @@ test("Cache", async () => {
     Nostache.cache.clear();
     await f8();
     expect(Nostache.cache.has(`async ${t}`)).toBe(false);
+});
+
+test("Extensions", async () => {
+    Nostache.options.extensions = {a: 10, b: "bb", f: p => p, o: {p: 3}};
+    expect(await Nostache("{= this.a =} {= this.b =} {= this.f(true) =} {= this.o.p =}")()).toBe("10 bb true 3");
+    expect(await Nostache("{= this.a =} {= this.b =} {= this.f(true) =} {= this.o.p =}", {extensions: {a: 11, b: "BB", f: () => "FF", o: {p: 4}}})()).toBe("11 BB FF 4");
+    delete Nostache.options.extensions;
+    await (expect(Nostache("{= this.a =} {= this.b =} {= this.f(true) =}")())).rejects.toBeInstanceOf(TypeError);
+    expect(await Nostache("{= this.a =} {= this.b =} {= this.f(true) =} {= this.o.p =}", {extensions: {a: 10, b: "bb", f: p => p, o: {p: 3}}})()).toBe("10 bb true 3");
 });

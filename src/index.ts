@@ -1,8 +1,11 @@
-type ContextFunction<TArg> = Iterable<TArg> & {
-    (...args: TArg[]): Promise<string>,
-    [arg: number]: TArg,
+type ContextFunction<TArgument, TExtensions extends Record<string, unknown> = Record<string, unknown>, TExtensionName extends keyof TExtensions = keyof TExtensions> = {
+    (...args: TArgument[]): Promise<string>,
+    [arg: number]: TArgument,
+} & Iterable<TArgument> & {
     escape(value: unknown): Promise<string>,
     load(input: string | URL | Request, init?: RequestInit): TemplateFunction;
+} & {
+    [name in TExtensionName]: TExtensions[TExtensionName];
 };
 type TemplateFunction = {
     <TArg>(this: ContextFunction<TArg>, ...context: TArg[]): Promise<string>;
@@ -14,6 +17,7 @@ type TemplateOptions = {
     cache?: boolean;
     load?(input: string | URL | Request, init?: RequestInit): string | Promise<string>;
     escape?(value: string): string | Promise<string>;
+    extensions: Record<string, unknown>;
 };
 type TemplateCache = Map<string, TemplateFunction>;
 const templateCache: TemplateCache = new Map<string, TemplateFunction>();
@@ -446,7 +450,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
 };
 
 const iterateRecursively = (value: any) => {
-    if (typeof value.next === "function") {
+    if (value && typeof value.next === "function") {
         let result = "";
         let loop = () => new Promise(r => r(value.next())).then((chunk: any): string | Promise<string> =>
             chunk.done ? result : iterateRecursively(chunk.value).then(s => result = result + s).then(loop));
@@ -462,12 +466,16 @@ const Nostache: {
 } = ((template: string | Promise<string>, options?: TemplateOptions): TemplateFunction => {
     options = {
         ...Nostache.options,
-        ...options,
+        ...options
+    };
+    const extensions = {
+        ...(Nostache.options ? Nostache.options.extensions : undefined),
+        ...(options ? options.extensions : undefined)
     };
     const escape = (value: unknown) => {
         return iterateRecursively(value).then(
             typeof options.escape === "function" ? options.escape :
-                (s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
+                (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
     const load = (input: string | URL | Request, init?: RequestInit) => {
         return Nostache(typeof options.load === "function" ? options.load(input, init) : fetch(input, init).then(r => r.text()));
@@ -505,6 +513,9 @@ const Nostache: {
                     }
                     contextFunc.load = load;
                     contextFunc.escape = escape;
+                    for (const name in extensions) {
+                        contextFunc[name] = extensions[name];
+                    }
                     return iterateRecursively(func.apply(contextFunc));
                 } catch (error: any) {
                     error.message += `\nat function () {\n${funcBody}\n})(${
