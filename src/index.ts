@@ -54,7 +54,6 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     const BACKTICK = "`".charCodeAt(0);
     const DOLLAR = "$".charCodeAt(0);
     const AT_SIGN = "@".charCodeAt(0);
-    const SEMICOLON = ";".charCodeAt(0);
     const isWhitespace = (c: number) => c === WHITESPACE || c === TAB || c === RETURN || c === NEWLINE;
     const isAlphabetic = (c: number) => c === UNDERSCORE || (c >= LOWERCASE_A && c <= LOWERCASE_Z) || (c >= UPPERCASE_A && c <= UPPERCASE_Z);
     const isAlphanumeric = (c: number) => isAlphabetic(c) || (c >= NUMBER_0 && c <= NUMBER_9);
