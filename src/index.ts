@@ -476,7 +476,7 @@ const Nostache: {
                 (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
     const load = (input: string | URL | Request, init?: RequestInit) => {
-        return Nostache(typeof options.load === "function" ? options.load(input, init) : fetch(input, init).then(r => r.text()));
+        return Nostache(typeof options.load === "function" ? options.load(input, init) : fetch(input, init).then(r => r.text()), options);
     };
     const templateFunc = (...args: unknown[]) =>
         new Promise<string>(r => r(template))

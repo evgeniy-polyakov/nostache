@@ -441,7 +441,7 @@ const Nostache = ((template, options) => {
             (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
     const load = (input, init) => {
-        return Nostache(typeof options.load === "function" ? options.load(input, init) : fetch(input, init).then(r => r.text()));
+        return Nostache(typeof options.load === "function" ? options.load(input, init) : fetch(input, init).then(r => r.text()), options);
     };
     const templateFunc = (...args) => new Promise(r => r(template))
         .then((templateString) => {

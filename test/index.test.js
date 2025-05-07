@@ -783,6 +783,20 @@ test("Implicit options", async () => {
     delete Nostache.options.escape;
 });
 
+test("Nested template options", async () => {
+    expect(await Nostache(`{@ li "partials/li.htm" @}<ul>{~ li(1) ~}</ul>`, {
+        load: s => s === "partials/li.htm" ? "<li>{= this[0] =}</li>" : "",
+        escape: s => s === 1 ? "a" : "",
+    })()).toBe("<ul><li>a</li></ul>");
+    expect(await Nostache(`{@ li "partials/li.htm" @}<ul>{~ li() ~}</ul>`, {
+        load: s => s === "partials/li.htm" ? "<li>{= this.a(1) =}</li>" : "",
+        extensions: {a: s => s === 1 ? "a" : ""},
+    })()).toBe("<ul><li>a</li></ul>");
+    expect(await Nostache(`{@ li "partials/li.htm" @}<ul>{~ li(this[0]) ~}</ul>`, {
+        load: s => s === "partials/li.htm" ? `{@ a "partials/a.htm" @}<li>{~ a(this[0]) ~}</li>` : s === "partials/a.htm" ? `<a>{= this[0] =}</a>` : "",
+    })(1)).toBe("<ul><li><a>1</a></li></ul>");
+});
+
 test("Cache", async () => {
     const t = "<a>{~ 1 ~}{= 2 =}</a>";
     const f1 = Nostache(t);
