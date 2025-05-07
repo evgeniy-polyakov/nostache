@@ -110,6 +110,24 @@ test("Nested blocks", async () => {
     expect(await Nostache("<{ if (true) {> <p><{ if (true) { <b><{ if (true) {><i>simple</i><}}> {~ 'text' ~}</b> }}></p> <}}>")()).toBe("<p><b><i>simple</i> text</b></p>");
     expect(await Nostache("<{ if (true) {> <p><{ if (true) {> <b><{ if (true) {><i>simple</i><}}> {~ 'text' ~}</b> <}}></p> <}}>")()).toBe("<p><b><i>simple</i> text</b></p>");
     expect(await Nostache("<{ if (true) {> <p><{ if (true) { <b><{ if (true) }><i>simple</i><{}> {~ 'text' ~}</b> }}></p> <}}>")()).toBe("<p><b><i>simple</i> text</b></p>");
+
+    expect(await Nostache("<{ if (true) { <a>{@ a @} {= a =}</a> }}>")(1)).toBe("<a>1</a>");
+    expect(await Nostache("<{ if (true) { <a><{ {@ a @} }>{= a =}</a> }}>")(2)).toBe("<a>2</a>");
+    expect(await Nostache("<{ if (true) {<p>{@ a @} <a>{= a =}</a></p> }}>")(3)).toBe("<p><a>3</a></p>");
+    expect(await Nostache("<{ if (true) {<p><{ {@ a @} }><a>{= a =}</a></p> }}>")(4)).toBe("<p><a>4</a></p>");
+    expect(await Nostache("<{ if (true) {> {@ a @} <a>{= a =}</a> <}}>")(5)).toBe("<a>5</a>");
+    expect(await Nostache("<{ if (true) {> <{ {@ a @} }><a>{= a =}</a> <}}>")(6)).toBe("<a>6</a>");
+    expect(await Nostache("<{ if (true) {><p>{@ a @} <a>{= a =}</a></p> <}}>")(7)).toBe("<p><a>7</a></p>");
+    expect(await Nostache("<{ if (true) {><p><{ {@ a @} }><a>{= a =}</a></p> <}}>")(8)).toBe("<p><a>8</a></p>");
+
+    expect(await Nostache("<{ if (true) { <a>{@ a(p) {= p =} @} {= a(this[0]) =}</a> }}>")(1)).toBe("<a>1</a>");
+    expect(await Nostache("<{ if (true) { <a><{ {@ a(p) {= p =} @} }>{= a(this[0]) =}</a> }}>")(2)).toBe("<a>2</a>");
+    expect(await Nostache("<{ if (true) {<p>{@ a(p) {= p =} @} <a>{= a(this[0]) =}</a></p> }}>")(3)).toBe("<p><a>3</a></p>");
+    expect(await Nostache("<{ if (true) {<p><{ {@ a(p) {= p =} @} }><a>{= a(this[0]) =}</a></p> }}>")(4)).toBe("<p><a>4</a></p>");
+    expect(await Nostache("<{ if (true) {> {@ a(p) {= p =} @} <a>{= a(this[0]) =}</a> <}}>")(5)).toBe("<a>5</a>");
+    expect(await Nostache("<{ if (true) {> <{ {@ a(p) {= p =} @} }><a>{= a(this[0]) =}</a> <}}>")(6)).toBe("<a>6</a>");
+    expect(await Nostache("<{ if (true) {><p>{@ a(p) {= p =} @} <a>{= a(this[0]) =}</a></p> <}}>")(7)).toBe("<p><a>7</a></p>");
+    expect(await Nostache("<{ if (true) {><p><{ {@ a(p) {= p =} @} }><a>{= a(this[0]) =}</a></p> <}}>")(8)).toBe("<p><a>8</a></p>");
 });
 
 test("Script blocks", async () => {
