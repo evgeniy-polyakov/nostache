@@ -49,6 +49,8 @@ test("HTML in logic block", async () => {
 test("Text in logic block", async () => {
     expect(await Nostache("<{>simple text<}>")()).toBe("simple text");
     expect(await Nostache("<{> simple text <}>")()).toBe("simple text");
+    expect(await Nostache("<{ >simple text< }>")()).toBe("simple text");
+    expect(await Nostache("<{ > simple text < }>")()).toBe("simple text");
     expect(await Nostache("<{{>simple text<}}>")()).toBe("simple text");
     expect(await Nostache(`<{{>
     simple text
