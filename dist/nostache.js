@@ -173,6 +173,11 @@ const parseTemplate = (template, options) => {
                 startIndex++;
                 index++;
             }
+            else if (parseOpenBlock(c)) {
+                hasMeaningfulSymbol = true;
+                potentialEnd = -1;
+                potentialEndWhitespace = -1;
+            }
             else if (hasMeaningfulSymbol && (c === 60 || isWhitespace(c))) {
                 if (potentialEndWhitespace < 0)
                     potentialEndWhitespace = index;
@@ -187,9 +192,6 @@ const parseTemplate = (template, options) => {
                 appendResult(potentialEndWhitespace);
                 startIndex = index;
                 return;
-            }
-            else if (parseOpenBlock(c)) {
-                hasMeaningfulSymbol = true;
             }
             else {
                 index++;
