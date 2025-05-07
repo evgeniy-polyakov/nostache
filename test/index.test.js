@@ -708,6 +708,7 @@ test("To string", async () => {
 });
 
 test("Explicit options", async () => {
+    Nostache.options.cache = false;
     const template = "<a>{~ this.load('a')() ~}{~ this.escape('b') ~}</a>";
     expect(await Nostache(template, {
         load: a => a === 'a' ? '1' : '',
@@ -741,9 +742,15 @@ test("Explicit options", async () => {
     Nostache.options.load = a => new Promise(r => r(a === 'a' ? '7' : ''));
     Nostache.options.escape = b => new Promise(r => r(b === 'b' ? '8' : ''));
     expect(await Nostache(template, {})()).toBe("<a>78</a>");
+
+    delete Nostache.options.load;
+    delete Nostache.options.escape;
+    delete Nostache.options.cache;
+    Nostache.cache.clear();
 });
 
 test("Implicit options", async () => {
+    Nostache.options.cache = false;
     const template = "{@ a 'a' @}<a>{~ a() ~}{= 'b' =}</a>";
 
     expect(await Nostache(template, {
@@ -781,9 +788,12 @@ test("Implicit options", async () => {
 
     delete Nostache.options.load;
     delete Nostache.options.escape;
+    delete Nostache.options.cache;
+    Nostache.cache.clear();
 });
 
 test("Nested template options", async () => {
+    Nostache.options.cache = false;
     expect(await Nostache(`{@ li "partials/li.htm" @}<ul>{~ li(1) ~}</ul>`, {
         load: s => s === "partials/li.htm" ? "<li>{= this[0] =}</li>" : "",
         escape: s => s === 1 ? "a" : "",
@@ -795,6 +805,7 @@ test("Nested template options", async () => {
     expect(await Nostache(`{@ li "partials/li.htm" @}<ul>{~ li(this[0]) ~}</ul>`, {
         load: s => s === "partials/li.htm" ? `{@ a "partials/a.htm" @}<li>{~ a(this[0]) ~}</li>` : s === "partials/a.htm" ? `<a>{= this[0] =}</a>` : "",
     })(1)).toBe("<ul><li><a>1</a></li></ul>");
+    delete Nostache.options.cache;
 });
 
 test("Cache", async () => {
@@ -831,6 +842,34 @@ test("Cache", async () => {
     Nostache.cache.clear();
     await f8();
     expect(Nostache.cache.has(`async ${t}`)).toBe(false);
+});
+
+test("Load cache", async () => {
+    let loads = 0;
+    const load = s => {
+        loads++;
+        return s === "partials/li.htm" ? "<li>{= this[0] =}</li>" : s === "partials/a.htm" ? "<a>{= this[0] =}</a>" : "";
+    };
+    expect(await Nostache(`{@ li "partials/li.htm" @}<ul><li>{= this[0] =}</li></ul>`, {load})(1)).toBe("<ul><li>1</li></ul>");
+    expect(loads).toBe(0);
+    expect(await Nostache(`{@ li "partials/li.htm" @}<ul>{~ li(this[0]) ~}</ul>`, {load})(2)).toBe("<ul><li>2</li></ul>");
+    expect(loads).toBe(1);
+    expect(Nostache.cache.get("partials/li.htm")).toBe("<li>{= this[0] =}</li>");
+    expect(await Nostache(`{@ li "partials/li.htm" @}<ul>{~ li(this[0]) ~}</ul>`, {load})(3)).toBe("<ul><li>3</li></ul>");
+    expect(loads).toBe(1);
+    expect(await Nostache(`{@ a "partials/a.htm" @}<ul><li>{~ a(this[0]) ~}</li></ul>`, {load})(4)).toBe("<ul><li><a>4</a></li></ul>");
+    expect(loads).toBe(2);
+    expect(Nostache.cache.get("partials/a.htm")).toBe("<a>{= this[0] =}</a>");
+    expect(await Nostache(`{@ li "partials/li.htm" @}<ul>{~ li(this[0]) ~}</ul>`, {load})(5)).toBe("<ul><li>5</li></ul>");
+    expect(await Nostache(`{@ a "partials/a.htm" @}<ul><li>{~ a(this[0]) ~}</li></ul>`, {load})(5)).toBe("<ul><li><a>5</a></li></ul>");
+    expect(loads).toBe(2);
+    Nostache.cache.clear();
+    expect(await Nostache(`{@ li "partials/li.htm" @}<ul>{~ li(this[0]) ~}</ul>`, {load, cache: false})(6)).toBe("<ul><li>6</li></ul>");
+    expect(loads).toBe(3);
+    expect(Nostache.cache.get("partials/li.htm")).toBe(undefined);
+    expect(await Nostache(`{@ a "partials/a.htm" @}<ul><li>{~ a(this[0]) ~}</li></ul>`, {load, cache: false})(7)).toBe("<ul><li><a>7</a></li></ul>");
+    expect(loads).toBe(4);
+    expect(Nostache.cache.get("partials/a.htm")).toBe(undefined);
 });
 
 test("Extensions", async () => {

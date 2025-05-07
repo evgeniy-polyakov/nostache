@@ -1,5 +1,5 @@
-type ContextFunction<TArgument, TExtensions extends Record<string, unknown> = Record<string, unknown>, TExtensionName extends keyof TExtensions = keyof TExtensions> = {
-    (...args: TArgument[]): Promise<string>,
+export type ContextFunction<TArgument, TExtensions extends Record<string, unknown> = Record<string, unknown>, TExtensionName extends keyof TExtensions = keyof TExtensions> = {
+    (this: ContextFunction<TArgument, TExtensions, TExtensionName>, ...args: TArgument[]): Promise<string>,
     [arg: number]: TArgument,
 } & Iterable<TArgument> & {
     escape(value: unknown): Promise<string>,
@@ -7,11 +7,11 @@ type ContextFunction<TArgument, TExtensions extends Record<string, unknown> = Re
 } & {
     [name in TExtensionName]: TExtensions[TExtensionName];
 };
-type TemplateFunction = {
-    <TArg>(this: ContextFunction<TArg>, ...context: TArg[]): Promise<string>;
+export type TemplateFunction = {
+    <TArgument>(...args: TArgument[]): Promise<string>;
     toString(): string;
 };
-type TemplateOptions = {
+export type TemplateOptions = {
     verbose?: boolean;
     async?: boolean;
     cache?: boolean;
@@ -19,11 +19,10 @@ type TemplateOptions = {
     escape?(value: string): string | Promise<string>;
     extensions: Record<string, unknown>;
 };
-type TemplateCache = Map<string, TemplateFunction>;
-const templateCache: TemplateCache = new Map<string, TemplateFunction>();
+export type TemplateCache = Map<string, string | TemplateFunction>;
+const templateCache: TemplateCache = new Map<string, string | TemplateFunction>();
 
 // todo errors for unfinished expressions
-// todo load cache
 // todo table of control characters in readme.md
 const parseTemplate = (template: string, options: TemplateOptions) => {
 
@@ -475,10 +474,25 @@ const Nostache: {
             typeof options.escape === "function" ? options.escape :
                 (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
-    const load = (input: string | URL | Request, init?: RequestInit) => {
-        return Nostache(typeof options.load === "function" ? options.load(input, init) : fetch(input, init).then(r => r.text()), options);
+    const load = (input: string | URL | Request, init?: RequestInit) => (...args: unknown[]): Promise<string> => {
+        const inputString = typeof input === "string" ? input : input instanceof URL ? input.toString() : "";
+        let cachedTemplate = inputString ? templateCache.get(inputString) : undefined;
+        if (cachedTemplate && typeof cachedTemplate !== "string") {
+            cachedTemplate = undefined;
+        }
+        return Nostache(new Promise<string>(r => r(
+            cachedTemplate ? cachedTemplate :
+                typeof options.load === "function" ? options.load(input, init) :
+                    fetch(input, init).then(r => r.text()))
+        ).then(template => {
+                if (!cachedTemplate && options.cache !== false) {
+                    templateCache.set(inputString, template);
+                }
+                return template;
+            }
+        ), options)(...args);
     };
-    const templateFunc = (...args: unknown[]) =>
+    const templateFunc = (...args: unknown[]): Promise<string> =>
         new Promise<string>(r => r(template))
             .then((templateString: string) => {
                 const key = options.async ? `async ${templateString}` : templateString;
@@ -486,7 +500,7 @@ const Nostache: {
                 const funcBody = func ? func.toString() : parseTemplate(templateString, options);
                 templateFunc.toString = () => `function () {\n${funcBody}\n}`;
                 try {
-                    if (!func) {
+                    if (!func || typeof func === "string") {
                         func = Function(funcBody) as TemplateFunction;
                         func.toString = () => funcBody;
                         if (options.cache !== false) {

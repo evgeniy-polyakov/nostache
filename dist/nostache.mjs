@@ -1,6 +1,5 @@
 const templateCache = new Map();
 // todo errors for unfinished expressions
-// todo load cache
 // todo table of control characters in readme.md
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
@@ -440,8 +439,20 @@ const Nostache = ((template, options) => {
         return iterateRecursively(value).then(typeof options.escape === "function" ? options.escape :
             (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
-    const load = (input, init) => {
-        return Nostache(typeof options.load === "function" ? options.load(input, init) : fetch(input, init).then(r => r.text()), options);
+    const load = (input, init) => (...args) => {
+        const inputString = typeof input === "string" ? input : input instanceof URL ? input.toString() : "";
+        let cachedTemplate = inputString ? templateCache.get(inputString) : undefined;
+        if (cachedTemplate && typeof cachedTemplate !== "string") {
+            cachedTemplate = undefined;
+        }
+        return Nostache(new Promise(r => r(cachedTemplate ? cachedTemplate :
+            typeof options.load === "function" ? options.load(input, init) :
+                fetch(input, init).then(r => r.text()))).then(template => {
+            if (!cachedTemplate && options.cache !== false) {
+                templateCache.set(inputString, template);
+            }
+            return template;
+        }), options)(...args);
     };
     const templateFunc = (...args) => new Promise(r => r(template))
         .then((templateString) => {
@@ -450,7 +461,7 @@ const Nostache = ((template, options) => {
         const funcBody = func ? func.toString() : parseTemplate(templateString, options);
         templateFunc.toString = () => `function () {\n${funcBody}\n}`;
         try {
-            if (!func) {
+            if (!func || typeof func === "string") {
                 func = Function(funcBody);
                 func.toString = () => funcBody;
                 if (options.cache !== false) {

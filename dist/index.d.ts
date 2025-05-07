@@ -1,5 +1,5 @@
-type ContextFunction<TArgument, TExtensions extends Record<string, unknown> = Record<string, unknown>, TExtensionName extends keyof TExtensions = keyof TExtensions> = {
-    (...args: TArgument[]): Promise<string>;
+export type ContextFunction<TArgument, TExtensions extends Record<string, unknown> = Record<string, unknown>, TExtensionName extends keyof TExtensions = keyof TExtensions> = {
+    (this: ContextFunction<TArgument, TExtensions, TExtensionName>, ...args: TArgument[]): Promise<string>;
     [arg: number]: TArgument;
 } & Iterable<TArgument> & {
     escape(value: unknown): Promise<string>;
@@ -7,11 +7,11 @@ type ContextFunction<TArgument, TExtensions extends Record<string, unknown> = Re
 } & {
     [name in TExtensionName]: TExtensions[TExtensionName];
 };
-type TemplateFunction = {
-    <TArg>(this: ContextFunction<TArg>, ...context: TArg[]): Promise<string>;
+export type TemplateFunction = {
+    <TArgument>(...args: TArgument[]): Promise<string>;
     toString(): string;
 };
-type TemplateOptions = {
+export type TemplateOptions = {
     verbose?: boolean;
     async?: boolean;
     cache?: boolean;
@@ -19,7 +19,7 @@ type TemplateOptions = {
     escape?(value: string): string | Promise<string>;
     extensions: Record<string, unknown>;
 };
-type TemplateCache = Map<string, TemplateFunction>;
+export type TemplateCache = Map<string, string | TemplateFunction>;
 declare const Nostache: {
     (template: string | Promise<string>, options?: TemplateOptions): TemplateFunction;
     readonly options: TemplateOptions;
