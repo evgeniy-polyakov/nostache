@@ -22,8 +22,6 @@ export type TemplateOptions = {
 export type TemplateCache = Map<string, string | TemplateFunction>;
 const templateCache: TemplateCache = new Map<string, string | TemplateFunction>();
 
-// todo errors for unfinished expressions
-// todo table of control characters in readme.md
 const parseTemplate = (template: string, options: TemplateOptions) => {
 
     const WHITESPACE = " ".charCodeAt(0);
@@ -80,6 +78,10 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         if (index > startIndex) {
             funcBody += template.slice(startIndex, index);
         }
+    };
+
+    const throwEndOfBlockExpected = (block: string) => {
+        throw new SyntaxError(`Expected end of ${block} at\n${template}`);
     };
 
     const parseOpenBlock = (c: number) => {
@@ -142,12 +144,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             if (c === OPEN_BRACE) {
                 index++;
                 const n = template.charCodeAt(index);
-                if (n === CLOSE_ANGLE) {
-                    isPotentialHtml = false;
-                    appendLogic();
-                    index++;
-                    parseTextBlock();
-                } else if (n === ASSIGN || n === TILDE) {
+                if (n === ASSIGN || n === TILDE) {
                     isPotentialHtml = false;
                     appendLogic();
                     index++;
@@ -168,16 +165,22 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 isPotentialHtml = false;
                 appendLogic();
                 parseHtmlBlock();
+            } else if (isPotentialHtml && c === CLOSE_ANGLE) {
+                isPotentialHtml = false;
+                appendLogic();
+                index++;
+                parseTextBlock();
             } else if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === CLOSE_ANGLE) {
                 appendLogic();
                 index += 2;
-                break;
+                startIndex = index;
+                return;
             } else {
                 index++;
                 isPotentialHtml = false;
             }
         }
-        startIndex = index;
+        throwEndOfBlockExpected("logic block }>");
     };
 
     const parseHtmlBlock = () => {
@@ -192,7 +195,8 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 index++;
             } else if (potentialEnd >= 0 && c === CLOSE_BRACE) {
                 appendResult(potentialEnd);
-                break;
+                startIndex = index;
+                return;
             } else if (parseOpenBlock(c)) {
                 // continue
             } else {
@@ -200,7 +204,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 potentialEnd = -1;
             }
         }
-        startIndex = index;
+        throwEndOfBlockExpected("html block >}");
     };
 
     const parseTextBlock = () => {
@@ -221,7 +225,8 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 index++;
             } else if (potentialEnd >= 0 && c === CLOSE_BRACE) {
                 appendResult(potentialEndWhitespace);
-                break;
+                startIndex = index;
+                return;
             } else if (parseOpenBlock(c)) {
                 hasMeaningfulSymbol = true;
             } else {
@@ -231,12 +236,12 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 hasMeaningfulSymbol = true;
             }
         }
-        startIndex = index;
+        throwEndOfBlockExpected("text block <}");
     };
 
-    const parseOutputBlock = (unescape: boolean) => {
+    const parseOutputBlock = (unsafe: boolean) => {
         startIndex = index;
-        const closeChar = unescape ? TILDE : ASSIGN;
+        const closeChar = unsafe ? TILDE : ASSIGN;
         let hasMeaningfulSymbol = false;
         while (index < length) {
             if (parseStringOrComment()) {
@@ -248,18 +253,19 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 index++;
             } else if (c === closeChar && template.charCodeAt(index + 1) === CLOSE_BRACE) {
                 if (hasMeaningfulSymbol) {
-                    appendOutput(unescape);
+                    appendOutput(unsafe);
                 } else {
                     funcBody += `yield \`${template.slice(startIndex, index)}\`;`;
                 }
                 index += 2;
-                break;
+                startIndex = index;
+                return;
             } else {
                 index++;
                 hasMeaningfulSymbol = true;
             }
         }
-        startIndex = index;
+        throwEndOfBlockExpected(`output block ${unsafe ? "~}" : "=}"}`);
     };
 
     const parseStringOrComment = () => {
@@ -276,7 +282,6 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             } else if (isInString && c === BACKSLASH) {
                 index += 2;
             } else if (isInString && c === isInString) {
-                isInString = 0;
                 index++;
                 return true;
             } else if (!isInString && !isInComment && c === SLASH && ((n = template.charCodeAt(index + 1)) === SLASH || n === ASTERISK)) {
@@ -284,10 +289,9 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 index += 2;
                 result = true;
             } else if (isInComment === SLASH && c === NEWLINE) {
-                isInComment = 0;
                 index++;
+                return true;
             } else if (isInComment === ASTERISK && c === ASTERISK && template.charCodeAt(index + 1) === SLASH) {
-                isInComment = 0;
                 index += 2;
                 return true;
             } else if (isInComment || isInString) {
@@ -295,6 +299,12 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             } else {
                 return false;
             }
+        }
+        if (result && isInString) {
+            throwEndOfBlockExpected(`string ${String.fromCharCode(isInString)}`);
+        }
+        if (result && isInComment === ASTERISK) {
+            throwEndOfBlockExpected(`comment */`);
         }
         return result;
     };
@@ -316,7 +326,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                     break;
                 } else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
                     index++;
-                    parseloadDeclaration();
+                    parseLoadDeclaration();
                     break;
                 } else if (isAlphabetic(firstChar)) {
                     index++;
@@ -337,7 +347,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 } else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
                     startIndex = index;
                     index++;
-                    parseloadDeclaration(name);
+                    parseLoadDeclaration(name);
                     break;
                 } else {
                     parseParametersDeclaration();
@@ -357,24 +367,26 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
                 funcBody += `let[${template.slice(startIndex, index)}]=this;\n`;
                 index += 2;
-                break;
+                return;
             } else {
                 index++;
             }
         }
+        throwEndOfBlockExpected("declaration block @}");
     };
 
-    const parseloadDeclaration = (name?: string) => {
+    const parseLoadDeclaration = (name?: string) => {
         while (index < length) {
             if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
                 if (name) funcBody += `let ${name}=`;
                 funcBody += `this.load(${template.slice(startIndex, index)})\n`;
                 index += 2;
-                break;
+                return;
             } else {
                 index++;
             }
         }
+        throwEndOfBlockExpected("declaration block @}");
     };
 
     const parseTemplateDeclaration = (name?: string) => {
@@ -417,13 +429,14 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 }
                 funcBody += `(${options.async ? "async " : ""}function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
                 index += 2;
-                break;
+                return;
             } else if (parseOpenBlock(c)) {
                 // continue
             } else {
                 index++;
             }
         }
+        throwEndOfBlockExpected("declaration block @}");
     };
 
     const skipWhitespace = (c: number) => {
@@ -492,31 +505,31 @@ const Nostache: {
             }
         ), options)(...args);
     };
-    const templateFunc = (...args: unknown[]): Promise<string> =>
+    const returnFunc = (...args: unknown[]): Promise<string> =>
         new Promise<string>(r => r(template))
             .then((templateString: string) => {
-                const key = options.async ? `async ${templateString}` : templateString;
-                let func = templateCache.get(key);
-                const funcBody = func ? func.toString() : parseTemplate(templateString, options);
-                templateFunc.toString = () => `function () {\n${funcBody}\n}`;
+                const cacheKey = options.async ? `async ${templateString}` : templateString;
+                let templateFunc = templateCache.get(cacheKey);
+                const templateFuncBody = templateFunc ? templateFunc.toString() : parseTemplate(templateString, options);
+                returnFunc.toString = () => `function () {\n${templateFuncBody}\n}`;
                 try {
-                    if (!func || typeof func === "string") {
-                        func = Function(funcBody) as TemplateFunction;
-                        func.toString = () => funcBody;
+                    if (!templateFunc || typeof templateFunc === "string") {
+                        templateFunc = Function(templateFuncBody) as TemplateFunction;
+                        templateFunc.toString = () => templateFuncBody;
                         if (options.cache !== false) {
-                            templateCache.set(key, func);
+                            templateCache.set(cacheKey, templateFunc);
                         }
                     }
                     if (options.verbose) {
                         console.groupCollapsed(`(function () {`);
-                        console.log(`${funcBody}})\n(`, ...(args as any[]).reduce((a, t) => {
+                        console.log(`${templateFuncBody}})\n(`, ...(args as any[]).reduce((a, t) => {
                             if (a.length > 0) a.push(",");
                             a.push(typeof t === "string" ? `"${t}"` : t);
                             return a;
                         }, []), ")")
                         console.groupEnd();
                     }
-                    const contextFunc = ((...args: unknown[]) => templateFunc(...args)) as ContextFunction<unknown>;
+                    const contextFunc = ((...args: unknown[]) => returnFunc(...args)) as ContextFunction<unknown>;
                     contextFunc[Symbol.iterator] = function* () {
                         yield* args;
                     };
@@ -528,15 +541,15 @@ const Nostache: {
                     for (const name in extensions) {
                         contextFunc[name] = extensions[name];
                     }
-                    return iterateRecursively(func.apply(contextFunc));
+                    return iterateRecursively(templateFunc.apply(contextFunc));
                 } catch (error: any) {
-                    error.message += `\nat function () {\n${funcBody}\n})(${
+                    error.message += `\nat function () {\n${templateFuncBody}\n})(${
                         args.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")
                     })`;
                     throw error;
                 }
             });
-    return templateFunc;
+    return returnFunc;
 }) as typeof Nostache;
 
 (Nostache as { options: TemplateOptions }).options = {} as TemplateOptions;

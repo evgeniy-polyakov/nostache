@@ -1,6 +1,4 @@
 (function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const templateCache = new Map();
-// todo errors for unfinished expressions
-// todo table of control characters in readme.md
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
     const isAlphabetic = (c) => c === 95 || (c >= 97 && c <= 122) || (c >= 65 && c <= 90);
@@ -25,6 +23,9 @@ const parseTemplate = (template, options) => {
         if (index > startIndex) {
             funcBody += template.slice(startIndex, index);
         }
+    };
+    const throwEndOfBlockExpected = (block) => {
+        throw new SyntaxError(`Expected end of ${block} at\n${template}`);
     };
     const parseOpenBlock = (c) => {
         const n = template.charCodeAt(index + 1);
@@ -91,13 +92,7 @@ const parseTemplate = (template, options) => {
             if (c === 123) {
                 index++;
                 const n = template.charCodeAt(index);
-                if (n === 62) {
-                    isPotentialHtml = false;
-                    appendLogic();
-                    index++;
-                    parseTextBlock();
-                }
-                else if (n === 61 || n === 126) {
+                if (n === 61 || n === 126) {
                     isPotentialHtml = false;
                     appendLogic();
                     index++;
@@ -123,17 +118,24 @@ const parseTemplate = (template, options) => {
                 appendLogic();
                 parseHtmlBlock();
             }
+            else if (isPotentialHtml && c === 62) {
+                isPotentialHtml = false;
+                appendLogic();
+                index++;
+                parseTextBlock();
+            }
             else if (c === 125 && template.charCodeAt(index + 1) === 62) {
                 appendLogic();
                 index += 2;
-                break;
+                startIndex = index;
+                return;
             }
             else {
                 index++;
                 isPotentialHtml = false;
             }
         }
-        startIndex = index;
+        throwEndOfBlockExpected("logic block }>");
     };
     const parseHtmlBlock = () => {
         startIndex = index;
@@ -149,7 +151,8 @@ const parseTemplate = (template, options) => {
             }
             else if (potentialEnd >= 0 && c === 125) {
                 appendResult(potentialEnd);
-                break;
+                startIndex = index;
+                return;
             }
             else if (parseOpenBlock(c)) ;
             else {
@@ -157,7 +160,7 @@ const parseTemplate = (template, options) => {
                 potentialEnd = -1;
             }
         }
-        startIndex = index;
+        throwEndOfBlockExpected("html block >}");
     };
     const parseTextBlock = () => {
         startIndex = index;
@@ -182,7 +185,8 @@ const parseTemplate = (template, options) => {
             }
             else if (potentialEnd >= 0 && c === 125) {
                 appendResult(potentialEndWhitespace);
-                break;
+                startIndex = index;
+                return;
             }
             else if (parseOpenBlock(c)) {
                 hasMeaningfulSymbol = true;
@@ -194,11 +198,11 @@ const parseTemplate = (template, options) => {
                 hasMeaningfulSymbol = true;
             }
         }
-        startIndex = index;
+        throwEndOfBlockExpected("text block <}");
     };
-    const parseOutputBlock = (unescape) => {
+    const parseOutputBlock = (unsafe) => {
         startIndex = index;
-        const closeChar = unescape ? 126 : 61;
+        const closeChar = unsafe ? 126 : 61;
         let hasMeaningfulSymbol = false;
         while (index < length) {
             if (parseStringOrComment()) {
@@ -211,20 +215,21 @@ const parseTemplate = (template, options) => {
             }
             else if (c === closeChar && template.charCodeAt(index + 1) === 125) {
                 if (hasMeaningfulSymbol) {
-                    appendOutput(unescape);
+                    appendOutput(unsafe);
                 }
                 else {
                     funcBody += `yield \`${template.slice(startIndex, index)}\`;`;
                 }
                 index += 2;
-                break;
+                startIndex = index;
+                return;
             }
             else {
                 index++;
                 hasMeaningfulSymbol = true;
             }
         }
-        startIndex = index;
+        throwEndOfBlockExpected(`output block ${unsafe ? "~}" : "=}"}`);
     };
     const parseStringOrComment = () => {
         let isInString = 0;
@@ -242,7 +247,6 @@ const parseTemplate = (template, options) => {
                 index += 2;
             }
             else if (isInString && c === isInString) {
-                isInString = 0;
                 index++;
                 return true;
             }
@@ -252,11 +256,10 @@ const parseTemplate = (template, options) => {
                 result = true;
             }
             else if (isInComment === 47 && c === 10) {
-                isInComment = 0;
                 index++;
+                return true;
             }
             else if (isInComment === 42 && c === 42 && template.charCodeAt(index + 1) === 47) {
-                isInComment = 0;
                 index += 2;
                 return true;
             }
@@ -266,6 +269,12 @@ const parseTemplate = (template, options) => {
             else {
                 return false;
             }
+        }
+        if (result && isInString) {
+            throwEndOfBlockExpected(`string ${String.fromCharCode(isInString)}`);
+        }
+        if (result && isInComment === 42) {
+            throwEndOfBlockExpected(`comment */`);
         }
         return result;
     };
@@ -287,7 +296,7 @@ const parseTemplate = (template, options) => {
                 }
                 else if (c === 39 || c === 34 || c === 96) {
                     index++;
-                    parseloadDeclaration();
+                    parseLoadDeclaration();
                     break;
                 }
                 else if (isAlphabetic(firstChar)) {
@@ -313,7 +322,7 @@ const parseTemplate = (template, options) => {
                 else if (c === 39 || c === 34 || c === 96) {
                     startIndex = index;
                     index++;
-                    parseloadDeclaration(name);
+                    parseLoadDeclaration(name);
                     break;
                 }
                 else {
@@ -334,26 +343,28 @@ const parseTemplate = (template, options) => {
             if (template.charCodeAt(index) === 64 && template.charCodeAt(index + 1) === 125 && index > startIndex) {
                 funcBody += `let[${template.slice(startIndex, index)}]=this;\n`;
                 index += 2;
-                break;
+                return;
             }
             else {
                 index++;
             }
         }
+        throwEndOfBlockExpected("declaration block @}");
     };
-    const parseloadDeclaration = (name) => {
+    const parseLoadDeclaration = (name) => {
         while (index < length) {
             if (template.charCodeAt(index) === 64 && template.charCodeAt(index + 1) === 125 && index > startIndex) {
                 if (name)
                     funcBody += `let ${name}=`;
                 funcBody += `this.load(${template.slice(startIndex, index)})\n`;
                 index += 2;
-                break;
+                return;
             }
             else {
                 index++;
             }
         }
+        throwEndOfBlockExpected("declaration block @}");
     };
     const parseTemplateDeclaration = (name) => {
         startIndex = index;
@@ -399,13 +410,14 @@ const parseTemplate = (template, options) => {
                 }
                 funcBody += `(${options.async ? "async " : ""}function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
                 index += 2;
-                break;
+                return;
             }
             else if (parseOpenBlock(c)) ;
             else {
                 index++;
             }
         }
+        throwEndOfBlockExpected("declaration block @}");
     };
     const skipWhitespace = (c) => {
         while (index < length && isWhitespace(c)) {
@@ -454,23 +466,23 @@ const Nostache = ((template, options) => {
             return template;
         }), options)(...args);
     };
-    const templateFunc = (...args) => new Promise(r => r(template))
+    const returnFunc = (...args) => new Promise(r => r(template))
         .then((templateString) => {
-        const key = options.async ? `async ${templateString}` : templateString;
-        let func = templateCache.get(key);
-        const funcBody = func ? func.toString() : parseTemplate(templateString, options);
-        templateFunc.toString = () => `function () {\n${funcBody}\n}`;
+        const cacheKey = options.async ? `async ${templateString}` : templateString;
+        let templateFunc = templateCache.get(cacheKey);
+        const templateFuncBody = templateFunc ? templateFunc.toString() : parseTemplate(templateString, options);
+        returnFunc.toString = () => `function () {\n${templateFuncBody}\n}`;
         try {
-            if (!func || typeof func === "string") {
-                func = Function(funcBody);
-                func.toString = () => funcBody;
+            if (!templateFunc || typeof templateFunc === "string") {
+                templateFunc = Function(templateFuncBody);
+                templateFunc.toString = () => templateFuncBody;
                 if (options.cache !== false) {
-                    templateCache.set(key, func);
+                    templateCache.set(cacheKey, templateFunc);
                 }
             }
             if (options.verbose) {
                 console.groupCollapsed(`(function () {`);
-                console.log(`${funcBody}})\n(`, ...args.reduce((a, t) => {
+                console.log(`${templateFuncBody}})\n(`, ...args.reduce((a, t) => {
                     if (a.length > 0)
                         a.push(",");
                     a.push(typeof t === "string" ? `"${t}"` : t);
@@ -478,7 +490,7 @@ const Nostache = ((template, options) => {
                 }, []), ")");
                 console.groupEnd();
             }
-            const contextFunc = ((...args) => templateFunc(...args));
+            const contextFunc = ((...args) => returnFunc(...args));
             contextFunc[Symbol.iterator] = function* () {
                 yield* args;
             };
@@ -490,14 +502,14 @@ const Nostache = ((template, options) => {
             for (const name in extensions) {
                 contextFunc[name] = extensions[name];
             }
-            return iterateRecursively(func.apply(contextFunc));
+            return iterateRecursively(templateFunc.apply(contextFunc));
         }
         catch (error) {
-            error.message += `\nat function () {\n${funcBody}\n})(${args.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;
+            error.message += `\nat function () {\n${templateFuncBody}\n})(${args.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;
             throw error;
         }
     });
-    return templateFunc;
+    return returnFunc;
 });
 Nostache.options = {};
 Nostache.cache = templateCache;return Nostache;}));//# sourceMappingURL=nostache.js.map
