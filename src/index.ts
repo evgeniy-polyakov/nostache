@@ -23,7 +23,7 @@ type TemplateCache = Map<string, TemplateFunction>;
 const templateCache: TemplateCache = new Map<string, TemplateFunction>();
 
 // todo errors for unfinished expressions
-// todo layout/block/region technics
+// todo load cache
 // todo table of control characters in readme.md
 const parseTemplate = (template: string, options: TemplateOptions) => {
 

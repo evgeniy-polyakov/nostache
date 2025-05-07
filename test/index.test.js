@@ -827,3 +827,35 @@ test("Extensions", async () => {
     await (expect(Nostache("{= this.a =} {= this.b =} {= this.f(true) =}")())).rejects.toBeInstanceOf(TypeError);
     expect(await Nostache("{= this.a =} {= this.b =} {= this.f(true) =} {= this.o.p =}", {extensions: {a: 10, b: "bb", f: p => p, o: {p: 3}}})()).toBe("10 bb true 3");
 });
+
+test("Layouts", async () => {
+    expect(await Nostache(`{@ layout "partials/layout.htm"@}
+{@ header (title) <header><h1>{= title =}</h1></header> @}
+{@ main () <main></main> @}
+{@ footer () <footer></footer> @}
+{~ layout("Page Title", header, main, footer) ~}`, {
+        load: s => s === "partials/layout.htm" ? `{@ title, header, main, footer @}
+<html>
+<head><title>{= title =}</title></head>
+<body>{~ header(title) ~}{~ main() ~}{~ footer() ~}</body>
+</html>` : ''
+    })()).toBe(`<html>
+<head><title>Page Title</title></head>
+<body><header><h1>Page Title</h1></header><main></main><footer></footer></body>
+</html>`);
+    expect(await Nostache(`{@ title @}
+{@ layout "partials/layout.htm"@}
+{@ header (title) <header><h1>{= title =}</h1></header> @}
+{@ main () <main></main> @}
+{@ footer () <footer></footer> @}
+{~ layout(title, header, main, footer) ~}`, {
+        load: s => s === "partials/layout.htm" ? `{@ title, header, main, footer @}
+<html>
+<head><title>{= title =}</title></head>
+<body>{~ header(title) ~}{~ main() ~}{~ footer() ~}</body>
+</html>` : ''
+    })("Page Title")).toBe(`<html>
+<head><title>Page Title</title></head>
+<body><header><h1>Page Title</h1></header><main></main><footer></footer></body>
+</html>`);
+});

@@ -1,6 +1,6 @@
 const templateCache = new Map();
 // todo errors for unfinished expressions
-// todo layout/block/region technics
+// todo load cache
 // todo table of control characters in readme.md
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;

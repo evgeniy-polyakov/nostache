@@ -1,6 +1,6 @@
 (function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const templateCache = new Map();
 // todo errors for unfinished expressions
-// todo layout/block/region technics
+// todo load cache
 // todo table of control characters in readme.md
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
