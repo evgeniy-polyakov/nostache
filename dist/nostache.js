@@ -82,7 +82,7 @@ const parseTemplate = (template, options) => {
     };
     const parseLogicBlock = () => {
         startIndex = index;
-        let isPotentialHtml = true; // We can start html block right away
+        let isPotentialHtml = false;
         while (index < length) {
             if (parseStringOrComment()) {
                 isPotentialHtml = false;
@@ -92,7 +92,13 @@ const parseTemplate = (template, options) => {
             if (c === 123) {
                 index++;
                 const n = template.charCodeAt(index);
-                if (n === 61 || n === 126) {
+                if (n === 62) {
+                    isPotentialHtml = false;
+                    appendLogic();
+                    index++;
+                    parseTextBlock();
+                }
+                else if (n === 61 || n === 126) {
                     isPotentialHtml = false;
                     appendLogic();
                     index++;
@@ -117,12 +123,6 @@ const parseTemplate = (template, options) => {
                 isPotentialHtml = false;
                 appendLogic();
                 parseHtmlBlock();
-            }
-            else if (isPotentialHtml && c === 62) {
-                isPotentialHtml = false;
-                appendLogic();
-                index++;
-                parseTextBlock();
             }
             else if (c === 125 && template.charCodeAt(index + 1) === 62) {
                 appendLogic();

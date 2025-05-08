@@ -134,7 +134,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
 
     const parseLogicBlock = () => {
         startIndex = index;
-        let isPotentialHtml = true; // We can start html block right away
+        let isPotentialHtml = false;
         while (index < length) {
             if (parseStringOrComment()) {
                 isPotentialHtml = false;
@@ -144,7 +144,12 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             if (c === OPEN_BRACE) {
                 index++;
                 const n = template.charCodeAt(index);
-                if (n === ASSIGN || n === TILDE) {
+                if (n === CLOSE_ANGLE) {
+                    isPotentialHtml = false;
+                    appendLogic();
+                    index++;
+                    parseTextBlock();
+                } else if (n === ASSIGN || n === TILDE) {
                     isPotentialHtml = false;
                     appendLogic();
                     index++;
@@ -165,11 +170,6 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 isPotentialHtml = false;
                 appendLogic();
                 parseHtmlBlock();
-            } else if (isPotentialHtml && c === CLOSE_ANGLE) {
-                isPotentialHtml = false;
-                appendLogic();
-                index++;
-                parseTextBlock();
             } else if (c === CLOSE_BRACE && template.charCodeAt(index + 1) === CLOSE_ANGLE) {
                 appendLogic();
                 index += 2;

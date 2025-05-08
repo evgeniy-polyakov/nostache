@@ -18,12 +18,12 @@ test("HTML tags", async () => {
 });
 
 test("HTML in logic block", async () => {
-    expect(await Nostache("<{ <p>simple text</p> }>")()).toBe("<p>simple text</p>");
+    await (expect(Nostache("<{ <p>simple text</p> }>")())).rejects.toBeInstanceOf(SyntaxError);
     expect(await Nostache("<{{ <p>simple text</p> }}>")()).toBe("<p>simple text</p>");
-    expect(await Nostache(`<{
+    await (expect(Nostache(`<{
     <p>simple text</p>
-    }>`)()).toBe("<p>simple text</p>");
-    expect(await Nostache("<{ <p><b>simple</b> text</p> }>")()).toBe("<p><b>simple</b> text</p>");
+    }>`)())).rejects.toBeInstanceOf(SyntaxError);
+    await (expect(Nostache("<{ <p><b>simple</b> text</p> }>")())).rejects.toBeInstanceOf(SyntaxError);
     expect(await Nostache("<{ if (true) {<p>simple text</p>} }>")()).toBe("<p>simple text</p>");
     expect(await Nostache(`<{ if (true) {
     <p>simple text</p>
@@ -47,10 +47,11 @@ test("HTML in logic block", async () => {
 });
 
 test("Text in logic block", async () => {
-    expect(await Nostache("<{>simple text<}>")()).toBe("simple text");
-    expect(await Nostache("<{> simple text <}>")()).toBe("simple text");
-    expect(await Nostache("<{ >simple text< }>")()).toBe("simple text");
-    expect(await Nostache("<{ > simple text < }>")()).toBe("simple text");
+    await (expect(Nostache("<{>simple text<}>")())).rejects.toBeInstanceOf(SyntaxError);
+    await (expect(Nostache("<{> simple text <}>")())).rejects.toBeInstanceOf(SyntaxError);
+    await (expect(Nostache("<{ >simple text< }>")())).rejects.toBeInstanceOf(SyntaxError);
+    await (expect(Nostache("<{ > simple text < }>")())).rejects.toBeInstanceOf(SyntaxError);
+    await (expect(Nostache("<{{ > simple text < }}>")())).rejects.toBeInstanceOf(SyntaxError);
     expect(await Nostache("<{{>simple text<}}>")()).toBe("simple text");
     expect(await Nostache(`<{{>
     simple text
@@ -159,7 +160,7 @@ while (true) {
 
 test("Whitespace", async () => {
     expect(await Nostache(" <{ }> ")()).toBe("  ");
-    expect(await Nostache(" <{ <p>simple text</p> }> ")()).toBe(" <p>simple text</p> ");
+    expect(await Nostache(" <{ { <p>simple text</p> } }> ")()).toBe(" <p>simple text</p> ");
     expect(await Nostache(" <{ if (true) { <p>simple text</p> } }> ")()).toBe(" <p>simple text</p> ");
     expect(await Nostache(" <{ if (true) }> <p>simple text</p> <{}> ")()).toBe("  <p>simple text</p>  ");
     expect(await Nostache("<div> <{ if (true) { <p>simple text</p> } }> </div>")()).toBe("<div> <p>simple text</p> </div>");
@@ -967,10 +968,10 @@ test("Throw end of block", async () => {
     await expect(Nostache("abc<{d<{ef")()).rejects.toBeInstanceOf(SyntaxError);
     await expect(Nostache("abc<{d<{ef")()).rejects.toThrow("}>");
 
-    await expect(Nostache("<div><{</div>")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<div><{</div>")()).rejects.toThrow(">}");
-    await expect(Nostache("<div><{>abc</div>")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<div><{>abc</div>")()).rejects.toThrow("<}");
+    await expect(Nostache("<div><{{</div>")()).rejects.toBeInstanceOf(SyntaxError);
+    await expect(Nostache("<div><{{</div>")()).rejects.toThrow(">}");
+    await expect(Nostache("<div><{{>abc</div>")()).rejects.toBeInstanceOf(SyntaxError);
+    await expect(Nostache("<div><{{>abc</div>")()).rejects.toThrow("<}");
 
     await expect(Nostache("<div>{=</div>")()).rejects.toBeInstanceOf(SyntaxError);
     await expect(Nostache("<div>{=</div>")()).rejects.toThrow("{=");
@@ -1021,10 +1022,10 @@ test("Throw end of block", async () => {
     await expect(Nostache("<{ let a = 1; }>abc<{d<{ef")()).rejects.toBeInstanceOf(SyntaxError);
     await expect(Nostache("<{ let a = 1; }>abc<{d<{ef")()).rejects.toThrow("}>");
 
-    await expect(Nostache("<{ let a = 1; }><div><{</div>")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }><div><{</div>")()).rejects.toThrow(">}");
-    await expect(Nostache("<{ let a = 1; }><div><{>abc</div>")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }><div><{>abc</div>")()).rejects.toThrow("<}");
+    await expect(Nostache("<{ let a = 1; }><div><{{</div>")()).rejects.toBeInstanceOf(SyntaxError);
+    await expect(Nostache("<{ let a = 1; }><div><{{</div>")()).rejects.toThrow(">}");
+    await expect(Nostache("<{ let a = 1; }><div><{{>abc</div>")()).rejects.toBeInstanceOf(SyntaxError);
+    await expect(Nostache("<{ let a = 1; }><div><{{>abc</div>")()).rejects.toThrow("<}");
 
     await expect(Nostache("<{ let a = 1; }><div>{=</div>")()).rejects.toBeInstanceOf(SyntaxError);
     await expect(Nostache("<{ let a = 1; }><div>{=</div>")()).rejects.toThrow("{=");
@@ -1048,10 +1049,10 @@ test("Throw end of block", async () => {
     await expect(Nostache("{@ name() abc<{d<{ef @}")()).rejects.toBeInstanceOf(SyntaxError);
     await expect(Nostache("{@ name() abc<{d<{ef @}")()).rejects.toThrow("}>");
 
-    await expect(Nostache("{@ name() <div><{</div> @}")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("{@ name() <div><{</div> @}")()).rejects.toThrow(">}");
-    await expect(Nostache("{@ name() <div><{>abc</div> @}")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("{@ name() <div><{>abc</div> @}")()).rejects.toThrow("<}");
+    await expect(Nostache("{@ name() <div><{{</div> @}")()).rejects.toBeInstanceOf(SyntaxError);
+    await expect(Nostache("{@ name() <div><{{</div> @}")()).rejects.toThrow(">}");
+    await expect(Nostache("{@ name() <div><{{>abc</div> @}")()).rejects.toBeInstanceOf(SyntaxError);
+    await expect(Nostache("{@ name() <div><{{>abc</div> @}")()).rejects.toThrow("<}");
 
     await expect(Nostache("{@ name() <div>{=</div> @}")()).rejects.toBeInstanceOf(SyntaxError);
     await expect(Nostache("{@ name() <div>{=</div> @}")()).rejects.toThrow("{=");
