@@ -1066,6 +1066,19 @@ test("Throw end of block", async () => {
     await expect(Nostache("{@ name() <div><{ {= }></div> @}")()).rejects.toThrow("{=");
     await expect(Nostache("{@ name() <div><{ {~ }></div> @}")()).rejects.toBeInstanceOf(SyntaxError);
     await expect(Nostache("{@ name() <div><{ {~ }></div> @}")()).rejects.toThrow("{~");
+
+    await expect(Nostache("<div><{ let a = ' }></div>")()).rejects.toBeInstanceOf(SyntaxError);
+    await expect(Nostache("<div><{ let a = ' }></div>")()).rejects.toThrow("'");
+    await expect(Nostache("<div><{ let a = 'a', b = ' }></div>")()).rejects.toBeInstanceOf(SyntaxError);
+    await expect(Nostache("<div><{ let a = 'a', b = ' }></div>")()).rejects.toThrow("'");
+    await expect(Nostache("<div><{ let a = ` }></div>")()).rejects.toBeInstanceOf(SyntaxError);
+    await expect(Nostache("<div><{ let a = ` }></div>")()).rejects.toThrow("`");
+    await expect(Nostache("<div><{ let a = `${'a'}`, b = ` }></div>")()).rejects.toBeInstanceOf(SyntaxError);
+    await expect(Nostache("<div><{ let a = `${'a'}`, b = ` }></div>")()).rejects.toThrow("`");
+    await expect(Nostache('<div><{ let a = " }></div>')()).rejects.toBeInstanceOf(SyntaxError);
+    await expect(Nostache('<div><{ let a = " }></div>')()).rejects.toThrow('"');
+    await expect(Nostache('<div><{ let a = "a", b = ` }></div>')()).rejects.toBeInstanceOf(SyntaxError);
+    await expect(Nostache('<div><{ let a = "a", b = ` }></div>')()).rejects.toThrow('"');
 });
 
 test("Readme examples", async () => {
