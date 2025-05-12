@@ -1122,4 +1122,26 @@ test("Readme examples", async () => {
     <li></li>
 </ul>`);
     expect(await Nostache("<span><{ for (let i=0; i<3; i++) {> A <} {> B <} }></span>")()).toBe("<span>AAAB</span>");
+    expect(await Nostache(`{@ numberOfItems /* {@ @} defines a list of template parameters */ @}
+<ul><{ // Inside <{ }> is plain JS 
+    for (let i = 0; i < numberOfItems; i++) {
+        // JS code supports html inside any braces {}   
+        <li>Item #{= i + 1 =}</li> // {= =} is html-escaped output
+    }
+}></ul>`)(3)).toBe(`<ul><li>Item #1</li><li>Item #2</li><li>Item #3</li></ul>`);
+});
+
+test("Empty blocks", async () => {
+    expect(await Nostache("<ul><{ }></ul>")()).toBe("<ul></ul>");
+    expect(await Nostache("<ul><{ {<>} }></ul>")()).toBe("<ul><></ul>");
+    expect(await Nostache("<ul><{ {< >} }></ul>")()).toBe("<ul>< ></ul>");
+    expect(await Nostache("<ul><{ {><} }></ul>")()).toBe("<ul></ul>");
+    expect(await Nostache("<ul><{ {> <} }></ul>")()).toBe("<ul></ul>");
+    expect(await Nostache("<ul>{==}</ul>")()).toBe("<ul></ul>");
+    expect(await Nostache("<ul>{= =}</ul>")()).toBe("<ul> </ul>");
+    expect(await Nostache("<ul>{~~}</ul>")()).toBe("<ul></ul>");
+    expect(await Nostache("<ul>{~ ~}</ul>")()).toBe("<ul> </ul>");
+    expect(await Nostache("<ul>{@@}</ul>")()).toBe("<ul></ul>");
+    expect(await Nostache("<ul>{@ @}</ul>")()).toBe("<ul></ul>");
+
 });
