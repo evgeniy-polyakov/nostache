@@ -248,11 +248,15 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         startIndex = index;
         const closeChar = unsafe ? TILDE : ASSIGN;
         let hasMeaningfulSymbol = false;
+        let hasOnlyComment = false;
         while (index < length) {
-            if (parseStringOrComment()) {
-                // todo true only if string
+            const sc = parseStringOrComment();
+            if (sc === 1) {
                 hasMeaningfulSymbol = true;
                 continue;
+            } else if (sc === 2 && !hasMeaningfulSymbol) {
+                hasOnlyComment = true;
+                startIndex = index;
             }
             const c = template.charCodeAt(index);
             if (!hasMeaningfulSymbol && isWhitespace(c)) {
@@ -260,7 +264,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             } else if (c === closeChar && template.charCodeAt(index + 1) === CLOSE_BRACE) {
                 if (hasMeaningfulSymbol) {
                     appendOutput(unsafe);
-                } else {
+                } else if (!hasOnlyComment) {
                     funcBody += `yield \`${template.slice(startIndex, index)}\`;`;
                 }
                 index += 2;
@@ -277,33 +281,33 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     const parseStringOrComment = (onlyComment = false) => {
         let isInString = 0;
         let isInComment = 0;
-        let result = false;
+        let result = 0;
         while (index < length) {
             const c = template.charCodeAt(index);
             let n = 0;
             if (!onlyComment && !isInString && !isInComment && (c === APOSTROPHE || c === QUOTE || c === BACKTICK)) {
                 isInString = c;
                 index++;
-                result = true;
+                result = 1;
             } else if (isInString && c === BACKSLASH) {
                 index += 2;
             } else if (isInString && c === isInString) {
                 index++;
-                return true;
+                return 1;
             } else if (!isInString && !isInComment && c === SLASH && ((n = template.charCodeAt(index + 1)) === SLASH || n === ASTERISK)) {
                 isInComment = n;
                 index += 2;
-                result = true;
+                result = 2;
             } else if (isInComment === SLASH && c === NEWLINE) {
                 index++;
-                return true;
+                return 2;
             } else if (isInComment === ASTERISK && c === ASTERISK && template.charCodeAt(index + 1) === SLASH) {
                 index += 2;
-                return true;
+                return 2;
             } else if (isInComment || isInString) {
                 index++;
             } else {
-                return false;
+                return 0;
             }
         }
         if (result && isInString) {

@@ -1229,6 +1229,20 @@ test("Readme examples", async () => {
         <li>Item #{= i + 1 =}</li> // {= =} is html-escaped output
     }
 }></ul>`)(3)).toBe(`<ul><li>Item #1</li><li>Item #2</li><li>Item #3</li></ul>`);
+    expect(await Nostache(`<p><{ for (let i = 0; i < 3; i++) }><br><{}></p>`)()).toBe("<p><br><br><br></p>");
+    expect(await Nostache(`<p><{ for (let i = 0; i < 3; i++) { <br> } }></p>`)()).toBe("<p><br><br><br></p>");
+    expect(await Nostache(`<p><{ for (let i = 0; i < 3; i++) {> br <} }></p>`)()).toBe("<p>brbrbr</p>");
+    expect(await Nostache(`<p><{ for (let i = 0; i < 3; i++) {> <br> <} }></p>`)()).toBe("<p><br><br><br></p>");
+    expect(await Nostache(`<p><{ for (let i = 0; i < 3; i++) {> /*!*/<br> <} }></p>`)()).toBe("<p>/*!*/<br>/*!*/<br>/*!*/<br></p>");
+    expect(await Nostache(`<p>{= "Safe & Unsafe" =}</p>`)()).toBe("<p>Safe &#38; Unsafe</p>");
+    expect(await Nostache(`<p>{~ "Safe & Unsafe" ~}</p>`)()).toBe("<p>Safe & Unsafe</p>");
+    expect(await Nostache(`<p>{~  ~}</p>`)()).toBe("<p>  </p>");
+    expect(await Nostache(`<p>{~
+~}</p>`)()).toBe(`<p>
+</p>`);
+    expect(await Nostache(`{"quote": "{= '"' =}"}`, {
+        escape: s => s.replace(/"/, '\\"')
+    })()).toBe(`{"quote": "\\""}`);
     expect(await Nostache(`<p>{= this[0] =} {= this[1] =}</p>`)(1, 2)).toBe("<p>1 2</p>");
     expect(await Nostache(`<{ const [a, b] = this; }><p>{= a =} {= b =}</p>`)(1, 2)).toBe("<p>1 2</p>");
     expect(await Nostache(`{@ a, b @}<p>{= a =} {= b =}</p>`)(1, 2)).toBe("<p>1 2</p>");
@@ -1253,7 +1267,11 @@ test("Readme examples", async () => {
             myDream: () => new Promise(r => r("Pineapple Pizza"))
         }
     })()).toBe("<p>Pineapple Pizza</p>");
-
+    expect(await Nostache(`{~ "<{{={~{@ @}~}=}}>" ~}`)()).toBe("<{{={~{@ @}~}=}}>");
+    expect(await Nostache(`<{let s = "<{{={~{@ @}~}=}}>"; }>{~ s ~}`)()).toBe("<{{={~{@ @}~}=}}>");
+    expect(await Nostache(`{~ /* <{{={~{@ @}~}=}}> */ ~}`)()).toBe("");
+    expect(await Nostache(`{~ // <{{={~{@ @}~}=}}>
+~}`)()).toBe("");
 });
 
 test("Empty blocks", async () => {

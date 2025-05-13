@@ -208,11 +208,16 @@ const parseTemplate = (template, options) => {
         startIndex = index;
         const closeChar = unsafe ? 126 : 61;
         let hasMeaningfulSymbol = false;
+        let hasOnlyComment = false;
         while (index < length) {
-            if (parseStringOrComment()) {
-                // todo true only if string
+            const sc = parseStringOrComment();
+            if (sc === 1) {
                 hasMeaningfulSymbol = true;
                 continue;
+            }
+            else if (sc === 2 && !hasMeaningfulSymbol) {
+                hasOnlyComment = true;
+                startIndex = index;
             }
             const c = template.charCodeAt(index);
             if (!hasMeaningfulSymbol && isWhitespace(c)) {
@@ -222,7 +227,7 @@ const parseTemplate = (template, options) => {
                 if (hasMeaningfulSymbol) {
                     appendOutput(unsafe);
                 }
-                else {
+                else if (!hasOnlyComment) {
                     funcBody += `yield \`${template.slice(startIndex, index)}\`;`;
                 }
                 index += 2;
@@ -239,40 +244,40 @@ const parseTemplate = (template, options) => {
     const parseStringOrComment = (onlyComment = false) => {
         let isInString = 0;
         let isInComment = 0;
-        let result = false;
+        let result = 0;
         while (index < length) {
             const c = template.charCodeAt(index);
             let n = 0;
             if (!onlyComment && !isInString && !isInComment && (c === 39 || c === 34 || c === 96)) {
                 isInString = c;
                 index++;
-                result = true;
+                result = 1;
             }
             else if (isInString && c === 92) {
                 index += 2;
             }
             else if (isInString && c === isInString) {
                 index++;
-                return true;
+                return 1;
             }
             else if (!isInString && !isInComment && c === 47 && ((n = template.charCodeAt(index + 1)) === 47 || n === 42)) {
                 isInComment = n;
                 index += 2;
-                result = true;
+                result = 2;
             }
             else if (isInComment === 47 && c === 10) {
                 index++;
-                return true;
+                return 2;
             }
             else if (isInComment === 42 && c === 42 && template.charCodeAt(index + 1) === 47) {
                 index += 2;
-                return true;
+                return 2;
             }
             else if (isInComment || isInString) {
                 index++;
             }
             else {
-                return false;
+                return 0;
             }
         }
         if (result && isInString) {
