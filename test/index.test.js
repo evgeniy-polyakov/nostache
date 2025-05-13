@@ -1243,6 +1243,44 @@ test("Readme examples", async () => {
     expect(await Nostache(`{"quote": "{= '"' =}"}`, {
         escape: s => s.replace(/"/, '\\"')
     })()).toBe(`{"quote": "\\""}`);
+    expect(await Nostache(`{@ /* Meet template parameters! */ a, b @} <p>{= a =} {= b =}</p>`)(1, 2)).toBe("<p>1 2</p>");
+    expect(await Nostache(`{@ {a}, b @} <p>{= a =} {= b =}</p>`)({a: 1}, 2)).toBe("<p>1 2</p>");
+    expect(await Nostache(`{@ , a, , b @} <p>{= a =} {= b =}</p>`)(0.5, 1, 1.5, 2)).toBe("<p>1 2</p>");
+    expect(await Nostache(`{@ ...a @} <p>{= a[1] =} {= a[2] =}</p>`)(0, 1, 2)).toBe("<p>1 2</p>");
+    expect(await Nostache(`{@ a, b @} <p>{= a =} {= b =}</p>{@ c, d @} <p>{= c =} {= d =}</p>`)(1, 2)).toBe("<p>1 2</p><p>1 2</p>");
+    expect(await Nostache(`{@ /* Meet inner template! */ li (i) <li>{= i =}</li> @} <ul>
+    {~ li(1) ~}
+    {~ li(2) ~}
+</ul>`)()).toBe(`<ul>
+    <li>1</li>
+    <li>2</li>
+</ul>`);
+    expect(await Nostache(`<{ const li = {@ (i) <li>{= i =}</li> @} }><ul>
+    {~ li(1) ~}
+    {~ li(2) ~}
+</ul>`)()).toBe(`<ul>
+    <li>1</li>
+    <li>2</li>
+</ul>`);
+    expect(await Nostache(`{@ li (i) <li>{= this[0] =} #{= i =}</li> @} <ul>
+    {~ li(1) ~}
+    {~ li(2) ~}
+</ul>`)("Item")).toBe(`<ul>
+    <li>Item #1</li>
+    <li>Item #2</li>
+</ul>`);
+    expect(await Nostache(`{@ tr (row, columns)
+    <tr>{@ td (column) <td>{= row + 1 =} {= column + 1 =}</td> @}
+        <{ for (let i = 0; i < columns; i++) {~ td(i) ~} }></tr> @}
+<table>
+    {~ tr(0, 3) ~}
+    {~ tr(1, 3) ~}
+    {~ tr(2, 3) ~}
+</table>`)()).toBe(`<table>
+    <tr><td>1 1</td><td>1 2</td><td>1 3</td></tr>
+    <tr><td>2 1</td><td>2 2</td><td>2 3</td></tr>
+    <tr><td>3 1</td><td>3 2</td><td>3 3</td></tr>
+</table>`);
     expect(await Nostache(`<p>{= this[0] =} {= this[1] =}</p>`)(1, 2)).toBe("<p>1 2</p>");
     expect(await Nostache(`<{ const [a, b] = this; }><p>{= a =} {= b =}</p>`)(1, 2)).toBe("<p>1 2</p>");
     expect(await Nostache(`{@ a, b @}<p>{= a =} {= b =}</p>`)(1, 2)).toBe("<p>1 2</p>");

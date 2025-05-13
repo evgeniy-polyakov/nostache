@@ -65,7 +65,7 @@ But in most cases it's better to use simplified syntax that allows html tags rig
 ```javascript
 Nostache(`<p><{ for (let i = 0; i < 3; i++) { <br> } }></p>`)() // produces `<p><br><br><br></p>`
 ```
-If you want to output plain string instead of a tag, use `{> <}` block. The string goes as is, no html escape. Whitespace around the text are ignored but comments are not, they are a part of the string.
+If you want to output plain string instead of a tag, use `{> <}` block. The string goes as is, no html escape. Whitespace around the text are ignored but comments are not as they are part of the string.
 ```javascript
 Nostache(`<p><{ for (let i = 0; i < 3; i++) {> br <} }></p>`)() // produces `<p>brbrbr</p>`
 Nostache(`<p><{ for (let i = 0; i < 3; i++) {> <br> <} }></p>`)() // produces `<p><br><br><br></p>`
@@ -91,6 +91,20 @@ If you plan to use the engine to generate some code other than html you can over
 Nostache(`{"quote": "{= '"' =}"}`, {
     escape: s => s.replace(/"/, '\\"')
 })() // produces `{"quote": "\""}`
+```
+
+## Template Parameters
+Many template engines use named parameters to pass data to templates. It creates unnecessary dependency, i.e. if we want to rename a parameter inside a template we also have to rename it everywhere the template is called. Nostache in the opposite considers templates as functions with ordered but not named parameters. Use `{@ @}` to extract template parameters into variables that can be used later in the code. Comments are allowed inside the block. Whitespace after the block is trimmed.
+```javascript
+Nostache(`{@ /* Meet template parameters! */ a, b @} <p>{= a =} {= b =}</p>`)(1, 2) // produces `<p>1 2</p>`
+// Destructing is supported
+Nostache(`{@ {a}, b @} <p>{= a =} {= b =}</p>`)({a: 1}, 2) // produces `<p>1 2</p>`
+// Skipping parameters is supported
+Nostache(`{@ , a, , b @} <p>{= a =} {= b =}</p>`)(0.5, 1, 1.5, 2) // produces `<p>1 2</p>`
+// Rest parameters is supported
+Nostache(`{@ ...a @} <p>{= a[1] =} {= a[2] =}</p>`)(0, 1, 2) // produces `<p>1 2</p>`
+// Access the same parameters by new name
+Nostache(`{@ a, b @} <p>{= a =} {= b =}</p>{@ c, d @} <p>{= c =} {= d =}</p>`)(1, 2) // produces `<p>1 2</p><p>1 2</p>`
 ```
 
 ## Strings and Сomments
@@ -131,11 +145,6 @@ Nostache(`<code>{= "<br>" =}</code>`)() // produces `<code>&#38;#60;br&#38;#62;<
 Nostache(`<code>{= "<br>" =}</code>`, {
     escape: s => s.toUpperCase()
 })() // produces `<code><BR></code>`
-
-// Override escape with promise:
-Nostache(`<code>{= "<br>" =}</code>`, {
-    escape: s => new Promise(r => r(s.toUpperCase()))
-})() // produces `<code><BR></code>`
 ```
 * Load function, can be overridden in options, [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) is used by default. 
 ```javascript
@@ -148,11 +157,6 @@ Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`)() // 
 // Override load
 Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
     load: s => `<b>{= this[0] =}</b>`
-})() // produces `<div><b>1</b><b>2</b></div>`
-
-// Override load with promise
-Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
-    load: s => new Promise(r => r(`<b>{= this[0] =}</b>`))
 })() // produces `<div><b>1</b><b>2</b></div>`
 ```
 * Any extensions you can dream of
@@ -172,10 +176,56 @@ Nostache(`<p>{= this.myDream() =}</p>`, {
 ```
 
 ## Inner Templates
-Inner templates is the most powerful feature
-
+Inner templates is the most powerful feature of Nostache. You can mark some block of code as an inner function and then call it in the template. Use `{@ name () text @}` to define a function named `name` with `text` body. Whitespace after the block and around the function body are ignored. Comments are allowed before the function body.
+```javascript
+Nostache(`{@ /* Meet inner template! */ li (i) <li>{= i =}</li> @} <ul>
+    {~ li(1) ~}
+    {~ li(2) ~}
+</ul>`)() /* produces `<ul>
+    <li>1</li>
+    <li>2</li>
+</ul>` */
+// Name is optional, you can pass the template wherever you like
+Nostache(`<{ const li = {@ (i) <li>{= i =}</li> @} }><ul>
+    {~ li(1) ~}
+    {~ li(2) ~}
+</ul>`)() /* produces `<ul>
+    <li>1</li>
+    <li>2</li>
+</ul>` */
+// `this` is still the parent template
+Nostache(`{@ li (i) <li>{= this[0] =} #{= i =}</li> @} <ul>
+    {~ li(1) ~}
+    {~ li(2) ~}
+</ul>`)("Item") /* produces `<ul>
+    <li>Item #1</li>
+    <li>Item #2</li>
+</ul>` */
+```
+Some evil voodoo magic with nested inner templates.
+```javascript
+Nostache(`{@ tr (row, columns)
+    <tr>{@ td (column) <td>{= row + 1 =} {= column + 1 =}</td> @}
+        <{ for (let i = 0; i < columns; i++) {~ td(i) ~} }></tr> @}
+<table>
+    {~ tr(0, 3) ~}
+    {~ tr(1, 3) ~}
+    {~ tr(2, 3) ~}
+</table>`)() /* produces `<table>
+    <tr><td>1 1</td><td>1 2</td><td>1 3</td></tr>
+    <tr><td>2 1</td><td>2 2</td><td>2 3</td></tr>
+    <tr><td>3 1</td><td>3 2</td><td>3 3</td></tr>
+</table>` */
+```
 
 ### Promises
-The engine is very confiding. You can promise anything, and it will be obediently waiting for the outcome before producing the final result.
+The engine is very confiding. You can promise anything, and it will be obediently waiting for the outcome before producing the final result. Promises can be used in:
+* Output blocks
+```javascript
+
+```
+* 
 
 ## Options
+todo: options are inherited
+todo: global options
