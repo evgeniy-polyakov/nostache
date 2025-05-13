@@ -1229,6 +1229,31 @@ test("Readme examples", async () => {
         <li>Item #{= i + 1 =}</li> // {= =} is html-escaped output
     }
 }></ul>`)(3)).toBe(`<ul><li>Item #1</li><li>Item #2</li><li>Item #3</li></ul>`);
+    expect(await Nostache(`<p>{= this[0] =} {= this[1] =}</p>`)(1, 2)).toBe("<p>1 2</p>");
+    expect(await Nostache(`<{ const [a, b] = this; }><p>{= a =} {= b =}</p>`)(1, 2)).toBe("<p>1 2</p>");
+    expect(await Nostache(`{@ a, b @}<p>{= a =} {= b =}</p>`)(1, 2)).toBe("<p>1 2</p>");
+    expect(await Nostache(`<code>{~ this.escape("<br>") ~}</code>`)()).toBe("<code>&#60;br&#62;</code>");
+    expect(await Nostache(`<code>{= "<br>" =}</code>`)()).toBe("<code>&#60;br&#62;</code>");
+    expect(await Nostache(`<code>{= "<br>" =}</code>`, {escape: s => s.toUpperCase()})()).toBe("<code><BR></code>");
+    expect(await Nostache(`<code>{= "<br>" =}</code>`, {escape: s => new Promise(r => r(s.toUpperCase()))})()).toBe("<code><BR></code>");
+    expect(await Nostache(`<div>{@ i @} {= i =}<{ if (i > 1) {~ this(i - 1) ~} }></div>`)(3)).toBe("<div>3<div>2<div>1</div></div></div>");
+    expect(await Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
+        load: s => `<b>{= this[0] =}</b>`
+    })()).toBe("<div><b>1</b><b>2</b></div>");
+    expect(await Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
+        load: s => new Promise(r => r(`<b>{= this[0] =}</b>`))
+    })()).toBe("<div><b>1</b><b>2</b></div>");
+    expect(await Nostache(`<p>{= this.myDream() =}</p>`, {
+        extensions: {
+            myDream: () => "Pineapple Pizza"
+        }
+    })()).toBe("<p>Pineapple Pizza</p>");
+    expect(await Nostache(`<p>{= this.myDream() =}</p>`, {
+        extensions: {
+            myDream: () => new Promise(r => r("Pineapple Pizza"))
+        }
+    })()).toBe("<p>Pineapple Pizza</p>");
+
 });
 
 test("Empty blocks", async () => {
