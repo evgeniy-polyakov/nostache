@@ -43,10 +43,10 @@ Output:
 <ul><li>Item #1</li><li>Item #2</li><li>Item #3</li></ul>
 ```
 
-## Blocks
+## Syntax Cheatsheet
 | Block                                | Description                                                        | Whitespace Control                                             | Parent Block                                     | Empty Block        |
 |--------------------------------------|--------------------------------------------------------------------|----------------------------------------------------------------|--------------------------------------------------|--------------------|
-| Logic `<{ }>`                        | JS code to breathe life into your template                         | &check; Keeps whitespace before and after the block            | Root, `{< >}`, `{> <}`, `{@ () @}`               | Ignored            |
+| Logic `<{ }>`                        | JS code to breathe life into your template                         | &check; Keeps whitespace before and after the block            | Root, `{< >}`, `{> <}`, `{@ name () @}`          | Ignored            |
 | Html `{< >}`                         | Plain html tag inside JS code                                      | &cross; Trims whitespace before and after the tag              | `<{ }>`                                          | Invalid html       |
 | Text `{> <}`                         | Plain text inside JS code                                          | &cross; Trims whitespace before and after the text             | `<{ }>`                                          | Ignored            |
 | Output `{= =}`                       | Outputs the html-escaped result of the inner JS expression         | &check; Keeps whitespace before and after the block            | Root, `<{ }>`, `{< >}`, `{> <}`, `{@ name () @}` | Outputs whitespace |

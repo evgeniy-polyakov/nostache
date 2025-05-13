@@ -22,7 +22,6 @@ export type TemplateOptions = {
 export type TemplateCache = Map<string, string | TemplateFunction>;
 const templateCache: TemplateCache = new Map<string, string | TemplateFunction>();
 
-// todo tests for comments everywhere
 const parseTemplate = (template: string, options: TemplateOptions) => {
 
     const WHITESPACE = " ".charCodeAt(0);
@@ -229,8 +228,6 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 index++;
             } else if (potentialEnd >= 0 && isWhitespace(c)) {
                 index++;
-            } else if (potentialEnd >= 0 && parseStringOrComment(true)) {
-                // continue
             } else if (potentialEnd >= 0 && c === CLOSE_BRACE) {
                 if (hasMeaningfulSymbol) {
                     appendResult(potentialEndWhitespace);
@@ -327,6 +324,9 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             let c = template.charCodeAt(index);
             if (!firstChar) {
                 c = skipWhitespace(c);
+                if (parseStringOrComment(true)) {
+                    c = skipWhitespace(template.charCodeAt(index));
+                }
                 startIndex = index;
                 firstChar = c;
                 if (c === OPEN_PARENTHESES) {
@@ -353,6 +353,9 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             } else if (potentialName && !isAlphanumeric(c)) {
                 name = template.slice(startIndex, index);
                 c = skipWhitespace(c);
+                if (parseStringOrComment(true)) {
+                    c = skipWhitespace(template.charCodeAt(index));
+                }
                 if (c === OPEN_PARENTHESES) {
                     index++;
                     parseTemplateDeclaration(name);
@@ -411,9 +414,6 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         let parameters = "";
         let parentheses = 0;
         while (index < length) {
-            if (parseStringOrComment(true)) {
-                continue;
-            }
             const c = template.charCodeAt(index);
             if (c === OPEN_PARENTHESES) {
                 parentheses++;
@@ -436,13 +436,10 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         let lastWhitespace = -1;
         funcBody = "";
         while (index < length) {
-            if (parseStringOrComment(true)) {
-                continue;
-            }
             const c = template.charCodeAt(index);
             if (isWhitespace(c)) {
                 lastWhitespace = index;
-                index++;
+                skipWhitespace(c);
             } else if (c === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE) {
                 appendResult(lastWhitespace > -1 ? lastWhitespace : index);
                 const innerFuncBody = funcBody;

@@ -1,5 +1,4 @@
 (function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const templateCache = new Map();
-// todo tests for comments everywhere
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
     const isAlphabetic = (c) => c === 95 || (c >= 97 && c <= 122) || (c >= 65 && c <= 90);
@@ -189,7 +188,6 @@ const parseTemplate = (template, options) => {
             else if (potentialEnd >= 0 && isWhitespace(c)) {
                 index++;
             }
-            else if (potentialEnd >= 0 && parseStringOrComment(true)) ;
             else if (potentialEnd >= 0 && c === 125) {
                 if (hasMeaningfulSymbol) {
                     appendResult(potentialEndWhitespace);
@@ -294,6 +292,9 @@ const parseTemplate = (template, options) => {
             let c = template.charCodeAt(index);
             if (!firstChar) {
                 c = skipWhitespace(c);
+                if (parseStringOrComment(true)) {
+                    c = skipWhitespace(template.charCodeAt(index));
+                }
                 startIndex = index;
                 firstChar = c;
                 if (c === 40) {
@@ -326,6 +327,9 @@ const parseTemplate = (template, options) => {
             else if (potentialName && !isAlphanumeric(c)) {
                 name = template.slice(startIndex, index);
                 c = skipWhitespace(c);
+                if (parseStringOrComment(true)) {
+                    c = skipWhitespace(template.charCodeAt(index));
+                }
                 if (c === 40) {
                     index++;
                     parseTemplateDeclaration(name);
@@ -385,9 +389,6 @@ const parseTemplate = (template, options) => {
         let parameters = "";
         let parentheses = 0;
         while (index < length) {
-            if (parseStringOrComment(true)) {
-                continue;
-            }
             const c = template.charCodeAt(index);
             if (c === 40) {
                 parentheses++;
@@ -413,13 +414,10 @@ const parseTemplate = (template, options) => {
         let lastWhitespace = -1;
         funcBody = "";
         while (index < length) {
-            if (parseStringOrComment(true)) {
-                continue;
-            }
             const c = template.charCodeAt(index);
             if (isWhitespace(c)) {
                 lastWhitespace = index;
-                index++;
+                skipWhitespace(c);
             }
             else if (c === 64 && template.charCodeAt(index + 1) === 125) {
                 appendResult(lastWhitespace > -1 ? lastWhitespace : index);
