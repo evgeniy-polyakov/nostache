@@ -1,4 +1,5 @@
 const templateCache = new Map();
+// todo trim whitespace after <{ }>
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
     const isAlphabetic = (c) => c === 95 || (c >= 97 && c <= 122) || (c >= 65 && c <= 90);
@@ -467,6 +468,7 @@ const iterateRecursively = (value) => {
     }
     return new Promise(r => r(value));
 };
+const isBrowser = Function("try{return this===window;}catch(e){return false;}")();
 const Nostache = ((template, options) => {
     options = Object.assign(Object.assign({}, Nostache.options), options);
     const extensions = Object.assign(Object.assign({}, (Nostache.options ? Nostache.options.extensions : undefined)), (options ? options.extensions : undefined));
@@ -475,24 +477,33 @@ const Nostache = ((template, options) => {
             (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
     const load = (input, init) => (...args) => {
-        const inputString = typeof input === "string" ? input : input instanceof URL ? input.toString() : "";
-        let cachedTemplate = inputString ? templateCache.get(inputString) : undefined;
-        if (cachedTemplate && typeof cachedTemplate !== "string") {
-            cachedTemplate = undefined;
-        }
-        return Nostache(new Promise(r => r(cachedTemplate ? cachedTemplate :
-            typeof options.load === "function" ? options.load(input, init) :
-                fetch(input, init).then(r => r.text()))).then(template => {
-            if (!cachedTemplate && options.cache !== false) {
-                templateCache.set(inputString, template);
+        return Nostache(new Promise(r => {
+            if (typeof options.load === "function") {
+                r(options.load(input, init));
             }
-            return template;
+            else {
+                const inputString = typeof input === "string" ? input : input instanceof URL ? input.toString() : "";
+                const cachedTemplate = options.cache === false ? undefined : inputString ? templateCache.get(inputString) : undefined;
+                if (typeof cachedTemplate === "string") {
+                    r(cachedTemplate);
+                }
+                else {
+                    (isBrowser ?
+                        fetch(input, init).then(r => r.text()) :
+                        new Promise(r => require('fs').readFile(input, 'utf-8', (e, d) => r(d)))).then(template => {
+                        if (options.cache !== false) {
+                            templateCache.set(inputString, template);
+                        }
+                        r(template);
+                    });
+                }
+            }
         }), options)(...args);
     };
     const returnFunc = (...args) => new Promise(r => r(template))
         .then((templateString) => {
         const cacheKey = options.async ? `async ${templateString}` : templateString;
-        let templateFunc = templateCache.get(cacheKey);
+        let templateFunc = options.cache === false ? undefined : templateCache.get(cacheKey);
         const templateFuncBody = templateFunc ? templateFunc.toString() : parseTemplate(templateString, options);
         returnFunc.toString = () => `function () {\n${templateFuncBody}\n}`;
         try {
