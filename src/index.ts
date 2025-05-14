@@ -30,8 +30,9 @@ export type TemplateCache = {
 };
 const ASYNC = "async";
 const IMPORT = "import";
-const isString = (s: unknown) => typeof s === "string";
-const isFunction = (f: unknown) => typeof f === "function";
+const FUNCTION = "function";
+const isString = (s: unknown): s is string => typeof s === "string";
+const isFunction = (f: unknown): f is { (...args: any): any } => typeof f === FUNCTION;
 
 // todo trim whitespace after <{ }>
 const parseTemplate = (template: string, options: TemplateOptions) => {
@@ -96,6 +97,8 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     const throwEndOfBlockExpected = (block: string) => {
         throw new SyntaxError(`Expected end of ${block} at\n${template}`);
     };
+
+    const throwEndOfDeclarationBlockExpected = () => throwEndOfBlockExpected("declaration block @}");
 
     const parseOpenBlock = (c: number) => {
         const n = template.charCodeAt(index + 1);
@@ -407,7 +410,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 index++;
             }
         }
-        throwEndOfBlockExpected("declaration block @}");
+        throwEndOfDeclarationBlockExpected();
     };
 
     const parseImportDeclaration = (name?: string) => {
@@ -416,14 +419,14 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 // continue
             } else if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
                 if (name) funcBody += `let ${name}=`;
-                funcBody += `this.${IMPORT}(${template.slice(startIndex, index)})\n`;
+                funcBody += `this.import(${template.slice(startIndex, index)})\n`;
                 index += 2;
                 return;
             } else {
                 index++;
             }
         }
-        throwEndOfBlockExpected("declaration block @}");
+        throwEndOfDeclarationBlockExpected();
     };
 
     const parseTemplateDeclaration = (name?: string) => {
@@ -464,7 +467,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 if (name) {
                     funcBody += `let ${name}=`;
                 }
-                funcBody += `(${asyncModifier}function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
+                funcBody += `(${asyncModifier}${FUNCTION}*(${parameters}){${innerFuncBody}}.bind(this))\n`;
                 index += 2;
                 return;
             } else if (parseOpenBlock(c)) {
@@ -473,7 +476,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 index++;
             }
         }
-        throwEndOfBlockExpected("declaration block @}");
+        throwEndOfDeclarationBlockExpected();
     };
 
     const skipWhitespace = (c: number) => {
@@ -493,7 +496,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         }
     }
     appendResult();
-    return `return(${asyncModifier}function*(){\n${funcBody}}).call(this)`;
+    return `return(${asyncModifier}${FUNCTION}*(){\n${funcBody}}).call(this)`;
 };
 
 const iterateRecursively = (value: any) => {
@@ -506,7 +509,7 @@ const iterateRecursively = (value: any) => {
     return new Promise<string>(r => r(value));
 };
 
-const isBrowser = Function("try{return this===window;}catch(e){return false;}")();
+const isBrowser = Function(`try{return this===window;}catch(e){}`)();
 
 const Nostache: {
     (template: string | Promise<string>, options?: TemplateOptions): TemplateFunction;
@@ -560,7 +563,7 @@ const Nostache: {
                 const cacheOptions = options.async ? ASYNC : undefined;
                 let templateFunc = (cache & 2) ? Nostache.cache.get(templateString, cacheOptions) : undefined;
                 const templateFuncBody = templateFunc ? templateFunc.toString() : parseTemplate(templateString, options);
-                returnFunc.toString = () => `function () {\n${templateFuncBody}\n}`;
+                returnFunc.toString = () => `${FUNCTION} () {\n${templateFuncBody}\n}`;
                 try {
                     if (!templateFunc) {
                         templateFunc = Function(templateFuncBody) as TemplateFunction;
@@ -570,7 +573,7 @@ const Nostache: {
                         }
                     }
                     if (options.verbose) {
-                        console.groupCollapsed(`(function () {`);
+                        console.groupCollapsed(`(${FUNCTION} () {`);
                         console.log(`${templateFuncBody}})\n(`, ...(args as any[]).reduce((a, t) => {
                             if (a.length > 0) a.push(",");
                             a.push(isString(t) ? `"${t}"` : t);
@@ -592,7 +595,7 @@ const Nostache: {
                     }
                     return iterateRecursively(templateFunc.apply(contextFunc));
                 } catch (error: any) {
-                    error.message += `\nat function () {\n${templateFuncBody}\n})(${
+                    error.message += `\nat ${FUNCTION} () {\n${templateFuncBody}\n})(${
                         args.map(t => isString(t) ? `"${t}"` : t).join(", ")
                     })`;
                     throw error;
