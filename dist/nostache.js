@@ -477,23 +477,23 @@ const Nostache = ((template, options) => {
             (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
     const importFunc = (value) => (...args) => {
-        return Nostache(new Promise(r => {
+        return Nostache(new Promise((res, rej) => {
             if (typeof options.import === "function") {
-                r(options.import(value));
+                res(options.import(value));
             }
             else {
                 const cachedTemplate = options.cache === false ? undefined : templateCache.get(value);
                 if (typeof cachedTemplate === "string") {
-                    r(cachedTemplate);
+                    res(cachedTemplate);
                 }
                 else {
                     (isBrowser ?
                         fetch(value).then(r => r.text()) :
-                        new Promise(r => require('fs').readFile(value, 'utf8', (e, d) => r(d)))).then(template => {
+                        new Promise(r => require('fs').readFile(value, 'utf8', (e, d) => e ? rej(e) : r(d)))).then(template => {
                         if (options.cache !== false) {
                             templateCache.set(value, template);
                         }
-                        r(template);
+                        res(template);
                     });
                 }
             }

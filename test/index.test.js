@@ -844,6 +844,26 @@ test("Template declaration", async () => {
     delete Nostache.options.import;
 });
 
+test("Node Import", async () => {
+    const fs = require('fs/promises');
+    const path = 'test/partials/li.htm';
+    const file = await fs.readFile(path, 'utf8');
+    expect(Nostache.cache.get(path)).toBeUndefined();
+    expect(await Nostache(`<ul>{~ this.import('test/partials/li.htm')(1) ~}</ul>`)(1)).toBe("<ul><li>1</li></ul>");
+    expect(Nostache.cache.get(path)).toBe(file);
+    Nostache.cache.clear();
+    expect(await Nostache(`<ul>{@ li 'test/partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i + 1) ~} }></ul>`)(1)).toBe("<ul><li>1</li></ul>");
+    expect(Nostache.cache.get(path)).toBe(file);
+    await fs.rename(path, path + "_");
+    expect(await Nostache(`<ul>{@ li 'test/partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i + 1) ~} }></ul>`)(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+    await fs.rename(path + "_", path);
+    Nostache.cache.clear();
+    const err = 'test/partials/err.htm';
+    expect(Nostache.cache.get(err)).toBeUndefined();
+    await expect(Nostache(`<ul>{~ this.import('test/partials/err.htm')() ~}</ul>`)()).rejects.toThrow('ENOENT');
+    expect(Nostache.cache.get(path)).toBeUndefined();
+});
+
 test("To string", async () => {
     const template = Nostache("<a>{= 10 =}</a>");
     const re = /^function[^<]+<a>[^1]+10[^<]+<\/a>/i;
