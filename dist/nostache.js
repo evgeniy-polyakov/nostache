@@ -5,6 +5,7 @@ const UNDEFINED = undefined;
 const isString = (s) => typeof s === "string";
 const isFunction = (f) => typeof f === FUNCTION;
 // todo trim whitespace after <{ }>
+// todo tests for cache levels
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
     const isAlphabetic = (c) => c === 95 || (c >= 97 && c <= 122) || (c >= 65 && c <= 90);
@@ -479,20 +480,23 @@ const isBrowser = Function(`try{return this===window;}catch(e){}`)();
 const Nostache = ((template, options) => {
     options = Object.assign(Object.assign({}, Nostache.options), options);
     const extensions = Object.assign(Object.assign({}, (Nostache.options ? Nostache.options.extensions : UNDEFINED)), (options ? options.extensions : UNDEFINED));
-    const cache = options.cache === false ? 0 : (options.cache || 3);
+    const cache = options.cache;
+    const isAllCache = cache === UNDEFINED || cache === true;
+    const isImportCache = isAllCache || cache === IMPORT;
+    const isFunctionCache = isAllCache || cache === FUNCTION;
     const escapeFunc = (value) => {
         return iterateRecursively(value).then(isFunction(options.escape) ? options.escape :
             (s => s === UNDEFINED || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
     const importFunc = (value) => (...args) => {
         return Nostache(new Promise((res, rej) => {
-            const cachedTemplate = (cache & 1) ? Nostache.cache.get(value, IMPORT) : UNDEFINED;
+            const cachedTemplate = isImportCache ? Nostache.cache.get(value, IMPORT) : UNDEFINED;
             if (cachedTemplate !== UNDEFINED) {
                 res(cachedTemplate);
             }
             else {
                 const cacheAndResolve = (template) => {
-                    if (cache & 1) {
+                    if (isImportCache) {
                         Nostache.cache.set(value, template);
                     }
                     res(template);
@@ -518,14 +522,14 @@ const Nostache = ((template, options) => {
     const returnFunc = (...args) => new Promise(r => r(template))
         .then((templateString) => {
         const cacheOptions = options.async ? ASYNC : UNDEFINED;
-        let templateFunc = (cache & 2) ? Nostache.cache.get(templateString, cacheOptions) : UNDEFINED;
+        let templateFunc = isFunctionCache ? Nostache.cache.get(templateString, cacheOptions) : UNDEFINED;
         const templateFuncBody = templateFunc ? templateFunc.toString() : parseTemplate(templateString, options);
         returnFunc.toString = () => `${FUNCTION} () {\n${templateFuncBody}\n}`;
         try {
             if (!templateFunc) {
                 templateFunc = Function(templateFuncBody);
                 templateFunc.toString = () => templateFuncBody;
-                if (cache & 2) {
+                if (isFunctionCache) {
                     Nostache.cache.set(templateString, templateFunc, cacheOptions);
                 }
             }
@@ -562,33 +566,30 @@ const Nostache = ((template, options) => {
 });
 Nostache.options = {};
 Nostache.cache = (() => {
-    let cache = {};
-    let asyncCache = {};
-    let importCache = {};
+    const cache = {
+        [IMPORT]: {},
+        [ASYNC]: {},
+        [FUNCTION]: {},
+    };
     return {
         get(key, options) {
-            return options === IMPORT ? importCache[key] : options === ASYNC ? asyncCache[key] : cache[key];
+            return cache[options || FUNCTION][key];
         },
         set(key, value, options) {
-            if (isString(value))
-                importCache[key] = value;
-            else if (options === ASYNC)
-                asyncCache[key] = value;
-            else
-                cache[key] = value;
+            cache[isString(value) ? IMPORT : (options || FUNCTION)][key] = value;
         },
         delete(key, options) {
-            if (options === IMPORT)
-                delete importCache[key];
-            else if (options === ASYNC)
-                delete asyncCache[key];
-            else
-                delete cache[key];
+            delete cache[options || FUNCTION][key];
         },
-        clear() {
-            cache = {};
-            asyncCache = {};
-            importCache = {};
+        clear(options) {
+            if (options) {
+                cache[options] = {};
+            }
+            else {
+                cache[IMPORT] = {};
+                cache[ASYNC] = {};
+                cache[FUNCTION] = {};
+            }
         },
     };
 })();return Nostache;}));//# sourceMappingURL=nostache.js.map

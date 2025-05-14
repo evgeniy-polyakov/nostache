@@ -14,19 +14,18 @@ export type TemplateFunction = {
 export type TemplateOptions = {
     verbose?: boolean;
     async?: boolean;
-    cache?: boolean | 0 | 1 | 2;
+    cache?: boolean | "import" | "function";
     import?(value: string): string | Promise<string>;
     escape?(value: string): string | Promise<string>;
     extensions: Record<string, unknown>;
 };
 export type TemplateCache = {
-    get(key: string, options?: "async"): TemplateFunction;
+    get(key: string, options?: "function" | "async"): TemplateFunction;
     get(key: string, options: "import"): string;
-    set(key: string, value: TemplateFunction, options?: "async"): void;
+    set(key: string, value: TemplateFunction, options?: "function" | "async"): void;
     set(key: string, value: string): void;
-    delete(key: string, options?: "async"): void;
-    delete(key: string, options: "import"): void;
-    clear(): void;
+    delete(key: string, options?: "import" | "function" | "async"): void;
+    clear(options?: "import" | "function" | "async"): void;
 };
 declare const Nostache: {
     (template: string | Promise<string>, options?: TemplateOptions): TemplateFunction;

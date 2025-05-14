@@ -14,19 +14,18 @@ export type TemplateFunction = {
 export type TemplateOptions = {
     verbose?: boolean;
     async?: boolean;
-    cache?: boolean | 0 | 1 | 2;
+    cache?: boolean | "import" | "function";
     import?(value: string): string | Promise<string>;
     escape?(value: string): string | Promise<string>;
     extensions: Record<string, unknown>;
 };
 export type TemplateCache = {
-    get(key: string, options?: "async"): TemplateFunction;
+    get(key: string, options?: "function" | "async"): TemplateFunction;
     get(key: string, options: "import"): string;
-    set(key: string, value: TemplateFunction, options?: "async"): void;
+    set(key: string, value: TemplateFunction, options?: "function" | "async"): void;
     set(key: string, value: string): void;
-    delete(key: string, options?: "async"): void;
-    delete(key: string, options: "import"): void;
-    clear(): void;
+    delete(key: string, options?: "import" | "function" | "async"): void;
+    clear(options?: "import" | "function" | "async"): void;
 };
 const ASYNC = "async";
 const IMPORT = "import";
@@ -36,6 +35,7 @@ const isString = (s: unknown): s is string => typeof s === "string";
 const isFunction = (f: unknown): f is { (...args: any): any } => typeof f === FUNCTION;
 
 // todo trim whitespace after <{ }>
+// todo tests for cache levels
 const parseTemplate = (template: string, options: TemplateOptions) => {
 
     const WHITESPACE = " ".charCodeAt(0);
@@ -510,6 +510,8 @@ const iterateRecursively = (value: any) => {
     return new Promise<string>(r => r(value));
 };
 
+const isAnyEqual = (value: unknown, ...values: any) => values.some((v: any) => v === value);
+
 const isBrowser = Function(`try{return this===window;}catch(e){}`)();
 
 const Nostache: {
@@ -525,7 +527,10 @@ const Nostache: {
         ...(Nostache.options ? Nostache.options.extensions : UNDEFINED),
         ...(options ? options.extensions : UNDEFINED)
     };
-    const cache = options.cache === false ? 0 : (options.cache || 3) as number;
+    const cache = options.cache;
+    const isAllCache = cache === UNDEFINED || cache === true;
+    const isImportCache = isAllCache || cache === IMPORT;
+    const isFunctionCache = isAllCache || cache === FUNCTION;
     const escapeFunc = (value: unknown) => {
         return iterateRecursively(value).then(
             isFunction(options.escape) ? options.escape :
@@ -533,12 +538,12 @@ const Nostache: {
     };
     const importFunc = (value: string) => (...args: unknown[]): Promise<string> => {
         return Nostache(new Promise<string>((res, rej) => {
-            const cachedTemplate = (cache & 1) ? Nostache.cache.get(value, IMPORT) : UNDEFINED;
+            const cachedTemplate = isImportCache ? Nostache.cache.get(value, IMPORT) : UNDEFINED;
             if (cachedTemplate !== UNDEFINED) {
                 res(cachedTemplate);
             } else {
                 const cacheAndResolve = (template: string) => {
-                    if (cache & 1) {
+                    if (isImportCache) {
                         Nostache.cache.set(value, template);
                     }
                     res(template);
@@ -562,14 +567,14 @@ const Nostache: {
         new Promise<string>(r => r(template))
             .then((templateString: string) => {
                 const cacheOptions = options.async ? ASYNC : UNDEFINED;
-                let templateFunc = (cache & 2) ? Nostache.cache.get(templateString, cacheOptions) : UNDEFINED;
+                let templateFunc = isFunctionCache ? Nostache.cache.get(templateString, cacheOptions) : UNDEFINED;
                 const templateFuncBody = templateFunc ? templateFunc.toString() : parseTemplate(templateString, options);
                 returnFunc.toString = () => `${FUNCTION} () {\n${templateFuncBody}\n}`;
                 try {
                     if (!templateFunc) {
                         templateFunc = Function(templateFuncBody) as TemplateFunction;
                         templateFunc.toString = () => templateFuncBody;
-                        if (cache & 2) {
+                        if (isFunctionCache) {
                             Nostache.cache.set(templateString, templateFunc, cacheOptions);
                         }
                     }
@@ -607,27 +612,29 @@ const Nostache: {
 
 (Nostache as { options: TemplateOptions }).options = {} as TemplateOptions;
 (Nostache as { cache: TemplateCache }).cache = (() => {
-    let cache: Record<string, TemplateFunction> = {};
-    let asyncCache: Record<string, TemplateFunction> = {};
-    let importCache: Record<string, string> = {};
+    const cache = {
+        [IMPORT]: {} as Record<string, string>,
+        [ASYNC]: {} as Record<string, TemplateFunction>,
+        [FUNCTION]: {} as Record<string, TemplateFunction>,
+    };
     return {
-        get(key: string, options?: "async" | "import") {
-            return options === IMPORT ? importCache[key] : options === ASYNC ? asyncCache[key] : cache[key];
+        get(key: string, options?: "import" | "function" | "async") {
+            return cache[options || FUNCTION][key];
         },
-        set(key: string, value: TemplateFunction | string, options?: "async") {
-            if (isString(value)) importCache[key] = value;
-            else if (options === ASYNC) asyncCache[key] = value;
-            else cache[key] = value;
+        set(key: string, value: TemplateFunction | string, options?: "function" | "async") {
+            cache[isString(value) ? IMPORT : (options || FUNCTION)][key] = value;
         },
-        delete(key: string, options?: "async" | "import") {
-            if (options === IMPORT) delete importCache[key];
-            else if (options === ASYNC) delete asyncCache[key];
-            else delete cache[key];
+        delete(key: string, options?: "import" | "function" | "async") {
+            delete cache[options || FUNCTION][key];
         },
-        clear() {
-            cache = {};
-            asyncCache = {};
-            importCache = {};
+        clear(options?: "import" | "function" | "async") {
+            if (options) {
+                cache[options] = {};
+            } else {
+                cache[IMPORT] = {};
+                cache[ASYNC] = {};
+                cache[FUNCTION] = {};
+            }
         },
     } as TemplateCache;
 })();

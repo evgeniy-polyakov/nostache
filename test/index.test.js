@@ -875,7 +875,7 @@ test("To string", async () => {
 });
 
 test("Explicit options", async () => {
-    Nostache.options.cache = 2;
+    Nostache.options.cache = "function";
     const template = "<a>{~ this.import('a')() ~}{~ this.escape('b') ~}</a>";
     expect(await Nostache(template, {
         import: a => a === 'a' ? '1' : '',
@@ -917,7 +917,7 @@ test("Explicit options", async () => {
 });
 
 test("Implicit options", async () => {
-    Nostache.options.cache = 2;
+    Nostache.options.cache = "function";
     const template = "{@ a 'a' @}<a>{~ a() ~}{= 'b' =}</a>";
     expect(await Nostache(template, {
         import: a => a === 'a' ? '1' : '',
@@ -959,7 +959,7 @@ test("Implicit options", async () => {
 });
 
 test("Nested template options", async () => {
-    Nostache.options.cache = 2;
+    Nostache.options.cache = "function";
     expect(await Nostache(`{@ li "partials/li.htm" @}<ul>{~ li(1) ~}</ul>`, {
         import: s => s === "partials/li.htm" ? "<li>{= this[0] =}</li>" : "",
         escape: s => s === 1 ? "a" : "",
@@ -1216,7 +1216,7 @@ test("Throw end of block", async () => {
 });
 
 test("Readme examples", async () => {
-    Nostache.options.cache = 2;
+    Nostache.options.cache = "function";
     expect(await Nostache(`<ul><{ for (let i=0; i<3; i++) }>
     <li></li><{}>
 </ul>`)()).toBe(`<ul>
