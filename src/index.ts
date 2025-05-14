@@ -23,6 +23,7 @@ export type TemplateCache = Map<string, string | TemplateFunction>;
 const templateCache: TemplateCache = new Map<string, string | TemplateFunction>();
 
 // todo trim whitespace after <{ }>
+// todo two cache levels
 const parseTemplate = (template: string, options: TemplateOptions) => {
 
     const WHITESPACE = " ".charCodeAt(0);
@@ -523,15 +524,19 @@ const Nostache: {
                 if (typeof cachedTemplate === "string") {
                     res(cachedTemplate);
                 } else {
-                    (isBrowser ?
-                            fetch(value).then(r => r.text()) :
-                            new Promise<string>(r => require('fs').readFile(value, 'utf8', (e: any, d: string) => e ? rej(e) : r(d)))
-                    ).then(template => {
+                    const cacheAndResolve = (template: string) => {
                         if (options.cache !== false) {
                             templateCache.set(value, template);
                         }
                         res(template);
-                    });
+                    };
+                    try {
+                        isBrowser ?
+                            fetch(value).then(response => response.status === 200 ? response.text().then(cacheAndResolve) : rej(new Error(`${response.status} ${response.url}`))) :
+                            require("fs").readFile(value, "utf8", (error: any, data: string) => error ? rej(error) : cacheAndResolve(data))
+                    } catch (e) {
+                        rej(e);
+                    }
                 }
             }
         }), options)(...args);

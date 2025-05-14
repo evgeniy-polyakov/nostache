@@ -861,6 +861,8 @@ test("Node Import", async () => {
     const err = 'test/partials/err.htm';
     expect(Nostache.cache.get(err)).toBeUndefined();
     await expect(Nostache(`<ul>{~ this.import('test/partials/err.htm')() ~}</ul>`)()).rejects.toThrow('ENOENT');
+    await expect(Nostache(`<ul>{@ li 'test/partials/err.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i + 1) ~} }></ul>`)(2)).rejects.toThrow('ENOENT');
+    expect(await Nostache(`<ul>{@ li 'test/partials/err.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i + 1) ~} }></ul>`)(0)).toBe("<ul></ul>");
     expect(Nostache.cache.get(path)).toBeUndefined();
 });
 

@@ -1,5 +1,6 @@
 const templateCache = new Map();
 // todo trim whitespace after <{ }>
+// todo two cache levels
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
     const isAlphabetic = (c) => c === 95 || (c >= 97 && c <= 122) || (c >= 65 && c <= 90);
@@ -487,14 +488,20 @@ const Nostache = ((template, options) => {
                     res(cachedTemplate);
                 }
                 else {
-                    (isBrowser ?
-                        fetch(value).then(r => r.text()) :
-                        new Promise(r => require('fs').readFile(value, 'utf8', (e, d) => e ? rej(e) : r(d)))).then(template => {
+                    const cacheAndResolve = (template) => {
                         if (options.cache !== false) {
                             templateCache.set(value, template);
                         }
                         res(template);
-                    });
+                    };
+                    try {
+                        isBrowser ?
+                            fetch(value).then(response => response.status === 200 ? response.text().then(cacheAndResolve) : rej(new Error(`${response.status} ${response.url}`))) :
+                            require("fs").readFile(value, "utf8", (error, data) => error ? rej(error) : cacheAndResolve(data));
+                    }
+                    catch (e) {
+                        rej(e);
+                    }
                 }
             }
         }), options)(...args);

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="../dist/nostache.min.js"></script>
+    <script>
+        Nostache.verbose = true;
+        const assert = b => {
+            if (b) {
+                console.log('[✓]');
+                document.body.insertAdjacentHTML('beforeend', `<p><input type="checkbox" checked></p>`);
+            } else {
+                console.log('[✗]');
+                console.error('[✗]', new Error().stack);
+                document.body.insertAdjacentHTML('beforeend', `<p><input type="checkbox"> ${new Error().stack}</p>`);
+            }
+        }
+    </script>
+    <script>
+        (async () => {
+            const path = 'partials/li.htm';
+            const file = await fetch(path).then(r => r.text());
+            assert(Nostache.cache.get(path) === undefined);
+            assert(await Nostache(`<ul>{~ this.import('partials/li.htm')(1) ~}</ul>`)(1) === "<ul><li>1</li></ul>");
+            assert(Nostache.cache.get(path) === file);
+            Nostache.cache.clear();
+            assert(await Nostache(`<ul>{@ li 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i + 1) ~} }></ul>`)(1) === "<ul><li>1</li></ul>");
+            assert(Nostache.cache.get(path) === file);
+            const originalFetch = fetch;
+            window.fetch = () => {
+                throw new Error("Overridden fetch");
+            };
+            assert(await Nostache(`<ul>{@ li 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i + 1) ~} }></ul>`)(2) === "<ul><li>1</li><li>2</li></ul>");
+            assert(await Nostache(`<ul>{@ li 'partials/lii.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i + 1) ~} }></ul>`)(1).catch(e => e) instanceof Error);
+            window.fetch = originalFetch;
+            Nostache.cache.clear();
+            const err = 'partials/err.htm';
+            assert(Nostache.cache.get(err) === undefined);
+            assert(await Nostache(`<ul>{~ this.import('partials/err.htm')() ~}</ul>`)().catch(e => e) instanceof Error);
+            assert(await Nostache(`<ul>{@ li 'partials/err.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i + 1) ~} }></ul>`)(1).catch(e => e) instanceof Error);
+            assert(Nostache.cache.get(path) === undefined);
+        })();
+    </script>
+</head>
+<body>
+</body>
+</html>
