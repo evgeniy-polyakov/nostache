@@ -476,23 +476,22 @@ const Nostache = ((template, options) => {
         return iterateRecursively(value).then(typeof options.escape === "function" ? options.escape :
             (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
-    const importFunc = (input, init) => (...args) => {
+    const importFunc = (value) => (...args) => {
         return Nostache(new Promise(r => {
             if (typeof options.import === "function") {
-                r(options.import(input, init));
+                r(options.import(value));
             }
             else {
-                const inputString = typeof input === "string" ? input : input instanceof URL ? input.toString() : "";
-                const cachedTemplate = options.cache === false ? undefined : inputString ? templateCache.get(inputString) : undefined;
+                const cachedTemplate = options.cache === false ? undefined : templateCache.get(value);
                 if (typeof cachedTemplate === "string") {
                     r(cachedTemplate);
                 }
                 else {
                     (isBrowser ?
-                        fetch(input, init).then(r => r.text()) :
-                        new Promise(r => require('fs').readFile(input, 'utf8', (e, d) => r(d)))).then(template => {
+                        fetch(value).then(r => r.text()) :
+                        new Promise(r => require('fs').readFile(value, 'utf8', (e, d) => r(d)))).then(template => {
                         if (options.cache !== false) {
-                            templateCache.set(inputString, template);
+                            templateCache.set(value, template);
                         }
                         r(template);
                     });

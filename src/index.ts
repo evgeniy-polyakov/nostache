@@ -3,7 +3,7 @@ export type ContextFunction<TArgument, TExtensions extends Record<string, unknow
     [arg: number]: TArgument,
 } & Iterable<TArgument> & {
     escape(value: unknown): Promise<string>,
-    import(input: string | URL | Request, init?: RequestInit): TemplateFunction;
+    import(value: string): TemplateFunction;
 } & {
     [name in TExtensionName]: TExtensions[TExtensionName];
 };
@@ -15,7 +15,7 @@ export type TemplateOptions = {
     verbose?: boolean;
     async?: boolean;
     cache?: boolean;
-    import?(input: string | URL | Request, init?: RequestInit): string | Promise<string>;
+    import?(value: string): string | Promise<string>;
     escape?(value: string): string | Promise<string>;
     extensions: Record<string, unknown>;
 };
@@ -514,22 +514,21 @@ const Nostache: {
             typeof options.escape === "function" ? options.escape :
                 (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
-    const importFunc = (input: string | URL | Request, init?: RequestInit) => (...args: unknown[]): Promise<string> => {
+    const importFunc = (value: string) => (...args: unknown[]): Promise<string> => {
         return Nostache(new Promise<string>(r => {
             if (typeof options.import === "function") {
-                r(options.import(input, init));
+                r(options.import(value));
             } else {
-                const inputString = typeof input === "string" ? input : input instanceof URL ? input.toString() : "";
-                const cachedTemplate = options.cache === false ? undefined : inputString ? templateCache.get(inputString) : undefined;
+                const cachedTemplate = options.cache === false ? undefined : templateCache.get(value);
                 if (typeof cachedTemplate === "string") {
                     r(cachedTemplate);
                 } else {
                     (isBrowser ?
-                            fetch(input, init).then(r => r.text()) :
-                            new Promise<string>(r => require('fs').readFile(input, 'utf8', (e: any, d: string) => r(d)))
+                            fetch(value).then(r => r.text()) :
+                            new Promise<string>(r => require('fs').readFile(value, 'utf8', (e: any, d: string) => r(d)))
                     ).then(template => {
                         if (options.cache !== false) {
-                            templateCache.set(inputString, template);
+                            templateCache.set(value, template);
                         }
                         r(template);
                     });
