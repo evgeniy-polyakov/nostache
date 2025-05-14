@@ -1,6 +1,7 @@
 const ASYNC = "async";
 const IMPORT = "import";
 const FUNCTION = "function";
+const UNDEFINED = undefined;
 const isString = (s) => typeof s === "string";
 const isFunction = (f) => typeof f === FUNCTION;
 // todo trim whitespace after <{ }>
@@ -477,16 +478,16 @@ const iterateRecursively = (value) => {
 const isBrowser = Function(`try{return this===window;}catch(e){}`)();
 const Nostache = ((template, options) => {
     options = Object.assign(Object.assign({}, Nostache.options), options);
-    const extensions = Object.assign(Object.assign({}, (Nostache.options ? Nostache.options.extensions : undefined)), (options ? options.extensions : undefined));
+    const extensions = Object.assign(Object.assign({}, (Nostache.options ? Nostache.options.extensions : UNDEFINED)), (options ? options.extensions : UNDEFINED));
     const cache = options.cache === false ? 0 : (options.cache || 3);
     const escapeFunc = (value) => {
         return iterateRecursively(value).then(isFunction(options.escape) ? options.escape :
-            (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
+            (s => s === UNDEFINED || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
     const importFunc = (value) => (...args) => {
         return Nostache(new Promise((res, rej) => {
-            const cachedTemplate = (cache & 1) ? Nostache.cache.get(value, IMPORT) : undefined;
-            if (cachedTemplate !== undefined) {
+            const cachedTemplate = (cache & 1) ? Nostache.cache.get(value, IMPORT) : UNDEFINED;
+            if (cachedTemplate !== UNDEFINED) {
                 res(cachedTemplate);
             }
             else {
@@ -516,8 +517,8 @@ const Nostache = ((template, options) => {
     };
     const returnFunc = (...args) => new Promise(r => r(template))
         .then((templateString) => {
-        const cacheOptions = options.async ? ASYNC : undefined;
-        let templateFunc = (cache & 2) ? Nostache.cache.get(templateString, cacheOptions) : undefined;
+        const cacheOptions = options.async ? ASYNC : UNDEFINED;
+        let templateFunc = (cache & 2) ? Nostache.cache.get(templateString, cacheOptions) : UNDEFINED;
         const templateFuncBody = templateFunc ? templateFunc.toString() : parseTemplate(templateString, options);
         returnFunc.toString = () => `${FUNCTION} () {\n${templateFuncBody}\n}`;
         try {
