@@ -1,5 +1,7 @@
 const ASYNC = "async";
 const IMPORT = "import";
+const isString = (s) => typeof s === "string";
+const isFunction = (f) => typeof f === "function";
 // todo trim whitespace after <{ }>
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
@@ -463,7 +465,7 @@ const parseTemplate = (template, options) => {
     return `return(${asyncModifier}function*(){\n${funcBody}}).call(this)`;
 };
 const iterateRecursively = (value) => {
-    if (value && typeof value.next === "function") {
+    if (value && isFunction(value.next)) {
         let result = "";
         let loop = () => new Promise(r => r(value.next())).then((chunk) => chunk.done ? result : iterateRecursively(chunk.value).then(s => result = result + s).then(loop));
         return loop().then(() => result);
@@ -476,7 +478,7 @@ const Nostache = ((template, options) => {
     const extensions = Object.assign(Object.assign({}, (Nostache.options ? Nostache.options.extensions : undefined)), (options ? options.extensions : undefined));
     const cache = options.cache === false ? 0 : (options.cache || 3);
     const escapeFunc = (value) => {
-        return iterateRecursively(value).then(typeof options.escape === "function" ? options.escape :
+        return iterateRecursively(value).then(isFunction(options.escape) ? options.escape :
             (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
     const importFunc = (value) => (...args) => {
@@ -493,9 +495,9 @@ const Nostache = ((template, options) => {
                     res(template);
                 };
                 try {
-                    const i = options.import;
-                    if (typeof i === "function") {
-                        new Promise(r => r(i(value))).then(cacheAndResolve);
+                    const optionsImport = options.import;
+                    if (isFunction(optionsImport)) {
+                        new Promise(r => r(optionsImport(value))).then(cacheAndResolve);
                     }
                     else if (isBrowser) {
                         fetch(value).then(response => response.status === 200 ? response.text().then(cacheAndResolve) : rej(new Error(`${response.status} ${response.url}`)));
@@ -529,7 +531,7 @@ const Nostache = ((template, options) => {
                 console.log(`${templateFuncBody}})\n(`, ...args.reduce((a, t) => {
                     if (a.length > 0)
                         a.push(",");
-                    a.push(typeof t === "string" ? `"${t}"` : t);
+                    a.push(isString(t) ? `"${t}"` : t);
                     return a;
                 }, []), ")");
                 console.groupEnd();
@@ -549,7 +551,7 @@ const Nostache = ((template, options) => {
             return iterateRecursively(templateFunc.apply(contextFunc));
         }
         catch (error) {
-            error.message += `\nat function () {\n${templateFuncBody}\n})(${args.map(t => typeof t === "string" ? `"${t}"` : t).join(", ")})`;
+            error.message += `\nat function () {\n${templateFuncBody}\n})(${args.map(t => isString(t) ? `"${t}"` : t).join(", ")})`;
             throw error;
         }
     });
@@ -565,7 +567,7 @@ Nostache.cache = (() => {
             return options === IMPORT ? importCache[key] : options === ASYNC ? asyncCache[key] : cache[key];
         },
         set(key, value, options) {
-            if (typeof value === "string")
+            if (isString(value))
                 importCache[key] = value;
             else if (options === ASYNC)
                 asyncCache[key] = value;
