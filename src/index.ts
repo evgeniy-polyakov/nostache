@@ -3,7 +3,7 @@ export type ContextFunction<TArgument, TExtensions extends Record<string, unknow
     [arg: number]: TArgument,
 } & Iterable<TArgument> & {
     escape(value: unknown): Promise<string>,
-    load(input: string | URL | Request, init?: RequestInit): TemplateFunction;
+    import(input: string | URL | Request, init?: RequestInit): TemplateFunction;
 } & {
     [name in TExtensionName]: TExtensions[TExtensionName];
 };
@@ -15,7 +15,7 @@ export type TemplateOptions = {
     verbose?: boolean;
     async?: boolean;
     cache?: boolean;
-    load?(input: string | URL | Request, init?: RequestInit): string | Promise<string>;
+    import?(input: string | URL | Request, init?: RequestInit): string | Promise<string>;
     escape?(value: string): string | Promise<string>;
     extensions: Record<string, unknown>;
 };
@@ -340,7 +340,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                     break;
                 } else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
                     index++;
-                    parseLoadDeclaration();
+                    parseImportDeclaration();
                     break;
                 } else if (isAlphabetic(firstChar)) {
                     index++;
@@ -368,7 +368,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 } else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
                     startIndex = index;
                     index++;
-                    parseLoadDeclaration(name);
+                    parseImportDeclaration(name);
                     break;
                 } else {
                     parseParametersDeclaration();
@@ -398,13 +398,13 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         throwEndOfBlockExpected("declaration block @}");
     };
 
-    const parseLoadDeclaration = (name?: string) => {
+    const parseImportDeclaration = (name?: string) => {
         while (index < length) {
             if (parseStringOrComment(true)) {
                 // continue
             } else if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
                 if (name) funcBody += `let ${name}=`;
-                funcBody += `this.load(${template.slice(startIndex, index)})\n`;
+                funcBody += `this.import(${template.slice(startIndex, index)})\n`;
                 index += 2;
                 return;
             } else {
@@ -509,15 +509,15 @@ const Nostache: {
         ...(Nostache.options ? Nostache.options.extensions : undefined),
         ...(options ? options.extensions : undefined)
     };
-    const escape = (value: unknown) => {
+    const escapeFunc = (value: unknown) => {
         return iterateRecursively(value).then(
             typeof options.escape === "function" ? options.escape :
                 (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
-    const load = (input: string | URL | Request, init?: RequestInit) => (...args: unknown[]): Promise<string> => {
+    const importFunc = (input: string | URL | Request, init?: RequestInit) => (...args: unknown[]): Promise<string> => {
         return Nostache(new Promise<string>(r => {
-            if (typeof options.load === "function") {
-                r(options.load(input, init));
+            if (typeof options.import === "function") {
+                r(options.import(input, init));
             } else {
                 const inputString = typeof input === "string" ? input : input instanceof URL ? input.toString() : "";
                 const cachedTemplate = options.cache === false ? undefined : inputString ? templateCache.get(inputString) : undefined;
@@ -526,7 +526,7 @@ const Nostache: {
                 } else {
                     (isBrowser ?
                             fetch(input, init).then(r => r.text()) :
-                            new Promise<string>(r => require('fs').readFile(input, 'utf-8', (e: any, d: string) => r(d)))
+                            new Promise<string>(r => require('fs').readFile(input, 'utf8', (e: any, d: string) => r(d)))
                     ).then(template => {
                         if (options.cache !== false) {
                             templateCache.set(inputString, template);
@@ -568,8 +568,8 @@ const Nostache: {
                     for (let i = 0; i < args.length; i++) {
                         contextFunc[i] = args[i];
                     }
-                    contextFunc.load = load;
-                    contextFunc.escape = escape;
+                    contextFunc.import = importFunc;
+                    contextFunc.escape = escapeFunc;
                     for (const name in extensions) {
                         contextFunc[name] = extensions[name];
                     }

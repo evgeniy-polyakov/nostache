@@ -12,16 +12,16 @@ Embedded JavaScript templates with minimalistic syntax.
 ## Features
 * Full JavaScript support, no fancy invented language.
 * Minimum of flow control characters, easy to learn and use syntax. 
-* Easy whitespace control rules made for the most common cases. 
+* Straightforward whitespace control rules made for the most common cases. 
 * Minimum options, override things only when you really need it.
 * Fast template parsing - only one iteration over the string, no regular expressions.
-* Two-level cache of templates: after loading and after parsing.
+* Two-level cache of templates: imported and parsed templates.
 * Unnamed template parameters, you're not bound to their names in the calling code.
 * No hidden variables that could conflict with your template data.
 * Built-in support of promises, an option to use async/await syntax.
 * Small size - less than 6kB minified.
 * Flow control characters are ignored in JS comments and strings.
-* Inner templates allow to define reusable functions with the same syntax as the template itself. 
+* Inner templates allow to define reusable functions with the same syntax as the template itself.
 
 ## Use
 Import `Nostache` function and call it with a string (or promise of string) defining the template. Then call the template with desired parameters.
@@ -45,16 +45,16 @@ Output:
 ```
 
 ## Syntax Cheatsheet
-| Block                                     | Type                | Description                                                                   | Whitespace Control                                                                                          | Parent Block         | Empty Block                    |
-|-------------------------------------------|---------------------|-------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|----------------------|--------------------------------|
-| Logic `<{ }>`                             | JS Statement        | JS code to breathe life into your template                                    | &check; Keeps whitespace before and after the block                                                         | Text                 | Terminates JS statement with ; |
-| Html tag `{< >}`                          | Text                | Plain html tag inside JS code                                                 | &cross; Trims whitespace before and after the tag                                                           | `<{ }>`              | Invalid html                   |
-| String `{> <}`                            | Text                | Plain string inside JS code                                                   | &cross; Trims whitespace before and after the string                                                        | `<{ }>`              | Ignored                        |
-| Output `{= =}`                            | JS Expression       | Outputs the html-escaped result of the inner JS expression                    | &check; Keeps whitespace before and after the block                                                         | Text or JS Statement | Outputs whitespace             |
-| Unsafe output `{~ ~}`                     | JS Expression       | Outputs the result of the inner JS expression as is                           | &check; Keeps whitespace before and after the block                                                         | Text or JS Statement | Outputs whitespace             |
-| Parameters `{@ arg1, arg2 @}`             | JS Statement        | Declares the list of template parameters, destructing is supported            | &check; &cross; Keeps whitespace before, trims after the block                                              | Text or JS Statement | Ignored                        |
-| Load template `{@ name "path/to/file" @}` | JS Statement        | Declares a template to load as a function with optional `name`                | &check; &cross; Keeps whitespace before, trims after the block                                              | Text or JS Statement | Ignored                        |
-| Inner template `{@ name () text @}`       | JS Statement + Text | Declares an inner template as a function with optional `name` and `text` body | &check; &cross; Keeps whitespace before, trims after the block, trims whitespace around the function body   | Text or JS Statement | Ignored                        |
+| Block                                       | Type                | Description                                                                   | Whitespace Control                                                                                          | Parent Block         | Empty Block                    |
+|---------------------------------------------|---------------------|-------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|----------------------|--------------------------------|
+| Logic `<{ }>`                               | JS Statement        | JS code to breathe life into your template                                    | &check; Keeps whitespace before and after the block                                                         | Text                 | Terminates JS statement with ; |
+| Html tag `{< >}`                            | Text                | Plain html tag inside JS code                                                 | &cross; Trims whitespace before and after the tag                                                           | `<{ }>`              | Invalid html                   |
+| String `{> <}`                              | Text                | Plain string inside JS code                                                   | &cross; Trims whitespace before and after the string                                                        | `<{ }>`              | Ignored                        |
+| Output `{= =}`                              | JS Expression       | Outputs the html-escaped result of the inner JS expression                    | &check; Keeps whitespace before and after the block                                                         | Text or JS Statement | Outputs whitespace             |
+| Unsafe output `{~ ~}`                       | JS Expression       | Outputs the result of the inner JS expression as is                           | &check; Keeps whitespace before and after the block                                                         | Text or JS Statement | Outputs whitespace             |
+| Parameters `{@ arg1, arg2 @}`               | JS Statement        | Declares the list of template parameters, destructing is supported            | &check; &cross; Keeps whitespace before, trims after the block                                              | Text or JS Statement | Ignored                        |
+| Import template `{@ name "path/to/file" @}` | JS Statement        | Declares a template to import as a function with optional `name`              | &check; &cross; Keeps whitespace before, trims after the block                                              | Text or JS Statement | Ignored                        |
+| Inner template `{@ name () text @}`         | JS Statement + Text | Declares an inner template as a function with optional `name` and `text` body | &check; &cross; Keeps whitespace before, trims after the block, trims whitespace around the function body   | Text or JS Statement | Ignored                        |
 
 ## Template Logic
 Put your template login in a `<{ }>` block. It's like an html tag but with code inside, as simple as that. Empty block terminates JS statement. 
@@ -146,17 +146,17 @@ Nostache(`<code>{= "<br>" =}</code>`, {
     escape: s => s.toUpperCase()
 })() // produces `<code><BR></code>`
 ```
-* Load function, can be overridden in options, [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) is used by default. 
+* Import function, can be overridden in options, [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) is used by default in browser environment and [fs.readFile](https://nodejs.org/docs/latest-v20.x/api/fs.html#fsreadfilepath-options-callback) in Node.js
 ```javascript
 // inner.htm: <p>{= this[0] =}</p>
-Nostache(`<div><{ const inner = this.load("inner.htm") }>{~ inner(1) ~}{~ inner(2) ~}</div>`)() // produces `<div><p>1</p><p>2</p></div>`
+Nostache(`<div><{ const inner = this.import("inner.htm") }>{~ inner(1) ~}{~ inner(2) ~}</div>`)() // produces `<div><p>1</p><p>2</p></div>`
 
 // Shorter form
 Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`)() // produces `<div><p>1</p><p>2</p></div>`
 
-// Override load
+// Override import
 Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
-    load: s => `<b>{= this[0] =}</b>`
+    import: s => `<b>{= this[0] =}</b>`
 })() // produces `<div><b>1</b><b>2</b></div>`
 ```
 * Any extensions you can dream of
@@ -202,7 +202,7 @@ Nostache(`{@ li (i) <li>{= this[0] =} #{= i =}</li> @} <ul>
     <li>Item #2</li>
 </ul>` */
 ```
-Some evil voodoo magic with nested inner templates.
+Some evil voodoo magic with nested inner templates:
 ```javascript
 Nostache(`{@ tr (row, columns)
     <tr>{@ td (column) <td>{= row + 1 =} {= column + 1 =}</td> @}
@@ -222,9 +222,18 @@ Nostache(`{@ tr (row, columns)
 The engine is very confiding. You can promise anything, and it will be obediently waiting for the outcome before producing the final result. Promises can be used in:
 * Output blocks
 ```javascript
-
+Nostache(`<p>{= new Promise(r => r(1)) =}</p>`)() // produces `<p>1</p>`
+Nostache(`<p>{~ new Promise(r => r(1)) ~}</p>`)() // produces `<p>1</p>`
 ```
-* 
+* Return value of `escape` and `import`
+```javascript
+Nostache(`<code>{~ this.escape("<br>") ~}</code>`, {
+    escape: s => new Promise(r => r(s.toUpperCase()))
+})() // produces `<code><BR></code>`
+Nostache(`<div>{~ this.import("inner.htm")(1) ~}</div>`, {
+    import: s => new Promise(r => r("<p>{= this[0] =}</p>"))
+})() // produces `<div><p>1</p></div>`
+```
 
 ## Options
 todo: options are inherited

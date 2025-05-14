@@ -310,7 +310,7 @@ const parseTemplate = (template, options) => {
                 }
                 else if (c === 39 || c === 34 || c === 96) {
                     index++;
-                    parseLoadDeclaration();
+                    parseImportDeclaration();
                     break;
                 }
                 else if (isAlphabetic(firstChar)) {
@@ -344,7 +344,7 @@ const parseTemplate = (template, options) => {
                 else if (c === 39 || c === 34 || c === 96) {
                     startIndex = index;
                     index++;
-                    parseLoadDeclaration(name);
+                    parseImportDeclaration(name);
                     break;
                 }
                 else {
@@ -374,13 +374,13 @@ const parseTemplate = (template, options) => {
         }
         throwEndOfBlockExpected("declaration block @}");
     };
-    const parseLoadDeclaration = (name) => {
+    const parseImportDeclaration = (name) => {
         while (index < length) {
             if (parseStringOrComment(true)) ;
             else if (template.charCodeAt(index) === 64 && template.charCodeAt(index + 1) === 125 && index > startIndex) {
                 if (name)
                     funcBody += `let ${name}=`;
-                funcBody += `this.load(${template.slice(startIndex, index)})\n`;
+                funcBody += `this.import(${template.slice(startIndex, index)})\n`;
                 index += 2;
                 return;
             }
@@ -472,14 +472,14 @@ const isBrowser = Function("try{return this===window;}catch(e){return false;}")(
 const Nostache = ((template, options) => {
     options = Object.assign(Object.assign({}, Nostache.options), options);
     const extensions = Object.assign(Object.assign({}, (Nostache.options ? Nostache.options.extensions : undefined)), (options ? options.extensions : undefined));
-    const escape = (value) => {
+    const escapeFunc = (value) => {
         return iterateRecursively(value).then(typeof options.escape === "function" ? options.escape :
             (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
-    const load = (input, init) => (...args) => {
+    const importFunc = (input, init) => (...args) => {
         return Nostache(new Promise(r => {
-            if (typeof options.load === "function") {
-                r(options.load(input, init));
+            if (typeof options.import === "function") {
+                r(options.import(input, init));
             }
             else {
                 const inputString = typeof input === "string" ? input : input instanceof URL ? input.toString() : "";
@@ -490,7 +490,7 @@ const Nostache = ((template, options) => {
                 else {
                     (isBrowser ?
                         fetch(input, init).then(r => r.text()) :
-                        new Promise(r => require('fs').readFile(input, 'utf-8', (e, d) => r(d)))).then(template => {
+                        new Promise(r => require('fs').readFile(input, 'utf8', (e, d) => r(d)))).then(template => {
                         if (options.cache !== false) {
                             templateCache.set(inputString, template);
                         }
@@ -531,8 +531,8 @@ const Nostache = ((template, options) => {
             for (let i = 0; i < args.length; i++) {
                 contextFunc[i] = args[i];
             }
-            contextFunc.load = load;
-            contextFunc.escape = escape;
+            contextFunc.import = importFunc;
+            contextFunc.escape = escapeFunc;
             for (const name in extensions) {
                 contextFunc[name] = extensions[name];
             }
