@@ -14,16 +14,24 @@ export type TemplateFunction = {
 export type TemplateOptions = {
     verbose?: boolean;
     async?: boolean;
-    cache?: boolean;
+    cache?: boolean | 0 | 1 | 2;
     import?(value: string): string | Promise<string>;
     escape?(value: string): string | Promise<string>;
     extensions: Record<string, unknown>;
 };
-export type TemplateCache = Map<string, string | TemplateFunction>;
-const templateCache: TemplateCache = new Map<string, string | TemplateFunction>();
+export type TemplateCache = {
+    get(key: string, options?: "async"): TemplateFunction;
+    get(key: string, options: "import"): string;
+    set(key: string, value: TemplateFunction, options?: "async"): void;
+    set(key: string, value: string): void;
+    delete(key: string, options?: "async"): void;
+    delete(key: string, options: "import"): void;
+    clear(): void;
+};
+const ASYNC = "async";
+const IMPORT = "import";
 
 // todo trim whitespace after <{ }>
-// todo two cache levels
 const parseTemplate = (template: string, options: TemplateOptions) => {
 
     const WHITESPACE = " ".charCodeAt(0);
@@ -56,6 +64,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     const isWhitespace = (c: number) => c === WHITESPACE || c === TAB || c === RETURN || c === NEWLINE;
     const isAlphabetic = (c: number) => c === UNDERSCORE || (c >= LOWERCASE_A && c <= LOWERCASE_Z) || (c >= UPPERCASE_A && c <= UPPERCASE_Z);
     const isAlphanumeric = (c: number) => isAlphabetic(c) || (c >= NUMBER_0 && c <= NUMBER_9);
+    const asyncModifier = options.async ? "async " : "";
 
     let index = 0;
     let startIndex = 0;
@@ -405,7 +414,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 // continue
             } else if (template.charCodeAt(index) === AT_SIGN && template.charCodeAt(index + 1) === CLOSE_BRACE && index > startIndex) {
                 if (name) funcBody += `let ${name}=`;
-                funcBody += `this.import(${template.slice(startIndex, index)})\n`;
+                funcBody += `this.${IMPORT}(${template.slice(startIndex, index)})\n`;
                 index += 2;
                 return;
             } else {
@@ -453,7 +462,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 if (name) {
                     funcBody += `let ${name}=`;
                 }
-                funcBody += `(${options.async ? "async " : ""}function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
+                funcBody += `(${asyncModifier}function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
                 index += 2;
                 return;
             } else if (parseOpenBlock(c)) {
@@ -482,7 +491,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         }
     }
     appendResult();
-    return `return(${options.async ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
+    return `return(${asyncModifier}function*(){\n${funcBody}}).call(this)`;
 };
 
 const iterateRecursively = (value: any) => {
@@ -510,6 +519,7 @@ const Nostache: {
         ...(Nostache.options ? Nostache.options.extensions : undefined),
         ...(options ? options.extensions : undefined)
     };
+    const cache = options.cache === false ? 0 : (options.cache || 3) as number;
     const escapeFunc = (value: unknown) => {
         return iterateRecursively(value).then(
             typeof options.escape === "function" ? options.escape :
@@ -517,26 +527,27 @@ const Nostache: {
     };
     const importFunc = (value: string) => (...args: unknown[]): Promise<string> => {
         return Nostache(new Promise<string>((res, rej) => {
-            if (typeof options.import === "function") {
-                res(options.import(value));
+            const cachedTemplate = (cache & 1) ? Nostache.cache.get(value, IMPORT) : undefined;
+            if (cachedTemplate !== undefined) {
+                res(cachedTemplate);
             } else {
-                const cachedTemplate = options.cache === false ? undefined : templateCache.get(value);
-                if (typeof cachedTemplate === "string") {
-                    res(cachedTemplate);
-                } else {
-                    const cacheAndResolve = (template: string) => {
-                        if (options.cache !== false) {
-                            templateCache.set(value, template);
-                        }
-                        res(template);
-                    };
-                    try {
-                        isBrowser ?
-                            fetch(value).then(response => response.status === 200 ? response.text().then(cacheAndResolve) : rej(new Error(`${response.status} ${response.url}`))) :
-                            require("fs").readFile(value, "utf8", (error: any, data: string) => error ? rej(error) : cacheAndResolve(data))
-                    } catch (e) {
-                        rej(e);
+                const cacheAndResolve = (template: string) => {
+                    if (cache & 1) {
+                        Nostache.cache.set(value, template);
                     }
+                    res(template);
+                };
+                try {
+                    const i = options.import;
+                    if (typeof i === "function") {
+                        new Promise<string>(r => r(i(value))).then(cacheAndResolve);
+                    } else if (isBrowser) {
+                        fetch(value).then(response => response.status === 200 ? response.text().then(cacheAndResolve) : rej(new Error(`${response.status} ${response.url}`)));
+                    } else {
+                        require("fs").readFile(value, "utf8", (error: any, data: string) => error ? rej(error) : cacheAndResolve(data));
+                    }
+                } catch (e) {
+                    rej(e);
                 }
             }
         }), options)(...args);
@@ -544,16 +555,16 @@ const Nostache: {
     const returnFunc = (...args: unknown[]): Promise<string> =>
         new Promise<string>(r => r(template))
             .then((templateString: string) => {
-                const cacheKey = options.async ? `async ${templateString}` : templateString;
-                let templateFunc = options.cache === false ? undefined : templateCache.get(cacheKey);
+                const cacheOptions = options.async ? ASYNC : undefined;
+                let templateFunc = (cache & 2) ? Nostache.cache.get(templateString, cacheOptions) : undefined;
                 const templateFuncBody = templateFunc ? templateFunc.toString() : parseTemplate(templateString, options);
                 returnFunc.toString = () => `function () {\n${templateFuncBody}\n}`;
                 try {
-                    if (!templateFunc || typeof templateFunc === "string") {
+                    if (!templateFunc) {
                         templateFunc = Function(templateFuncBody) as TemplateFunction;
                         templateFunc.toString = () => templateFuncBody;
-                        if (options.cache !== false) {
-                            templateCache.set(cacheKey, templateFunc);
+                        if (cache & 2) {
+                            Nostache.cache.set(templateString, templateFunc, cacheOptions);
                         }
                     }
                     if (options.verbose) {
@@ -589,6 +600,30 @@ const Nostache: {
 }) as typeof Nostache;
 
 (Nostache as { options: TemplateOptions }).options = {} as TemplateOptions;
-(Nostache as { cache: TemplateCache }).cache = templateCache;
+(Nostache as { cache: TemplateCache }).cache = (() => {
+    let cache: Record<string, TemplateFunction> = {};
+    let asyncCache: Record<string, TemplateFunction> = {};
+    let importCache: Record<string, string> = {};
+    return {
+        get(key: string, options?: "async" | "import") {
+            return options === IMPORT ? importCache[key] : options === ASYNC ? asyncCache[key] : cache[key];
+        },
+        set(key: string, value: TemplateFunction | string, options?: "async") {
+            if (typeof value === "string") importCache[key] = value;
+            else if (options === ASYNC) asyncCache[key] = value;
+            else cache[key] = value;
+        },
+        delete(key: string, options?: "async" | "import") {
+            if (options === IMPORT) delete importCache[key];
+            else if (options === ASYNC) delete asyncCache[key];
+            else delete cache[key];
+        },
+        clear() {
+            cache = {};
+            asyncCache = {};
+            importCache = {};
+        },
+    } as TemplateCache;
+})();
 
 export default Nostache;

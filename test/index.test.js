@@ -848,22 +848,22 @@ test("Node Import", async () => {
     const fs = require('fs/promises');
     const path = 'test/partials/li.htm';
     const file = await fs.readFile(path, 'utf8');
-    expect(Nostache.cache.get(path)).toBeUndefined();
+    expect(Nostache.cache.get(path, "import")).toBeUndefined();
     expect(await Nostache(`<ul>{~ this.import('test/partials/li.htm')(1) ~}</ul>`)(1)).toBe("<ul><li>1</li></ul>");
-    expect(Nostache.cache.get(path)).toBe(file);
+    expect(Nostache.cache.get(path, "import")).toBe(file);
     Nostache.cache.clear();
     expect(await Nostache(`<ul>{@ li 'test/partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i + 1) ~} }></ul>`)(1)).toBe("<ul><li>1</li></ul>");
-    expect(Nostache.cache.get(path)).toBe(file);
+    expect(Nostache.cache.get(path, "import")).toBe(file);
     await fs.rename(path, path + "_");
     expect(await Nostache(`<ul>{@ li 'test/partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i + 1) ~} }></ul>`)(2)).toBe("<ul><li>1</li><li>2</li></ul>");
     await fs.rename(path + "_", path);
     Nostache.cache.clear();
     const err = 'test/partials/err.htm';
-    expect(Nostache.cache.get(err)).toBeUndefined();
+    expect(Nostache.cache.get(err, "import")).toBeUndefined();
     await expect(Nostache(`<ul>{~ this.import('test/partials/err.htm')() ~}</ul>`)()).rejects.toThrow('ENOENT');
     await expect(Nostache(`<ul>{@ li 'test/partials/err.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i + 1) ~} }></ul>`)(2)).rejects.toThrow('ENOENT');
     expect(await Nostache(`<ul>{@ li 'test/partials/err.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i + 1) ~} }></ul>`)(0)).toBe("<ul></ul>");
-    expect(Nostache.cache.get(path)).toBeUndefined();
+    expect(Nostache.cache.get(path, "import")).toBeUndefined();
 });
 
 test("To string", async () => {
@@ -875,6 +875,7 @@ test("To string", async () => {
 });
 
 test("Explicit options", async () => {
+    Nostache.options.cache = 2;
     const template = "<a>{~ this.import('a')() ~}{~ this.escape('b') ~}</a>";
     expect(await Nostache(template, {
         import: a => a === 'a' ? '1' : '',
@@ -911,10 +912,12 @@ test("Explicit options", async () => {
 
     delete Nostache.options.import;
     delete Nostache.options.escape;
+    delete Nostache.options.cache;
     Nostache.cache.clear();
 });
 
 test("Implicit options", async () => {
+    Nostache.options.cache = 2;
     const template = "{@ a 'a' @}<a>{~ a() ~}{= 'b' =}</a>";
     expect(await Nostache(template, {
         import: a => a === 'a' ? '1' : '',
@@ -951,10 +954,12 @@ test("Implicit options", async () => {
 
     delete Nostache.options.import;
     delete Nostache.options.escape;
+    delete Nostache.options.cache;
     Nostache.cache.clear();
 });
 
 test("Nested template options", async () => {
+    Nostache.options.cache = 2;
     expect(await Nostache(`{@ li "partials/li.htm" @}<ul>{~ li(1) ~}</ul>`, {
         import: s => s === "partials/li.htm" ? "<li>{= this[0] =}</li>" : "",
         escape: s => s === 1 ? "a" : "",
@@ -966,6 +971,7 @@ test("Nested template options", async () => {
     expect(await Nostache(`{@ li "partials/li.htm" @}<ul>{~ li(this[0]) ~}</ul>`, {
         import: s => s === "partials/li.htm" ? `{@ a "partials/a.htm" @}<li>{~ a(this[0]) ~}</li>` : s === "partials/a.htm" ? `<a>{= this[0] =}</a>` : "",
     })(1)).toBe("<ul><li><a>1</a></li></ul>");
+    delete Nostache.options.cache;
 });
 
 test("Cache", async () => {
@@ -978,30 +984,39 @@ test("Cache", async () => {
     const f6 = Nostache(new Promise(r => r(t)), {cache: false});
     const f7 = Nostache(t, {async: true, cache: false});
     const f8 = Nostache(new Promise(r => r(t)), {async: true, cache: false});
-    expect(Nostache.cache.has(t)).toBe(false);
+    expect(Nostache.cache.get(t)).toBeUndefined();
+    expect(Nostache.cache.get(t, "async")).toBeUndefined();
     await f1();
-    expect(Nostache.cache.has(t)).toBe(true);
+    expect(Nostache.cache.get(t)).toBeInstanceOf(Function);
+    expect(Nostache.cache.get(t, "async")).toBeUndefined();
     Nostache.cache.clear();
     await f2();
-    expect(Nostache.cache.has(t)).toBe(true);
+    expect(Nostache.cache.get(t)).toBeInstanceOf(Function);
+    expect(Nostache.cache.get(t, "async")).toBeUndefined();
     Nostache.cache.clear();
     await f3();
-    expect(Nostache.cache.has(`async ${t}`)).toBe(true);
+    expect(Nostache.cache.get(t, "async")).toBeInstanceOf(Function);
+    expect(Nostache.cache.get(t)).toBeUndefined();
     Nostache.cache.clear();
     await f4();
-    expect(Nostache.cache.has(`async ${t}`)).toBe(true);
+    expect(Nostache.cache.get(t, "async")).toBeInstanceOf(Function);
+    expect(Nostache.cache.get(t)).toBeUndefined();
     Nostache.cache.clear();
     await f5();
-    expect(Nostache.cache.has(t)).toBe(false);
+    expect(Nostache.cache.get(t)).toBeUndefined();
+    expect(Nostache.cache.get(t, "async")).toBeUndefined();
     Nostache.cache.clear();
     await f6();
-    expect(Nostache.cache.has(t)).toBe(false);
+    expect(Nostache.cache.get(t)).toBeUndefined();
+    expect(Nostache.cache.get(t, "async")).toBeUndefined();
     Nostache.cache.clear();
     await f7();
-    expect(Nostache.cache.has(`async ${t}`)).toBe(false);
+    expect(Nostache.cache.get(t)).toBeUndefined();
+    expect(Nostache.cache.get(t, "async")).toBeUndefined();
     Nostache.cache.clear();
     await f8();
-    expect(Nostache.cache.has(`async ${t}`)).toBe(false);
+    expect(Nostache.cache.get(t)).toBeUndefined();
+    expect(Nostache.cache.get(t, "async")).toBeUndefined();
 });
 
 test("Extensions", async () => {
@@ -1201,6 +1216,7 @@ test("Throw end of block", async () => {
 });
 
 test("Readme examples", async () => {
+    Nostache.options.cache = 2;
     expect(await Nostache(`<ul><{ for (let i=0; i<3; i++) }>
     <li></li><{}>
 </ul>`)()).toBe(`<ul>
@@ -1305,6 +1321,7 @@ test("Readme examples", async () => {
     expect(await Nostache(`<div>{~ this.import("inner.htm")(1) ~}</div>`, {
         import: s => new Promise(r => r("<p>{= this[0] =}</p>"))
     })()).toBe("<div><p>1</p></div>");
+    delete Nostache.options.cache;
 });
 
 test("Empty blocks", async () => {

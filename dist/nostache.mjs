@@ -1,10 +1,11 @@
-const templateCache = new Map();
+const ASYNC = "async";
+const IMPORT = "import";
 // todo trim whitespace after <{ }>
-// todo two cache levels
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
     const isAlphabetic = (c) => c === 95 || (c >= 97 && c <= 122) || (c >= 65 && c <= 90);
     const isAlphanumeric = (c) => isAlphabetic(c) || (c >= 48 && c <= 57);
+    const asyncModifier = options.async ? "async " : "";
     let index = 0;
     let startIndex = 0;
     const length = template.length;
@@ -381,7 +382,7 @@ const parseTemplate = (template, options) => {
             else if (template.charCodeAt(index) === 64 && template.charCodeAt(index + 1) === 125 && index > startIndex) {
                 if (name)
                     funcBody += `let ${name}=`;
-                funcBody += `this.import(${template.slice(startIndex, index)})\n`;
+                funcBody += `this.${IMPORT}(${template.slice(startIndex, index)})\n`;
                 index += 2;
                 return;
             }
@@ -433,7 +434,7 @@ const parseTemplate = (template, options) => {
                 if (name) {
                     funcBody += `let ${name}=`;
                 }
-                funcBody += `(${options.async ? "async " : ""}function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
+                funcBody += `(${asyncModifier}function*(${parameters}){${innerFuncBody}}.bind(this))\n`;
                 index += 2;
                 return;
             }
@@ -459,7 +460,7 @@ const parseTemplate = (template, options) => {
         }
     }
     appendResult();
-    return `return(${options.async ? "async " : ""}function*(){\n${funcBody}}).call(this)`;
+    return `return(${asyncModifier}function*(){\n${funcBody}}).call(this)`;
 };
 const iterateRecursively = (value) => {
     if (value && typeof value.next === "function") {
@@ -473,51 +474,54 @@ const isBrowser = Function("try{return this===window;}catch(e){return false;}")(
 const Nostache = ((template, options) => {
     options = Object.assign(Object.assign({}, Nostache.options), options);
     const extensions = Object.assign(Object.assign({}, (Nostache.options ? Nostache.options.extensions : undefined)), (options ? options.extensions : undefined));
+    const cache = options.cache === false ? 0 : (options.cache || 3);
     const escapeFunc = (value) => {
         return iterateRecursively(value).then(typeof options.escape === "function" ? options.escape :
             (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
     const importFunc = (value) => (...args) => {
         return Nostache(new Promise((res, rej) => {
-            if (typeof options.import === "function") {
-                res(options.import(value));
+            const cachedTemplate = (cache & 1) ? Nostache.cache.get(value, IMPORT) : undefined;
+            if (cachedTemplate !== undefined) {
+                res(cachedTemplate);
             }
             else {
-                const cachedTemplate = options.cache === false ? undefined : templateCache.get(value);
-                if (typeof cachedTemplate === "string") {
-                    res(cachedTemplate);
+                const cacheAndResolve = (template) => {
+                    if (cache & 1) {
+                        Nostache.cache.set(value, template);
+                    }
+                    res(template);
+                };
+                try {
+                    const i = options.import;
+                    if (typeof i === "function") {
+                        new Promise(r => r(i(value))).then(cacheAndResolve);
+                    }
+                    else if (isBrowser) {
+                        fetch(value).then(response => response.status === 200 ? response.text().then(cacheAndResolve) : rej(new Error(`${response.status} ${response.url}`)));
+                    }
+                    else {
+                        require("fs").readFile(value, "utf8", (error, data) => error ? rej(error) : cacheAndResolve(data));
+                    }
                 }
-                else {
-                    const cacheAndResolve = (template) => {
-                        if (options.cache !== false) {
-                            templateCache.set(value, template);
-                        }
-                        res(template);
-                    };
-                    try {
-                        isBrowser ?
-                            fetch(value).then(response => response.status === 200 ? response.text().then(cacheAndResolve) : rej(new Error(`${response.status} ${response.url}`))) :
-                            require("fs").readFile(value, "utf8", (error, data) => error ? rej(error) : cacheAndResolve(data));
-                    }
-                    catch (e) {
-                        rej(e);
-                    }
+                catch (e) {
+                    rej(e);
                 }
             }
         }), options)(...args);
     };
     const returnFunc = (...args) => new Promise(r => r(template))
         .then((templateString) => {
-        const cacheKey = options.async ? `async ${templateString}` : templateString;
-        let templateFunc = options.cache === false ? undefined : templateCache.get(cacheKey);
+        const cacheOptions = options.async ? ASYNC : undefined;
+        let templateFunc = (cache & 2) ? Nostache.cache.get(templateString, cacheOptions) : undefined;
         const templateFuncBody = templateFunc ? templateFunc.toString() : parseTemplate(templateString, options);
         returnFunc.toString = () => `function () {\n${templateFuncBody}\n}`;
         try {
-            if (!templateFunc || typeof templateFunc === "string") {
+            if (!templateFunc) {
                 templateFunc = Function(templateFuncBody);
                 templateFunc.toString = () => templateFuncBody;
-                if (options.cache !== false) {
-                    templateCache.set(cacheKey, templateFunc);
+                if (cache & 2) {
+                    Nostache.cache.set(templateString, templateFunc, cacheOptions);
                 }
             }
             if (options.verbose) {
@@ -552,4 +556,34 @@ const Nostache = ((template, options) => {
     return returnFunc;
 });
 Nostache.options = {};
-Nostache.cache = templateCache;export{Nostache as default};//# sourceMappingURL=nostache.mjs.map
+Nostache.cache = (() => {
+    let cache = {};
+    let asyncCache = {};
+    let importCache = {};
+    return {
+        get(key, options) {
+            return options === IMPORT ? importCache[key] : options === ASYNC ? asyncCache[key] : cache[key];
+        },
+        set(key, value, options) {
+            if (typeof value === "string")
+                importCache[key] = value;
+            else if (options === ASYNC)
+                asyncCache[key] = value;
+            else
+                cache[key] = value;
+        },
+        delete(key, options) {
+            if (options === IMPORT)
+                delete importCache[key];
+            else if (options === ASYNC)
+                delete asyncCache[key];
+            else
+                delete cache[key];
+        },
+        clear() {
+            cache = {};
+            asyncCache = {};
+            importCache = {};
+        },
+    };
+})();export{Nostache as default};//# sourceMappingURL=nostache.mjs.map

@@ -14,12 +14,20 @@ export type TemplateFunction = {
 export type TemplateOptions = {
     verbose?: boolean;
     async?: boolean;
-    cache?: boolean;
+    cache?: boolean | 0 | 1 | 2;
     import?(value: string): string | Promise<string>;
     escape?(value: string): string | Promise<string>;
     extensions: Record<string, unknown>;
 };
-export type TemplateCache = Map<string, string | TemplateFunction>;
+export type TemplateCache = {
+    get(key: string, options?: "async"): TemplateFunction;
+    get(key: string, options: "import"): string;
+    set(key: string, value: TemplateFunction, options?: "async"): void;
+    set(key: string, value: string): void;
+    delete(key: string, options?: "async"): void;
+    delete(key: string, options: "import"): void;
+    clear(): void;
+};
 declare const Nostache: {
     (template: string | Promise<string>, options?: TemplateOptions): TemplateFunction;
     readonly options: TemplateOptions;
