@@ -31,7 +31,7 @@ Embedded JavaScript templates with minimalistic syntax.
 Import `Nostache` function and call it with a string (or promise of string) defining the template. Then call the template with desired parameters.
 
 ```javascript
-const Nostache = require('nostache.min.js');
+const Nostache = require("nostache.min.js");
 // Define a template. No parsing at this line, the template is analysed and put to cache on the first render
 const listTemplate = Nostache(`{@ numberOfItems /* the list of template parameters */ @}
 <ul><{ // Inside <{ }> is plain JS 
@@ -330,7 +330,35 @@ Nostache(`<p>{= this.myDream() =}</p>`, {
 })() // produces <p>Pineapple Pizza</p>
 ```
 
-## Options
+## Cache
+Nostache has two-level cache:
+* Import cache: template code is stored as string by its url
+* Function cache: template function is stored by template code string
 
-todo: options are inherited
-todo: global options
+Use `cache` variable to access the cache, clear it or even override its functionality:
+```javascript
+Nostache.cache.clear(); // Clears all cache
+Nostache.cache.clear("import"); // Clears import cache
+Nostache.cache.clear("function"); // Clears function cache
+Nostache.cache.clear("async"); // Clears function cache of templates with `async/await` syntax 
+```
+
+## Options
+Nostache has just a few options to alter template behaviour. Options defined for a template are automatically inherited by all imported templates.
+* `verbose`: `true` | `false` = `false` - verbose templates print the template function code and arguments in the console anytime they are called
+* `async`: `true` | `false` = `false` - async templates allow `async/await` syntax in the template code
+* `cache`: `true` | `false` | `"import"` | `"function"` = `true` - cache control, whether everything is cached or only imports or only functions
+* `escape` - escape function override, takes a string and returns an escaped string or a promise 
+* `import` - import function override, takes path to a file and return a promise of template code string
+* `extensions` - object with template extension variables and functions, they are available as members of `this` in the template code
+
+Global default options can be defiled on Nostache function itself:
+```javascript
+Nostache.cache.verbose = true; // All templates are flooding the console
+Nostache.cache.async = true; // All templates can use `async/await`
+Nostache.cache.cache = false; // No cache whatsoever, forget about it
+Nostache.cache.extensions = {
+    ageOfUniverse: 13.8e+9,
+    canLickOwnElbow: (person) => "no",
+}; // Now everyone knows that
+```
