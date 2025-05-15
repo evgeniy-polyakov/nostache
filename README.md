@@ -62,7 +62,7 @@ Output:
 
 ## Template Logic
 
-Put your template login in a `<{ }>` block. It's like an html tag but with code inside, as simple as that. Empty block terminates JS statement.
+Put your template logic in a `<{ }>` block. It's like an html tag but with code inside, as simple as that. Empty block terminates JS statement.
 
 ```javascript
 Nostache(`<p><{ for (let i = 0; i < 3; i++) }><br><{}></p>`)();
