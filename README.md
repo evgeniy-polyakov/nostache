@@ -2,15 +2,6 @@
 
 Embedded JavaScript templates with minimalistic syntax.
 
-## Why another JS template engine?
-
-* Why not?
-* Wanted something easy to use with as less as possible boilerplate code.
-* Need to focus on the template itself rather than learning the template language.
-* Wanted no more than two flow control characters in a row, anything more is annoying.
-* Need full support of JavaScript, it's always more powerful compared to any invented domain-specific language.
-* Wanted easy way to include other template files and define inner templates.
-
 ## Features
 
 * Full JavaScript support, no fancy invented language.
@@ -24,11 +15,11 @@ Embedded JavaScript templates with minimalistic syntax.
 * Built-in support of promises, an option to use async/await syntax.
 * Small size - less than 6kB minified.
 * Flow control characters are ignored in JS comments and strings.
-* Inner templates allow to define reusable functions with the same syntax as the template itself.
+* Support of inner templates - reusable functions with the same syntax as the template itself.
 
 ## Use
 
-Import `Nostache` function and call it with a string (or promise of string) defining the template. Then call the template with desired parameters.
+Import `Nostache` function and call it with a string defining the template. Then call the template with desired parameters.
 
 ```javascript
 const Nostache = require("nostache.min.js");
@@ -77,7 +68,7 @@ Put your template login in a `<{ }>` block. It's like an html tag but with code 
 Nostache(`<p><{ for (let i = 0; i < 3; i++) }><br><{}></p>`)() // produces `<p><br><br><br></p>`
 ```
 
-But in most cases it's better to use simplified syntax that allows html tags right inside the code. Any html tag wrapped in braces `{< >}` is considered as such. Whitespace and comments around the tag
+In most cases it's better to use simplified syntax that allows html tags right inside the code. Any html tag wrapped in braces `{< >}` is considered as such. Whitespace and comments around the tag
 are ignored.
 
 ```javascript
@@ -331,11 +322,14 @@ Nostache(`<p>{= this.myDream() =}</p>`, {
 ```
 
 ## Cache
+
 Nostache has two-level cache:
+
 * Import cache: template code is stored as string by its url
 * Function cache: template function is stored by template code string
 
 Use `cache` variable to access the cache, clear it or even override its functionality:
+
 ```javascript
 Nostache.cache.clear(); // Clears all cache
 Nostache.cache.clear("import"); // Clears import cache
@@ -344,15 +338,18 @@ Nostache.cache.clear("async"); // Clears function cache of templates with `async
 ```
 
 ## Options
+
 Nostache has just a few options to alter template behaviour. Options defined for a template are automatically inherited by all imported templates.
+
 * `verbose`: `true` | `false` = `false` - verbose templates print the template function code and arguments in the console anytime they are called
 * `async`: `true` | `false` = `false` - async templates allow `async/await` syntax in the template code
 * `cache`: `true` | `false` | `"import"` | `"function"` = `true` - cache control, whether everything is cached or only imports or only functions
-* `escape` - escape function override, takes a string and returns an escaped string or a promise 
+* `escape` - escape function override, takes a string and returns an escaped string or a promise
 * `import` - import function override, takes path to a file and return a promise of template code string
 * `extensions` - object with template extension variables and functions, they are available as members of `this` in the template code
 
 Global default options can be defiled on Nostache function itself:
+
 ```javascript
 Nostache.cache.verbose = true; // All templates are flooding the console
 Nostache.cache.async = true; // All templates can use `async/await`
