@@ -1,7 +1,7 @@
 {
-  "name": "nostache",
+  "name": "nostache.js",
   "version": "1.0.0",
-  "description": "Embedded Javascript templates with minimalistic syntax",
+  "description": "Embedded JavaScript templates with minimalistic syntax",
   "license": "MIT",
   "repository": {
     "type": "git",

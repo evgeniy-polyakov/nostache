@@ -1266,9 +1266,9 @@ test("Readme examples", async () => {
 </ul>`);
     expect(await Nostache("<span><{ for (let i=0; i<3; i++) {> A <} {> B <} }></span>")()).toBe("<span>AAAB</span>");
     expect(await Nostache(`{@ numberOfItems /* {@ @} defines a list of template parameters */ @}
-<ul><{ // Inside <{ }> is plain JS 
+<ul><{ // Inside <{ }> is plain JS
     for (let i = 0; i < numberOfItems; i++) {
-        // JS code supports html inside any braces {}   
+        // JS code supports html inside any braces {}
         <li>Item #{= i + 1 =}</li> // {= =} is html-escaped output
     }
 }></ul>`)(3)).toBe(`<ul><li>Item #1</li><li>Item #2</li><li>Item #3</li></ul>`);
@@ -1290,8 +1290,10 @@ test("Readme examples", async () => {
     expect(await Nostache(`{@ {a}, b @} <p>{= a =} {= b =}</p>`)({a: 1}, 2)).toBe("<p>1 2</p>");
     expect(await Nostache(`{@ , a, , b @} <p>{= a =} {= b =}</p>`)(0.5, 1, 1.5, 2)).toBe("<p>1 2</p>");
     expect(await Nostache(`{@ ...a @} <p>{= a[1] =} {= a[2] =}</p>`)(0, 1, 2)).toBe("<p>1 2</p>");
+    expect(await Nostache(`{@ a, b = 2 @} <p>{= a =} {= b =}</p>`)(1)).toBe("<p>1 2</p>");
     expect(await Nostache(`{@ a, b @} <p>{= a =} {= b =}</p>{@ c, d @} <p>{= c =} {= d =}</p>`)(1, 2)).toBe("<p>1 2</p><p>1 2</p>");
-    expect(await Nostache(`{@ /* Meet inner template! */ li (i) <li>{= i =}</li> @} <ul>
+    expect(await Nostache(`{@ /* Meet inner template! */ li (i) <li>{= i =}</li> @}
+<ul>
     {~ li(1) ~}
     {~ li(2) ~}
 </ul>`)()).toBe(`<ul>
@@ -1305,7 +1307,8 @@ test("Readme examples", async () => {
     <li>1</li>
     <li>2</li>
 </ul>`);
-    expect(await Nostache(`{@ li (i) <li>{= this[0] =} #{= i =}</li> @} <ul>
+    expect(await Nostache(`{@ li (i) <li>{= this[0] =} #{= i =}</li> @}
+<ul>
     {~ li(1) ~}
     {~ li(2) ~}
 </ul>`)("Item")).toBe(`<ul>
@@ -1335,6 +1338,9 @@ test("Readme examples", async () => {
     expect(await Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
         import: s => `<b>{= this[0] =}</b>`
     })()).toBe("<div><b>1</b><b>2</b></div>");
+    expect(await Nostache(`<div><{ const inner = {@ "inner.htm" @} }>{~ inner(1) ~}{~ inner(2) ~}</div>`, {
+        import: s => `<b>{= this[0] =}</b>`
+    })()).toBe("<div><b>1</b><b>2</b></div>");
     expect(await Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
         import: s => new Promise(r => r(`<b>{= this[0] =}</b>`))
     })()).toBe("<div><b>1</b><b>2</b></div>");
@@ -1361,6 +1367,7 @@ test("Readme examples", async () => {
     expect(await Nostache(`<div>{~ this.import("inner.htm")(1) ~}</div>`, {
         import: s => new Promise(r => r("<p>{= this[0] =}</p>"))
     })()).toBe("<div><p>1</p></div>");
+    expect(await Nostache(new Promise(r => r("I told {= this[0] =} so!")))("you")).toBe("I told you so!");
     delete Nostache.options.cache;
 });
 
