@@ -4,12 +4,12 @@ const FUNCTION = "function";
 const UNDEFINED = undefined;
 const isString = (s) => typeof s === "string";
 const isFunction = (f) => typeof f === FUNCTION;
-// todo trim whitespace after <{ }>
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
     const isAlphabetic = (c) => c === 95 || (c >= 97 && c <= 122) || (c >= 65 && c <= 90);
     const isAlphanumeric = (c) => isAlphabetic(c) || (c >= 48 && c <= 57);
     const asyncModifier = options.async ? "async " : "";
+    const charAt = (i) => template.charCodeAt(i);
     let index = 0;
     let startIndex = 0;
     const length = template.length;
@@ -36,7 +36,7 @@ const parseTemplate = (template, options) => {
     };
     const throwEndOfDeclarationBlockExpected = () => throwEndOfBlockExpected("declaration block @}");
     const parseOpenBlock = (c) => {
-        const n = template.charCodeAt(index + 1);
+        const n = charAt(index + 1);
         if (c === 60 && n === 123) {
             // Logic block <{
             appendResult();
@@ -95,10 +95,10 @@ const parseTemplate = (template, options) => {
             if (parseStringOrComment()) {
                 continue;
             }
-            const c = template.charCodeAt(index);
+            const c = charAt(index);
             if (c === 123) {
                 index++;
-                const n = template.charCodeAt(index);
+                const n = charAt(index);
                 if (n === 62) {
                     isPotentialHtml = false;
                     appendLogic();
@@ -131,7 +131,7 @@ const parseTemplate = (template, options) => {
                 appendLogic();
                 parseHtmlBlock();
             }
-            else if (c === 125 && template.charCodeAt(index + 1) === 62) {
+            else if (c === 125 && charAt(index + 1) === 62) {
                 appendLogic();
                 index += 2;
                 startIndex = index;
@@ -148,7 +148,7 @@ const parseTemplate = (template, options) => {
         startIndex = index;
         let potentialEnd = -1;
         while (index < length) {
-            const c = template.charCodeAt(index);
+            const c = charAt(index);
             if (c === 62) {
                 index++;
                 potentialEnd = index;
@@ -176,7 +176,7 @@ const parseTemplate = (template, options) => {
         let potentialEndWhitespace = -1;
         let hasMeaningfulSymbol = false;
         while (index < length) {
-            const c = template.charCodeAt(index);
+            const c = charAt(index);
             if (!hasMeaningfulSymbol && isWhitespace(c)) {
                 startIndex++;
                 index++;
@@ -227,11 +227,11 @@ const parseTemplate = (template, options) => {
                 hasOnlyComment = true;
                 startIndex = index;
             }
-            const c = template.charCodeAt(index);
+            const c = charAt(index);
             if (!hasMeaningfulSymbol && isWhitespace(c)) {
                 index++;
             }
-            else if (c === closeChar && template.charCodeAt(index + 1) === 125) {
+            else if (c === closeChar && charAt(index + 1) === 125) {
                 if (hasMeaningfulSymbol) {
                     appendOutput(unsafe);
                 }
@@ -254,7 +254,7 @@ const parseTemplate = (template, options) => {
         let isInComment = 0;
         let result = 0;
         while (index < length) {
-            const c = template.charCodeAt(index);
+            const c = charAt(index);
             let n = 0;
             if (!onlyComment && !isInString && !isInComment && (c === 39 || c === 34 || c === 96)) {
                 isInString = c;
@@ -268,7 +268,7 @@ const parseTemplate = (template, options) => {
                 index++;
                 return 1;
             }
-            else if (!isInString && !isInComment && c === 47 && ((n = template.charCodeAt(index + 1)) === 47 || n === 42)) {
+            else if (!isInString && !isInComment && c === 47 && ((n = charAt(index + 1)) === 47 || n === 42)) {
                 isInComment = n;
                 index += 2;
                 result = 2;
@@ -277,7 +277,7 @@ const parseTemplate = (template, options) => {
                 index++;
                 return 2;
             }
-            else if (isInComment === 42 && c === 42 && template.charCodeAt(index + 1) === 47) {
+            else if (isInComment === 42 && c === 42 && charAt(index + 1) === 47) {
                 index += 2;
                 return 2;
             }
@@ -302,11 +302,11 @@ const parseTemplate = (template, options) => {
         let potentialName = false;
         let name = "";
         while (index < length) {
-            let c = template.charCodeAt(index);
+            let c = charAt(index);
             if (!firstChar) {
-                c = skipWhitespace(c);
+                c = skipWhitespace();
                 if (parseStringOrComment(true)) {
-                    c = skipWhitespace(template.charCodeAt(index));
+                    c = skipWhitespace();
                 }
                 startIndex = index;
                 firstChar = c;
@@ -324,7 +324,7 @@ const parseTemplate = (template, options) => {
                     index++;
                     potentialName = true;
                 }
-                else if (c === 64 && template.charCodeAt(index + 1) === 125) {
+                else if (c === 64 && charAt(index + 1) === 125) {
                     index += 2;
                     startIndex = index;
                     return;
@@ -339,9 +339,9 @@ const parseTemplate = (template, options) => {
             }
             else if (potentialName && !isAlphanumeric(c)) {
                 name = template.slice(startIndex, index);
-                c = skipWhitespace(c);
+                c = skipWhitespace();
                 if (parseStringOrComment(true)) {
-                    c = skipWhitespace(template.charCodeAt(index));
+                    c = skipWhitespace();
                 }
                 if (c === 40) {
                     index++;
@@ -364,13 +364,13 @@ const parseTemplate = (template, options) => {
                 break;
             }
         }
-        skipWhitespace(template.charCodeAt(index));
+        skipWhitespace();
         startIndex = index;
     };
     const parseParametersDeclaration = () => {
         while (index < length) {
             if (parseStringOrComment(true)) ;
-            else if (template.charCodeAt(index) === 64 && template.charCodeAt(index + 1) === 125 && index > startIndex) {
+            else if (charAt(index) === 64 && charAt(index + 1) === 125 && index > startIndex) {
                 funcBody += `let[${template.slice(startIndex, index)}]=this;\n`;
                 index += 2;
                 return;
@@ -384,7 +384,7 @@ const parseTemplate = (template, options) => {
     const parseImportDeclaration = (name) => {
         while (index < length) {
             if (parseStringOrComment(true)) ;
-            else if (template.charCodeAt(index) === 64 && template.charCodeAt(index + 1) === 125 && index > startIndex) {
+            else if (charAt(index) === 64 && charAt(index + 1) === 125 && index > startIndex) {
                 if (name)
                     funcBody += `let ${name}=`;
                 funcBody += `this.import(${template.slice(startIndex, index)})\n`;
@@ -402,7 +402,7 @@ const parseTemplate = (template, options) => {
         let parameters = "";
         let parentheses = 0;
         while (index < length) {
-            const c = template.charCodeAt(index);
+            const c = charAt(index);
             if (c === 40) {
                 parentheses++;
             }
@@ -414,7 +414,7 @@ const parseTemplate = (template, options) => {
                 else {
                     parameters = template.slice(startIndex, index);
                     index++;
-                    skipWhitespace(template.charCodeAt(index));
+                    skipWhitespace();
                     startIndex = index;
                     break;
                 }
@@ -427,12 +427,12 @@ const parseTemplate = (template, options) => {
         let lastWhitespace = -1;
         funcBody = "";
         while (index < length) {
-            const c = template.charCodeAt(index);
+            const c = charAt(index);
             if (isWhitespace(c)) {
                 lastWhitespace = index;
-                skipWhitespace(c);
+                skipWhitespace();
             }
-            else if (c === 64 && template.charCodeAt(index + 1) === 125) {
+            else if (c === 64 && charAt(index + 1) === 125) {
                 appendResult(lastWhitespace > -1 ? lastWhitespace : index);
                 const innerFuncBody = funcBody;
                 funcBody = tempFuncBody;
@@ -450,15 +450,16 @@ const parseTemplate = (template, options) => {
         }
         throwEndOfDeclarationBlockExpected();
     };
-    const skipWhitespace = (c) => {
+    const skipWhitespace = () => {
+        let c = charAt(index);
         while (index < length && isWhitespace(c)) {
             index++;
-            c = template.charCodeAt(index);
+            c = charAt(index);
         }
         return c;
     };
     while (index < length) {
-        const c = template.charCodeAt(index);
+        const c = charAt(index);
         if (parseOpenBlock(c)) ;
         else {
             index++;
