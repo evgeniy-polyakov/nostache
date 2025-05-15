@@ -23,7 +23,8 @@ Import `Nostache` function and call it with a string defining the template. Then
 
 ```javascript
 const Nostache = require("nostache.min.js");
-// Define a template. No parsing at this line, the template is analysed and put to cache on the first render
+// Define a template.
+// No parsing at this line, the template is analysed and put to cache on the first render
 const listTemplate = Nostache(`{@ numberOfItems /* the list of template parameters */ @}
 <ul><{ // Inside <{ }> is plain JS 
     for (let i = 0; i < numberOfItems; i++) {
@@ -49,39 +50,40 @@ Output:
 
 ## Syntax Cheatsheet
 
-| Block                               | Type                | Description                                                              | Parent Block         | Empty Block                      |
-|-------------------------------------|---------------------|--------------------------------------------------------------------------|----------------------|----------------------------------|
-| Logic `<{ }>`                       | JS Statement        | JS code to breathe life into your template                               | Text                 | Terminates JS statement with `;` |
-| Html tag `{< >}`                    | Text                | Plain html tag inside JS code                                            | `<{ }>`              | Invalid html                     |
-| String `{> <}`                      | Text                | Plain string inside JS code                                              | `<{ }>`              | Ignored                          |
-| Output `{= =}`                      | JS Expression       | Outputs the html-escaped result of the inner JS expression               | Text or JS Statement | Outputs whitespace               |
-| Unsafe output `{~ ~}`               | JS Expression       | Outputs the result of the inner JS expression as is                      | Text or JS Statement | Outputs whitespace               |
-| Parameters `{@ arg1, arg2 @}`       | JS Statement        | Declares the list of template parameters, destructing is supported       | Text or JS Statement | Ignored                          |
-| Import template `{@ name "file" @}` | JS Statement        | Declares a template to import as a function with optional `name`         | Text or JS Statement | Ignored                          |
-| Inner template `{@ name () body @}` | JS Statement + Text | Declares an inner template as a function with optional `name` and `body` | Text or JS Statement | Ignored                          |
+| Block                                   | Type                | Description                                                              | Parent Block         |
+|-----------------------------------------|---------------------|--------------------------------------------------------------------------|----------------------|
+| Logic `<{ }>`                           | JS Statement        | JS code to breathe life into your template                               | Text                 |
+| Html tag `{< >}`                        | Text                | Plain html tag inside JS code                                            | `<{ }>`              |
+| String `{> <}`                          | Text                | Plain string inside JS code                                              | `<{ }>`              |
+| Output `{= =}`                          | JS Expression       | Outputs the html-escaped result of the inner JS expression               | Text or JS Statement |
+| Unsafe `{~ ~}`                          | JS Expression       | Outputs the result of the inner JS expression as is                      | Text or JS Statement |
+| Parameters<br/>`{@ arg1, arg2 @}`       | JS Statement        | Declares the list of template parameters, destructing is supported       | Text or JS Statement |
+| Import template<br/>`{@ name "file" @}` | JS Statement        | Declares a template to import as a function with optional `name`         | Text or JS Statement |
+| Inner template<br/>`{@ name () body @}` | JS Statement + Text | Declares an inner template as a function with optional `name` and `body` | Text or JS Statement |
 
 ## Template Logic
 
 Put your template login in a `<{ }>` block. It's like an html tag but with code inside, as simple as that. Empty block terminates JS statement.
 
 ```javascript
-Nostache(`<p><{ for (let i = 0; i < 3; i++) }><br><{}></p>`)() // produces `<p><br><br><br></p>`
+Nostache(`<p><{ for (let i = 0; i < 3; i++) }><br><{}></p>`)();
+// `<p><br><br><br></p>`
 ```
 
 In most cases it's better to use simplified syntax that allows html tags right inside the code. Any html tag wrapped in braces `{< >}` is considered as such. Whitespace and comments around the tag
 are ignored.
 
 ```javascript
-Nostache(`<p><{ for (let i = 0; i < 3; i++) { <br> } }></p>`)() // produces `<p><br><br><br></p>`
+Nostache(`<p><{ for (let i = 0; i < 3; i++) { <br> } }></p>`)();
+// `<p><br><br><br></p>`
 ```
 
 If you want to output plain string instead of a tag, use `{> <}` block. The string goes as is, no html escape. Whitespace around the text are ignored but comments are not as they are part of the
 string.
 
 ```javascript
-Nostache(`<p><{ for (let i = 0; i < 3; i++) {> br <} }></p>`)() // produces `<p>brbrbr</p>`
-Nostache(`<p><{ for (let i = 0; i < 3; i++) {> <br> <} }></p>`)() // produces `<p><br><br><br></p>`
-Nostache(`<p><{ for (let i = 0; i < 3; i++) {> /*!*/<br> <} }></p>`)() // produces `<p>/*!*/<br>/*!*/<br>/*!*/<br></p>`
+Nostache(`<p><{ for (let i = 0; i < 3; i++) {> Br <} }></p>`)()
+// `<p>BrBrBr</p>`
 ```
 
 ## Safe and Unsafe
@@ -89,8 +91,8 @@ Nostache(`<p><{ for (let i = 0; i < 3; i++) {> /*!*/<br> <} }></p>`)() // produc
 Use `{= =}` for html-escaped output and `{~ ~}` for unescaped one.
 
 ```javascript
-Nostache(`<p>{= "Safe & Unsafe" =}</p>`)() // produces `<p>Safe &#38;#38; Unsafe</p>`
-Nostache(`<p>{~ "Safe & Unsafe" ~}</p>`)() // produces `<p>Safe & Unsafe</p>`
+Nostache(`<p>{= "Safe & Unsafe" =}</p>`)() // `<p>Safe &#38;#38; Unsafe</p>`
+Nostache(`<p>{~ "Safe & Unsafe" ~}</p>`)() // `<p>Safe & Unsafe</p>`
 ```
 
 If you plan to use the engine to generate some code other than html you can override the escape function.
@@ -99,7 +101,8 @@ If you plan to use the engine to generate some code other than html you can over
 // Escape JSON quotes
 Nostache(`{"quote": "{= '"' =}"}`, {
     escape: text => text.replace(/"/, '\\"')
-})() // produces `{"quote": "\""}`
+})()
+// `{"quote": "\""}`
 ```
 
 ## Template Parameters
@@ -109,17 +112,9 @@ the template is called. Nostache in the opposite considers templates as function
 later in the code. Comments are allowed inside the block. Whitespace after the block is trimmed.
 
 ```javascript
-Nostache(`{@ /* Meet template parameters! */ a, b @} <p>{= a =} {= b =}</p>`)(1, 2) // produces `<p>1 2</p>`
-// Destructing is supported
-Nostache(`{@ {a}, b @} <p>{= a =} {= b =}</p>`)({a: 1}, 2) // produces `<p>1 2</p>`
-// Skipping parameters is supported
-Nostache(`{@ , a, , b @} <p>{= a =} {= b =}</p>`)(0.5, 1, 1.5, 2) // produces `<p>1 2</p>`
-// Rest parameters is supported
-Nostache(`{@ ...a @} <p>{= a[1] =} {= a[2] =}</p>`)(0, 1, 2) // produces `<p>1 2</p>`
-// Default values is supported
-Nostache(`{@ a, b = 2 @} <p>{= a =} {= b =}</p>`)(1) // produces `<p>1 2</p>`
-// Access the same parameters by new name
-Nostache(`{@ a, b @} <p>{= a =} {= b =}</p>{@ c, d @} <p>{= c =} {= d =}</p>`)(1, 2) // produces `<p>1 2</p><p>1 2</p>`
+Nostache(`{@ /* Meet template parameters! */ a, b @}
+<p>{= a =} {= b =}</p>`)(1, 2)
+// `<p>1 2</p>`
 ```
 
 ## Strings and Comments
@@ -128,11 +123,11 @@ Strings and comments are analyzed in JS code blocks and all flow control charact
 for that.
 
 ```javascript
-Nostache(`{~ "<{{={~{@ @}~}=}}>" ~}`)() // produces `<{{={~{@ @}~}=}}>`
-Nostache(`<{let s = "<{{={~{@ @}~}=}}>"; }>{~ s ~}`)() // produces `<{{={~{@ @}~}=}}>`
-Nostache(`{~ /* <{{={~{@ @}~}=}}> */ ~}`)() // produces ``
+Nostache(`{~ "<{{={~{@ @}~}=}}>" ~}`)() // `<{{={~{@ @}~}=}}>`
+Nostache(`<{let s = "<{{={~{@ @}~}=}}>"; }>{~ s ~}`)() // `<{{={~{@ @}~}=}}>`
+Nostache(`{~ /* <{{={~{@ @}~}=}}> */ ~}`)() // ``
 Nostache(`{~ // <{{={~{@ @}~}=}}>
-~}`)() // produces ``
+~}`)() // ``
 ```
 
 ## Whitespace Control
@@ -145,9 +140,9 @@ The engine has simple rules for whitespace control:
 * Extra whitespace is generated by empty output `{= =}` `{~ ~}` blocks
 
 ```javascript
-Nostache(`<p>{~  ~}</p>`)() // produces `<p>  </p>`
+Nostache(`<p>{~  ~}</p>`)() // `<p>  </p>`
 Nostache(`<p>{~
-~}</p>`)() /* produces `<p>
+~}</p>`)() /* `<p>
 </p>` */
 ```
 
@@ -158,41 +153,41 @@ Nostache(`<p>{~
 * Indexed arguments
 
 ```javascript
-Nostache(`<p>{= this[0] =} {= this[1] =}</p>`)(1, 2) // produces `<p>1 2</p>`
+Nostache(`<p>{= this[0] =} {= this[1] =}</p>`)(1, 2) // `<p>1 2</p>`
 ```
 
 * It is iterable
 
 ```javascript
-Nostache(`<{ const [a, b] = this; }><p>{= a =} {= b =}</p>`)(1, 2) // produces `<p>1 2</p>`
-
+Nostache(`<{ const [a, b] = this; }><p>{= a =} {= b =}</p>`)(1, 2) // `<p>1 2</p>`
 // Shorter form:
-Nostache(`{@ a, b @}<p>{= a =} {= b =}</p>`)(1, 2) // produces `<p>1 2</p>`
+Nostache(`{@ a, b @}<p>{= a =} {= b =}</p>`)(1, 2) // `<p>1 2</p>`
 ```
 
 * It is the reference to the template function itself. That allows recursive templates - the best way to shoot yourself in the foot.
 
 ```javascript
-Nostache(`<div>{@ i @} {= i =}<{ if (i > 1) {~ this(i - 1) ~} }></div>`)(3) // produces `<div>3<div>2<div>1</div></div></div>`
+Nostache(`<div>{@ i @} {= i =}<{ if (i > 1) {~ this(i - 1) ~} }></div>`)(3)
+// `<div>3<div>2<div>1</div></div></div>`
 ```
 
 * Escape function, can be overridden in options
 
 ```javascript
-Nostache(`<code>{~ this.escape("<br>") ~}</code>`)() // produces `<code>&#38;#60;br&#38;#62;</code>`
-
+Nostache(`<code>{~ this.escape("<br>") ~}</code>`)() // `<code>&#38;#60;br&#38;#62;</code>`
 // Shorter form:
-Nostache(`<code>{= "<br>" =}</code>`)() // produces `<code>&#38;#60;br&#38;#62;</code>`
+Nostache(`<code>{= "<br>" =}</code>`)() // `<code>&#38;#60;br&#38;#62;</code>`
 ```
 
 * Import function, can be overridden in options
 
 ```javascript
 // inner.htm: <p>{= this[0] =}</p>
-Nostache(`<div><{ const inner = this.import("inner.htm") }>{~ inner(1) ~}{~ inner(2) ~}</div>`)() // produces `<div><p>1</p><p>2</p></div>`
-
-// Shorter form
-Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`)() // produces `<div><p>1</p><p>2</p></div>`
+Nostache(`<div><{ const inner = this.import("inner.htm")
+}>{~ inner(1) ~}{~ inner(2) ~}</div>`)() // `<div><p>1</p><p>2</p></div>`
+// Shorter form:
+Nostache(`<div>{@ inner "inner.htm" @}
+{~ inner(1) ~}{~ inner(2) ~}</div>`)() // `<div><p>1</p><p>2</p></div>`
 ```
 
 * Any extensions you can dream of
@@ -202,7 +197,7 @@ Nostache(`<p>{= this.myDream() =}</p>`, {
     extensions: {
         myDream: () => "Pineapple Pizza"
     }
-})() // produces <p>Pineapple Pizza</p>
+})() // <p>Pineapple Pizza</p>
 ```
 
 ## Template Imports
@@ -212,10 +207,12 @@ block to import a `file` and put it to a template function called `name`. Note t
 
 ```javascript
 // inner.htm: <p>{= this[0] =}</p>
-Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`)() // produces `<div><p>1</p><p>2</p></div>`
+Nostache(`<div>{@ inner "inner.htm" @}
+{~ inner(1) ~}{~ inner(2) ~}</div>`)() // `<div><p>1</p><p>2</p></div>`
 
 // Name is optional you can pass the function wherever you like
-Nostache(`<div><{ const inner = {@ "inner.htm" @} }>{~ inner(1) ~}{~ inner(2) ~}</div>`)() // produces `<div><p>1</p><p>2</p></div>`
+Nostache(`<div><{ const inner = {@ "inner.htm" @}
+}>{~ inner(1) ~}{~ inner(2) ~}</div>`)() // `<div><p>1</p><p>2</p></div>`
 ```
 
 Under the hood [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) is used in browser environment
@@ -225,12 +222,12 @@ to gain more control of what's going on.
 ```javascript
 Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
     import: file => `<b>{= this[0] =}</b>`
-})() // produces `<div><b>1</b><b>2</b></div>`
+})() // `<div><b>1</b><b>2</b></div>`
 
 // In most cases in will be a promise
 Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
     import: file => new Promise(r => r(`<b>{= this[0] =}</b>`))
-})() // produces `<div><b>1</b><b>2</b></div>`
+})() // `<div><b>1</b><b>2</b></div>`
 ```
 
 ## Inner Templates
@@ -243,7 +240,7 @@ Nostache(`{@ /* Meet inner templates! */ li (i) <li>{= i =}</li> @}
 <ul>
     {~ li(1) ~}
     {~ li(2) ~}
-</ul>`)() /* produces `<ul>
+</ul>`)() /* `<ul>
     <li>1</li>
     <li>2</li>
 </ul>` */
@@ -251,7 +248,7 @@ Nostache(`{@ /* Meet inner templates! */ li (i) <li>{= i =}</li> @}
 Nostache(`<{ const li = {@ (i) <li>{= i =}</li> @} }><ul>
     {~ li(1) ~}
     {~ li(2) ~}
-</ul>`)() /* produces `<ul>
+</ul>`)() /* `<ul>
     <li>1</li>
     <li>2</li>
 </ul>` */
@@ -260,7 +257,7 @@ Nostache(`{@ li (i) <li>{= this[0] =} #{= i =}</li> @}
 <ul>
     {~ li(1) ~}
     {~ li(2) ~}
-</ul>`)("Item") /* produces `<ul>
+</ul>`)("Item") /* `<ul>
     <li>Item #1</li>
     <li>Item #2</li>
 </ul>` */
@@ -276,7 +273,7 @@ Nostache(`{@ tr (row, columns)
     {~ tr(0, 3) ~}
     {~ tr(1, 3) ~}
     {~ tr(2, 3) ~}
-</table>`)() /* produces `<table>
+</table>`)() /* `<table>
     <tr><td>1 1</td><td>1 2</td><td>1 3</td></tr>
     <tr><td>2 1</td><td>2 2</td><td>2 3</td></tr>
     <tr><td>3 1</td><td>3 2</td><td>3 3</td></tr>
@@ -290,25 +287,25 @@ The engine is very confiding. You can promise anything, and it will be obedientl
 * Output blocks
 
 ```javascript
-Nostache(`<p>{= new Promise(r => r(1)) =}</p>`)() // produces `<p>1</p>`
-Nostache(`<p>{~ new Promise(r => r(1)) ~}</p>`)() // produces `<p>1</p>`
+Nostache(`<p>{= new Promise(r => r(1)) =}</p>`)() // `<p>1</p>`
+Nostache(`<p>{~ new Promise(r => r(1)) ~}</p>`)() // `<p>1</p>`
 ```
 
 * Template code itself
 
 ```javascript
-Nostache(new Promise(r => r("I told {= this[0] =} so!")))("you") // produces `I told you so!`
+Nostache(new Promise(r => r("I told {= this[0] =} so!")))("you") // `I told you so!`
 ```
 
-* Return value of `escape` and `import` overrides
+* Return value of `escape` and `import`
 
 ```javascript
 Nostache(`<code>{~ this.escape("<br>") ~}</code>`, {
     escape: text => new Promise(r => r(text.toUpperCase()))
-})() // produces `<code><BR></code>`
+})() // `<code><BR></code>`
 Nostache(`<div>{~ this.import("inner.htm")(1) ~}</div>`, {
     import: file => new Promise(r => r("<p>{= this[0] =}</p>"))
-})() // produces `<div><p>1</p></div>`
+})() // `<div><p>1</p></div>`
 ```
 
 * Extensions
@@ -318,7 +315,7 @@ Nostache(`<p>{= this.myDream() =}</p>`, {
     extensions: {
         myDream: () => new Promise(r => r("Pineapple Pizza"))
     }
-})() // produces <p>Pineapple Pizza</p>
+})() // <p>Pineapple Pizza</p>
 ```
 
 ## Cache
