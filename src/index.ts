@@ -509,8 +509,6 @@ const iterateRecursively = (value: any) => {
     return new Promise<string>(r => r(value));
 };
 
-const isAnyEqual = (value: unknown, ...values: any) => values.some((v: any) => v === value);
-
 const isBrowser = Function(`try{return this===window;}catch(e){}`)();
 
 const Nostache: {
