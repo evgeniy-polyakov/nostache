@@ -24,12 +24,11 @@ Import `Nostache` function and call it with a string defining the template. Then
 ```javascript
 const Nostache = require("nostache.min.js");
 // Define a template.
-// No parsing at this line, the template is analysed and put to cache on the first render
-const listTemplate = Nostache(`{@ numberOfItems /* the list of template parameters */ @}
-<ul><{ // Inside <{ }> is plain JS 
+// No parsing at this line, the template is analysed and put to cache on the first render.
+const listTemplate = Nostache(`{@ numberOfItems @}
+<ul><{ 
     for (let i = 0; i < numberOfItems; i++) {
-        // JS code supports html tags in braces {}   
-        <li>Item #{= i + 1 =}</li> // {= =} is html-escaped output
+        <li>Item #{= i + 1 =}</li>
     }
 }></ul>`);
 // Render the temaplte into an html string
@@ -57,7 +56,7 @@ Output:
 | String `{> <}`                          | Text                | Plain string inside JS code                                              | `<{ }>`              |
 | Output `{= =}`                          | JS Expression       | Outputs the html-escaped result of the inner JS expression               | Text or JS Statement |
 | Unsafe `{~ ~}`                          | JS Expression       | Outputs the result of the inner JS expression as is                      | Text or JS Statement |
-| Parameters<br/>`{@ arg1, arg2 @}`       | JS Statement        | Declares the list of template parameters, destructing is supported       | Text or JS Statement |
+| Parameters<br/>`{@ a, b, c @}`          | JS Statement        | Declares the list of template parameters, destructing is supported       | Text or JS Statement |
 | Import template<br/>`{@ name "file" @}` | JS Statement        | Declares a template to import as a function with optional `name`         | Text or JS Statement |
 | Inner template<br/>`{@ name () body @}` | JS Statement + Text | Declares an inner template as a function with optional `name` and `body` | Text or JS Statement |
 
