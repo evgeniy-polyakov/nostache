@@ -35,7 +35,6 @@ const isString = (s: unknown): s is string => typeof s === "string";
 const isFunction = (f: unknown): f is { (...args: any): any } => typeof f === FUNCTION;
 
 // todo trim whitespace after <{ }>
-// todo tests for cache levels
 const parseTemplate = (template: string, options: TemplateOptions) => {
 
     const WHITESPACE = " ".charCodeAt(0);

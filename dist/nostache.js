@@ -5,7 +5,6 @@ const UNDEFINED = undefined;
 const isString = (s) => typeof s === "string";
 const isFunction = (f) => typeof f === FUNCTION;
 // todo trim whitespace after <{ }>
-// todo tests for cache levels
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
     const isAlphabetic = (c) => c === 95 || (c >= 97 && c <= 122) || (c >= 65 && c <= 90);

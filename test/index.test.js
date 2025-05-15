@@ -974,7 +974,7 @@ test("Nested template options", async () => {
     delete Nostache.options.cache;
 });
 
-test("Cache", async () => {
+test("Function cache", async () => {
     const t = "<a>{~ 1 ~}{= 2 =}</a>";
     const f1 = Nostache(t);
     const f2 = Nostache(new Promise(r => r(t)));
@@ -1017,6 +1017,46 @@ test("Cache", async () => {
     await f8();
     expect(Nostache.cache.get(t)).toBeUndefined();
     expect(Nostache.cache.get(t, "async")).toBeUndefined();
+});
+
+test("Cache levels", async () => {
+    const f1 = () => "";
+    const f2 = () => "";
+    const f3 = () => "";
+    expect(Nostache.cache.get("aa")).toBeUndefined();
+    expect(Nostache.cache.get("aa", "import")).toBeUndefined();
+    expect(Nostache.cache.get("aa", "async")).toBeUndefined();
+    Nostache.cache.set("aa", f1);
+    expect(Nostache.cache.get("aa")).toBe(f1);
+    expect(Nostache.cache.get("aa", "import")).toBeUndefined();
+    expect(Nostache.cache.get("aa", "async")).toBeUndefined();
+    Nostache.cache.set("aa", f2, "import");
+    expect(Nostache.cache.get("aa")).toBe(f1);
+    expect(Nostache.cache.get("aa", "import")).toBe(f2);
+    expect(Nostache.cache.get("aa", "async")).toBeUndefined();
+    Nostache.cache.set("aa", f3, "async");
+    expect(Nostache.cache.get("aa")).toBe(f1);
+    expect(Nostache.cache.get("aa", "import")).toBe(f2);
+    expect(Nostache.cache.get("aa", "async")).toBe(f3);
+    Nostache.cache.delete("aa");
+    expect(Nostache.cache.get("aa")).toBeUndefined();
+    expect(Nostache.cache.get("aa", "import")).toBe(f2);
+    expect(Nostache.cache.get("aa", "async")).toBe(f3);
+    Nostache.cache.delete("aa", "import");
+    expect(Nostache.cache.get("aa")).toBeUndefined();
+    expect(Nostache.cache.get("aa", "import")).toBeUndefined();
+    expect(Nostache.cache.get("aa", "async")).toBe(f3);
+    Nostache.cache.delete("aa", "async");
+    expect(Nostache.cache.get("aa")).toBeUndefined();
+    expect(Nostache.cache.get("aa", "import")).toBeUndefined();
+    expect(Nostache.cache.get("aa", "async")).toBeUndefined();
+    Nostache.cache.set("aa", f1);
+    Nostache.cache.set("aa", f1, "import");
+    Nostache.cache.set("aa", f1, "async");
+    Nostache.cache.clear();
+    expect(Nostache.cache.get("aa")).toBeUndefined();
+    expect(Nostache.cache.get("aa", "import")).toBeUndefined();
+    expect(Nostache.cache.get("aa", "async")).toBeUndefined();
 });
 
 test("Extensions", async () => {
