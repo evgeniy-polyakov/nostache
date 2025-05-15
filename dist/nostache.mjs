@@ -192,9 +192,6 @@ const parseTemplate = (template, options) => {
                     potentialEnd = index;
                 index++;
             }
-            else if (potentialEnd >= 0 && isWhitespace(c)) {
-                index++;
-            }
             else if (potentialEnd >= 0 && c === 125) {
                 if (hasMeaningfulSymbol) {
                     appendResult(potentialEndWhitespace);
@@ -291,7 +288,7 @@ const parseTemplate = (template, options) => {
             throwEndOfBlockExpected(`string ${String.fromCharCode(isInString)}`);
         }
         if (result && isInComment === 42) {
-            throwEndOfBlockExpected(`comment */`);
+            throwEndOfBlockExpected("comment */");
         }
         return result;
     };
@@ -470,12 +467,12 @@ const parseTemplate = (template, options) => {
 const iterateRecursively = (value) => {
     if (value && isFunction(value.next)) {
         let result = "";
-        let loop = () => new Promise(r => r(value.next())).then((chunk) => chunk.done ? result : iterateRecursively(chunk.value).then(s => result = result + s).then(loop));
+        const loop = () => new Promise(r => r(value.next())).then((chunk) => chunk.done ? result : iterateRecursively(chunk.value).then(s => result = result + s).then(loop));
         return loop().then(() => result);
     }
     return new Promise(r => r(value));
 };
-const isBrowser = Function(`try{return this===window;}catch(e){}`)();
+const isBrowser = Function("try{return this===window;}catch(e){}")();
 const Nostache = ((template, options) => {
     options = Object.assign(Object.assign({}, Nostache.options), options);
     const extensions = Object.assign(Object.assign({}, (Nostache.options ? Nostache.options.extensions : undefined)), (options ? options.extensions : undefined));

@@ -241,8 +241,6 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 if (potentialEndWhitespace < 0) potentialEndWhitespace = index;
                 if (c === OPEN_ANGLE) potentialEnd = index;
                 index++;
-            } else if (potentialEnd >= 0 && isWhitespace(c)) {
-                index++;
             } else if (potentialEnd >= 0 && c === CLOSE_BRACE) {
                 if (hasMeaningfulSymbol) {
                     appendResult(potentialEndWhitespace);
@@ -329,7 +327,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             throwEndOfBlockExpected(`string ${String.fromCharCode(isInString)}`);
         }
         if (result && isInComment === ASTERISK) {
-            throwEndOfBlockExpected(`comment */`);
+            throwEndOfBlockExpected("comment */");
         }
         return result;
     };
@@ -502,14 +500,14 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
 const iterateRecursively = (value: any) => {
     if (value && isFunction(value.next)) {
         let result = "";
-        let loop = () => new Promise(r => r(value.next())).then((chunk: any): string | Promise<string> =>
+        const loop = () => new Promise(r => r(value.next())).then((chunk: any): string | Promise<string> =>
             chunk.done ? result : iterateRecursively(chunk.value).then(s => result = result + s).then(loop));
         return loop().then(() => result);
     }
     return new Promise<string>(r => r(value));
 };
 
-const isBrowser = Function(`try{return this===window;}catch(e){}`)();
+const isBrowser = Function("try{return this===window;}catch(e){}")();
 
 const Nostache: {
     (template: string | Promise<string>, options?: TemplateOptions): TemplateFunction;
