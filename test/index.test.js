@@ -28,7 +28,7 @@ test("HTML in logic block", async () => {
     expect(await Nostache(`<{ if (true) {
     <p>simple text</p>
     } }>`)()).toBe("<p>simple text</p>");
-    expect(await Nostache("<{ if (true) {<p><b>simple</b> text</p>} }>")()).toBe("<p><b>simple</b> text</p>");
+    expect(await Nostache("<{ if (true) { <p><b>simple</b> text</p> } }>")()).toBe("<p><b>simple</b> text</p>");
     expect(await Nostache("<{ if (true) }><p>simple text</p>")()).toBe("<p>simple text</p>");
     expect(await Nostache("<{ if (false) }>false<{}><p>simple text</p>")()).toBe("<p>simple text</p>");
     expect(await Nostache("<{ if (true) }>true<{}><p>simple text</p>")()).toBe("true<p>simple text</p>");
@@ -51,7 +51,16 @@ test("Text in logic block", async () => {
     await (expect(Nostache("<{> simple text <}>")())).rejects.toBeInstanceOf(SyntaxError);
     await (expect(Nostache("<{ >simple text< }>")())).rejects.toBeInstanceOf(SyntaxError);
     await (expect(Nostache("<{ > simple text < }>")())).rejects.toBeInstanceOf(SyntaxError);
-    await (expect(Nostache("<{{ > simple text < }}>")())).rejects.toBeInstanceOf(SyntaxError);
+    expect(await Nostache("<{{ >simple text< }}>")()).toBe("simple text");
+    expect(await Nostache("<{{  >simple text<  }}>")()).toBe("simple text");
+    expect(await Nostache(`<{{
+    >simple text<
+    }}>`)()).toBe("simple text");
+    expect(await Nostache("<{{ > simple text < }}>")()).toBe(" simple text ");
+    expect(await Nostache("<{{  > simple text <  }}>")()).toBe(" simple text ");
+    expect(await Nostache(`<{{
+    > simple text <
+    }}>`)()).toBe(" simple text ");
     expect(await Nostache("<{{>simple text<}}>")()).toBe("simple text");
     expect(await Nostache(`<{{>
     simple text
@@ -59,10 +68,10 @@ test("Text in logic block", async () => {
     simple text
     `);
     expect(await Nostache("<{{> a<p><b>simple</b> text</p>a <}}>")()).toBe(" a<p><b>simple</b> text</p>a ");
-    expect(await Nostache("<{ if (true) {> a<p>simple text</p>a <} }>")()).toBe(" a<p>simple text</p>a ");
-    expect(await Nostache(`<{ if (true) {>
+    expect(await Nostache("<{ if (true) { > a<p>simple text</p>a < } }>")()).toBe(" a<p>simple text</p>a ");
+    expect(await Nostache(`<{ if (true) { >
     _<p>simple text</p>_
-    <} }>`)()).toBe(`
+    < } }>`)()).toBe(`
     _<p>simple text</p>_
     `);
     expect(await Nostache("<{ if (false) {>false<} else {> p>simple text<p <}}>")()).toBe(" p>simple text<p ");

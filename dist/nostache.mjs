@@ -98,13 +98,7 @@ const parseTemplate = (template, options) => {
             if (c === 123) {
                 index++;
                 const n = charAt(index);
-                if (n === 62) {
-                    isPotentialHtml = false;
-                    appendLogic();
-                    index++;
-                    parseTextBlock();
-                }
-                else if (n === 61 || n === 126) {
+                if (n === 61 || n === 126) {
                     isPotentialHtml = false;
                     appendLogic();
                     index++;
@@ -129,6 +123,12 @@ const parseTemplate = (template, options) => {
                 isPotentialHtml = false;
                 appendLogic();
                 parseHtmlBlock();
+            }
+            else if (isPotentialHtml && c === 62) {
+                isPotentialHtml = false;
+                appendLogic();
+                index++;
+                parseTextBlock();
             }
             else if (c === 125 && charAt(index + 1) === 62) {
                 appendLogic();

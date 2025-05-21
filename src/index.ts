@@ -158,12 +158,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             if (c === OPEN_BRACE) {
                 index++;
                 const n = charAt(index);
-                if (n === CLOSE_ANGLE) {
-                    isPotentialHtml = false;
-                    appendLogic();
-                    index++;
-                    parseTextBlock();
-                } else if (n === ASSIGN || n === TILDE) {
+                if (n === ASSIGN || n === TILDE) {
                     isPotentialHtml = false;
                     appendLogic();
                     index++;
@@ -184,6 +179,11 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 isPotentialHtml = false;
                 appendLogic();
                 parseHtmlBlock();
+            } else if (isPotentialHtml && c === CLOSE_ANGLE) {
+                isPotentialHtml = false;
+                appendLogic();
+                index++;
+                parseTextBlock();
             } else if (c === CLOSE_BRACE && charAt(index + 1) === CLOSE_ANGLE) {
                 appendLogic();
                 index += 2;
