@@ -202,7 +202,9 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         let potentialEnd = -1;
         while (index < length) {
             const c = charAt(index);
-            if (c === CLOSE_ANGLE) {
+            if (parseOpenBlock(c)) {
+                potentialEnd = -1;
+            } else if (c === CLOSE_ANGLE) {
                 index++;
                 potentialEnd = index;
             } else if (potentialEnd >= 0 && isWhitespace(c)) {
@@ -213,8 +215,6 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 appendResult(potentialEnd);
                 startIndex = index;
                 return;
-            } else if (parseOpenBlock(c)) {
-                // continue
             } else {
                 index++;
                 potentialEnd = -1;
@@ -226,32 +226,22 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     const parseTextBlock = () => {
         startIndex = index;
         let potentialEnd = -1;
-        let potentialEndWhitespace = -1;
-        let hasMeaningfulSymbol = false;
         while (index < length) {
             const c = charAt(index);
-            if (!hasMeaningfulSymbol && isWhitespace(c)) {
-                startIndex++;
-                index++;
-            } else if (parseOpenBlock(c)) {
-                hasMeaningfulSymbol = true;
+            if (parseOpenBlock(c)) {
                 potentialEnd = -1;
-                potentialEndWhitespace = -1;
-            } else if (c === OPEN_ANGLE || isWhitespace(c)) {
-                if (potentialEndWhitespace < 0) potentialEndWhitespace = index;
-                if (c === OPEN_ANGLE) potentialEnd = index;
+            } else if (c === OPEN_ANGLE) {
+                potentialEnd = index;
+                index++;
+            } else if (potentialEnd >= 0 && isWhitespace(c)) {
                 index++;
             } else if (potentialEnd >= 0 && c === CLOSE_BRACE) {
-                if (hasMeaningfulSymbol) {
-                    appendResult(potentialEndWhitespace);
-                }
+                appendResult(potentialEnd);
                 startIndex = index;
                 return;
             } else {
                 index++;
                 potentialEnd = -1;
-                potentialEndWhitespace = -1;
-                hasMeaningfulSymbol = true;
             }
         }
         throwEndOfBlockExpected("text block <}");

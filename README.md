@@ -77,12 +77,11 @@ Nostache(`<p><{ for (let i = 0; i < 3; i++) { <br> } }></p>`)();
 // `<p><br><br><br></p>`
 ```
 
-If you want to output plain string instead of a tag, use `{> <}` block. The string goes as is, no html escape. Whitespace around the text are ignored but comments are not as they are part of the
-string.
+If you want to output plain string instead of a tag, use `{> <}` block. The string goes as is, no html escape. Whitespace and comments around the string are preserved.
 
 ```javascript
-Nostache(`<p><{ for (let i = 0; i < 3; i++) {> Br <} }></p>`)()
-// `<p>BrBrBr</p>`
+Nostache(`<p><{ for (let i = 0; i < 3; i++) {> Br<} }> </p>`)()
+// `<p> Br Br Br </p>`
 ```
 
 ## Safe and Unsafe

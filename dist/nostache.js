@@ -148,7 +148,10 @@ const parseTemplate = (template, options) => {
         let potentialEnd = -1;
         while (index < length) {
             const c = charAt(index);
-            if (c === 62) {
+            if (parseOpenBlock(c)) {
+                potentialEnd = -1;
+            }
+            else if (c === 62) {
                 index++;
                 potentialEnd = index;
             }
@@ -161,7 +164,6 @@ const parseTemplate = (template, options) => {
                 startIndex = index;
                 return;
             }
-            else if (parseOpenBlock(c)) ;
             else {
                 index++;
                 potentialEnd = -1;
@@ -172,38 +174,26 @@ const parseTemplate = (template, options) => {
     const parseTextBlock = () => {
         startIndex = index;
         let potentialEnd = -1;
-        let potentialEndWhitespace = -1;
-        let hasMeaningfulSymbol = false;
         while (index < length) {
             const c = charAt(index);
-            if (!hasMeaningfulSymbol && isWhitespace(c)) {
-                startIndex++;
+            if (parseOpenBlock(c)) {
+                potentialEnd = -1;
+            }
+            else if (c === 60) {
+                potentialEnd = index;
                 index++;
             }
-            else if (parseOpenBlock(c)) {
-                hasMeaningfulSymbol = true;
-                potentialEnd = -1;
-                potentialEndWhitespace = -1;
-            }
-            else if (c === 60 || isWhitespace(c)) {
-                if (potentialEndWhitespace < 0)
-                    potentialEndWhitespace = index;
-                if (c === 60)
-                    potentialEnd = index;
+            else if (potentialEnd >= 0 && isWhitespace(c)) {
                 index++;
             }
             else if (potentialEnd >= 0 && c === 125) {
-                if (hasMeaningfulSymbol) {
-                    appendResult(potentialEndWhitespace);
-                }
+                appendResult(potentialEnd);
                 startIndex = index;
                 return;
             }
             else {
                 index++;
                 potentialEnd = -1;
-                potentialEndWhitespace = -1;
-                hasMeaningfulSymbol = true;
             }
         }
         throwEndOfBlockExpected("text block <}");
