@@ -93,7 +93,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
 
     const appendLogic = () => {
         if (index > startIndex) {
-            funcBody += template.slice(startIndex, index);
+            funcBody += `${template.slice(startIndex, index)}\n`;
         }
     };
 

@@ -150,11 +150,11 @@ test("Nested blocks", async () => {
 
 test("Script blocks", async () => {
     expect(await Nostache(`<{ const [a,b] = this; }><script>let o = {"a": "{=a=}", "b": "{=b=}"};</script>`)(1, 2)).toBe(`<script>let o = {"a": "1", "b": "2"};</script>`);
-    expect(await Nostache(`<{ const [a,b] = this; }><script>let o = {"a": "{=a=}"<{if (b) }>, "b": "{=b=}"<{}>};</script>`)(1, 2)).toBe(`<script>let o = {"a": "1", "b": "2"};</script>`);
+    expect(await Nostache(`<{ const [a,b] = this }><script>let o = {"a": "{=a=}"<{if (b) }>, "b": "{=b=}"<{}>};</script>`)(1, 2)).toBe(`<script>let o = {"a": "1", "b": "2"};</script>`);
     expect(await Nostache(`<{ const [a,b] = this; }><script>let o = {"a": "{=a=}"<{if (!b) {
 }>, "b": "{=b=}"<{
 }}>};</script>`)(1, 2)).toBe(`<script>let o = {"a": "1"};</script>`);
-    expect(await Nostache(`<{ const [a] = this; }><script><{if (a) {}>if (a) {console.log(a);}<{}}></script>`)(1)).toBe(`<script>if (a) {console.log(a);}</script>`);
+    expect(await Nostache(`<{ const [a] = this }><script><{if (a) {}>if (a) {console.log(a);}<{}}></script>`)(1)).toBe(`<script>if (a) {console.log(a);}</script>`);
 });
 
 test("Loops", async () => {
@@ -224,7 +224,7 @@ test("String interpolation", async () => {
     expect(await Nostache("<script>let a = `{= '${0}' =}`;</script>")()).toBe("<script>let a = `${0}`;</script>");
     expect(await Nostache("<script>let a = `{= `${0}` =}`;</script>")()).toBe("<script>let a = `0`;</script>");
     expect(await Nostache("<{ let a = '${0}'; }><script>let a = `{= a =}`;</script>")()).toBe("<script>let a = `${0}`;</script>");
-    expect(await Nostache("<{ let a = `${0}`; }><script>let a = `{= a =}`;</script>")()).toBe("<script>let a = `0`;</script>");
+    expect(await Nostache("<{ let a = `${0}` }><script>let a = `{= a =}`;</script>")()).toBe("<script>let a = `0`;</script>");
 });
 
 test("Output blocks", async () => {
@@ -672,7 +672,7 @@ test("Arguments mutation", async () => {
     expect(await Nostache("<{let [{a}] = this;}>{= a++ =}<p>{= a =}</p>")({a: 0})).toBe("0<p>1</p>");
     expect(await Nostache("<{let [{a}] = this;}>{= ++a =}<p>{= a =}</p>")({a: 0})).toBe("1<p>1</p>");
     expect(await Nostache("<{let [{a}] = this;}>{= a = 'bb' =}<p>{= a =}</p>")({a: 'aa'})).toBe("bb<p>bb</p>");
-    expect(await Nostache("<{let [{a}] = this;}>{= a =}<{ a = 'bb'; }><p>{= a =}</p>")({a: 'aa'})).toBe("aa<p>bb</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= a =}<{ a = 'bb' }><p>{= a =}</p>")({a: 'aa'})).toBe("aa<p>bb</p>");
     expect(await Nostache("<{let [{a}] = this;}>{= this[0].a++ =}<p>{= this[0].a =}</p>")({a: 0})).toBe("0<p>1</p>");
     expect(await Nostache("<{let [{a}] = this;}>{= ++this[0].a =}<p>{= this[0].a =}</p>")({a: 0})).toBe("1<p>1</p>");
     expect(await Nostache("{= this[0].a = 'bb' =}<p>{= this[0].a =}</p>")({a: 'aa'})).toBe("bb<p>bb</p>");
@@ -680,7 +680,7 @@ test("Arguments mutation", async () => {
     expect(await Nostache("<{let [{a}] = this;}>{= this[0].a++ =}<p>{= a =}</p>")({a: 0})).toBe("0<p>0</p>");
     expect(await Nostache("<{let [{a}] = this;}>{= ++this[0].a =}<p>{= a =}</p>")({a: 0})).toBe("1<p>0</p>");
     expect(await Nostache("<{let [{a}] = this;}>{= this[0].a = 'bb' =}<p>{= a =}</p>")({a: 'aa'})).toBe("bb<p>aa</p>");
-    expect(await Nostache("<{let [{a}] = this;}>{= this[0].a =}<{ this[0].a = 'bb'; }><p>{= a =}</p>")({a: 'aa'})).toBe("aa<p>aa</p>");
+    expect(await Nostache("<{let [{a}] = this;}>{= this[0].a =}<{ this[0].a = 'bb' }><p>{= a =}</p>")({a: 'aa'})).toBe("aa<p>aa</p>");
     expect(await Nostache("<{let [{a}] = this;}>{= a++ =}<p>{= this[0].a =}</p>")({a: 0})).toBe("0<p>0</p>");
     expect(await Nostache("<{let [{a}] = this;}>{= ++a =}<p>{= this[0].a =}</p>")({a: 0})).toBe("1<p>0</p>");
     expect(await Nostache("<{let [{a}] = this;}>{= a = 'bb' =}<p>{= this[0].a =}</p>")({a: 'aa'})).toBe("bb<p>aa</p>");
@@ -729,7 +729,7 @@ test("Parameters declaration", async () => {
     expect(await Nostache("{@ _0, _ @}  {= _0 =}{= _ =}")(10, 11)).toBe("1011");
     expect(await Nostache("{@ _9, _ @}  {= _9 =}{= _ =}")(10, 11)).toBe("1011");
     await (expect(Nostache("{@ 0, _ @}  {= 0 =}{= _ =}")(10, 11))).rejects.toBeInstanceOf(ReferenceError);
-    expect(await Nostache("<{ {@ a, b @} let c = 12; }>{= a =}{= b =}{= c =}")(10, 11)).toBe("101112");
+    expect(await Nostache("<{ {@ a, b @} let c = 12 }>{= a =}{= b =}{= c =}")(10, 11)).toBe("101112");
     expect(await Nostache("<{ let c = 12; {@ a, b @} }>{= a =}{= b =}{= c =}")(10, 11)).toBe("101112");
     expect(await Nostache("<{ let c = 12; {@ a, b @} let d = 13; }>{= a =}{= b =}{= c =}{= d =}")(10, 11)).toBe("10111213");
     expect(await Nostache("{@ {a, b} @}  {= a =}{= b =}")({a: 10, b: 11})).toBe("1011");
@@ -763,15 +763,15 @@ test("Import declaration", async () => {
     expect(await Nostache("<ul>{@ _9 new Promise(r => r('partials/li.htm')) @}<{for (let i = 0; i < this[0]; i++) {~ _9(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
     await (expect(Nostache("<ul>{@ 0 new Promise(r => r('partials/li.htm')) @}<{for (let i = 0; i < this[0]; i++) {~ 0(i) ~} }></ul>")(1))).rejects.toBeInstanceOf(SyntaxError);
 
-    expect(await Nostache("<ul><{const t = 'partials/li.htm'; }>{@ a t @}<{for (let i = 0; i < this[0]; i++) {~ a(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{const t = 'partials/li.htm' }>{@ a t @}<{for (let i = 0; i < this[0]; i++) {~ a(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
     expect(await Nostache("<ul><{const t = 'partials/'; }>{@ z t + 'li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ z(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
-    expect(await Nostache("<ul><{const t = 'partials/', p = 'li.htm'; }>{@ A t + p @}<{for (let i = 0; i < this[0]; i++) {~ A(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{const t = 'partials/', p = 'li.htm' }>{@ A t + p @}<{for (let i = 0; i < this[0]; i++) {~ A(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
     expect(await Nostache("<ul><{const t = () => 'partials/li.htm'; }>{@ Z t() @}<{for (let i = 0; i < this[0]; i++) {~ Z(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
-    expect(await Nostache("<ul><{const t = () => new Promise(r => r('partials/li.htm')); }>{@ _ t() @}<{for (let i = 0; i < this[0]; i++) {~ _(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{const t = () => new Promise(r => r('partials/li.htm')) }>{@ _ t() @}<{for (let i = 0; i < this[0]; i++) {~ _(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
     expect(await Nostache("<ul><{const t = new Promise(r => r('partials/li.htm')); }>{@ _0 t @}<{for (let i = 0; i < this[0]; i++) {~ _0(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
-    expect(await Nostache("<ul><{const t = 'partials/li.htm'; }>{@ _9 [t][0] @}<{for (let i = 0; i < this[0]; i++) {~ _9(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{const t = 'partials/li.htm' }>{@ _9 [t][0] @}<{for (let i = 0; i < this[0]; i++) {~ _9(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
     expect(await Nostache("<ul><{const t = 'partials/li.htm'; }>{@ _9 {a: t}.a @}<{for (let i = 0; i < this[0]; i++) {~ _9(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
-    await (expect(Nostache("<ul><{const t = 'partials/li.htm'; }>{@ 0 t @}<{for (let i = 0; i < this[0]; i++) {~ 0(i) ~} }></ul>")(1))).rejects.toBeInstanceOf(SyntaxError);
+    await (expect(Nostache("<ul><{const t = 'partials/li.htm' }>{@ 0 t @}<{for (let i = 0; i < this[0]; i++) {~ 0(i) ~} }></ul>")(1))).rejects.toBeInstanceOf(SyntaxError);
 
     expect(await Nostache("<ul>{@ li 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {= li(i) =} }></ul>")(1)).toBe("<ul>&#60;li&#62;1&#60;/li&#62;</ul>");
     expect(await Nostache("<ul>{@ li 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
@@ -1233,31 +1233,31 @@ test("Throw end of block", async () => {
     await expect(Nostache("<div><{ {@ 'name' }></div>")()).rejects.toThrow("@}");
 
     await expect(Nostache("<{ let a = 1; }><{")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }><{")()).rejects.toThrow("}>");
+    await expect(Nostache("<{ let a = 1 }><{")()).rejects.toThrow("}>");
     await expect(Nostache("<{ let a = 1; }><{<{")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }><{<{")()).rejects.toThrow("}>");
+    await expect(Nostache("<{ let a = 1 }><{<{")()).rejects.toThrow("}>");
     await expect(Nostache("<{ let a = 1; }>abc<{def")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }>abc<{def")()).rejects.toThrow("}>");
+    await expect(Nostache("<{ let a = 1 }>abc<{def")()).rejects.toThrow("}>");
     await expect(Nostache("<{ let a = 1; }>abc<{d<{ef")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }>abc<{d<{ef")()).rejects.toThrow("}>");
+    await expect(Nostache("<{ let a = 1 }>abc<{d<{ef")()).rejects.toThrow("}>");
 
     await expect(Nostache("<{ let a = 1; }><div><{{</div>")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }><div><{{</div>")()).rejects.toThrow(">}");
+    await expect(Nostache("<{ let a = 1 }><div><{{</div>")()).rejects.toThrow(">}");
     await expect(Nostache("<{ let a = 1; }><div><{{>abc</div>")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }><div><{{>abc</div>")()).rejects.toThrow("<}");
+    await expect(Nostache("<{ let a = 1 }><div><{{>abc</div>")()).rejects.toThrow("<}");
 
     await expect(Nostache("<{ let a = 1; }><div>{=</div>")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }><div>{=</div>")()).rejects.toThrow("{=");
+    await expect(Nostache("<{ let a = 1 }><div>{=</div>")()).rejects.toThrow("{=");
     await expect(Nostache("<{ let a = 1; }><div>{~</div>")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }><div>{~</div>")()).rejects.toThrow("{~");
+    await expect(Nostache("<{ let a = 1 }><div>{~</div>")()).rejects.toThrow("{~");
     await expect(Nostache("<{ let a = 1; }><div><{ {=</div>")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }><div><{ {=</div>")()).rejects.toThrow("{=");
+    await expect(Nostache("<{ let a = 1 }><div><{ {=</div>")()).rejects.toThrow("{=");
     await expect(Nostache("<{ let a = 1; }><div><{ {~</div>")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }><div><{ {~</div>")()).rejects.toThrow("{~");
+    await expect(Nostache("<{ let a = 1 }><div><{ {~</div>")()).rejects.toThrow("{~");
     await expect(Nostache("<{ let a = 1; }><div><{ {= }></div>")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }><div><{ {= }></div>")()).rejects.toThrow("{=");
+    await expect(Nostache("<{ let a = 1 }><div><{ {= }></div>")()).rejects.toThrow("{=");
     await expect(Nostache("<{ let a = 1; }><div><{ {~ }></div>")()).rejects.toBeInstanceOf(SyntaxError);
-    await expect(Nostache("<{ let a = 1; }><div><{ {~ }></div>")()).rejects.toThrow("{~");
+    await expect(Nostache("<{ let a = 1 }><div><{ {~ }></div>")()).rejects.toThrow("{~");
 
     await expect(Nostache("{@ name() <{ @}")()).rejects.toBeInstanceOf(SyntaxError);
     await expect(Nostache("{@ name() <{ @}")()).rejects.toThrow("}>");
@@ -1432,7 +1432,7 @@ test("Readme examples", async () => {
         }
     })()).toBe("<p>Pineapple Pizza</p>");
     expect(await Nostache(`{~ "<{{={~{@ @}~}=}}>" ~}`)()).toBe("<{{={~{@ @}~}=}}>");
-    expect(await Nostache(`<{let s = "<{{={~{@ @}~}=}}>"; }>{~ s ~}`)()).toBe("<{{={~{@ @}~}=}}>");
+    expect(await Nostache(`<{let s = "<{{={~{@ @}~}=}}>" }>{~ s ~}`)()).toBe("<{{={~{@ @}~}=}}>");
     expect(await Nostache(`{~ /* <{{={~{@ @}~}=}}> */ ~}`)()).toBe("");
     expect(await Nostache(`{~ // <{{={~{@ @}~}=}}>
 ~}`)()).toBe("");
