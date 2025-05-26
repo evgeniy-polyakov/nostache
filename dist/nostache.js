@@ -27,7 +27,7 @@ const parseTemplate = (template, options) => {
     };
     const appendLogic = () => {
         if (index > startIndex) {
-            funcBody += template.slice(startIndex, index);
+            funcBody += `${template.slice(startIndex, index)}\n`;
         }
     };
     const throwEndOfBlockExpected = (block) => {
@@ -455,7 +455,15 @@ const parseTemplate = (template, options) => {
 const iterateRecursively = (value) => {
     if (value && isFunction(value.next)) {
         let result = "";
-        const loop = () => new Promise(r => r(value.next())).then((chunk) => chunk.done ? result : iterateRecursively(chunk.value).then(s => result = result + s).then(loop));
+        const loop = () => new Promise(r => r(value.next())).then((chunk) => {
+            const v = chunk.value;
+            const d = chunk.done;
+            if (d && v === undefined) {
+                return result;
+            }
+            const p = iterateRecursively(v).then(s => result = result + s);
+            return d ? p : p.then(loop);
+        });
         return loop().then(() => result);
     }
     return new Promise(r => r(value));

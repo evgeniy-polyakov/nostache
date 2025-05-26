@@ -492,8 +492,15 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
 const iterateRecursively = (value: any) => {
     if (value && isFunction(value.next)) {
         let result = "";
-        const loop = () => new Promise(r => r(value.next())).then((chunk: any): string | Promise<string> =>
-            chunk.done ? result : iterateRecursively(chunk.value).then(s => result = result + s).then(loop));
+        const loop = () => new Promise(r => r(value.next())).then((chunk: any): string | Promise<string> => {
+            const v = chunk.value;
+            const d = chunk.done;
+            if (d && v === undefined) {
+                return result;
+            }
+            const p = iterateRecursively(v).then(s => result = result + s);
+            return d ? p : p.then(loop);
+        });
         return loop().then(() => result);
     }
     return new Promise<string>(r => r(value));

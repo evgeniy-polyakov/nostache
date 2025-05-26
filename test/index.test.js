@@ -1461,3 +1461,12 @@ test("Empty blocks", async () => {
     expect(await Nostache("<ul>{@@}</ul>")()).toBe("<ul></ul>");
     expect(await Nostache("<ul>{@ @}</ul>")()).toBe("<ul></ul>");
 });
+
+test("Early return", async () => {
+    expect(await Nostache("<ul><{ if (true) return; }></ul>")()).toBe("<ul>");
+    expect(await Nostache("<ul><{ if (false) return }></ul>")()).toBe("<ul></ul>");
+    expect(await Nostache("<ul><{ if (true) return 'exit' }></ul>")()).toBe("<ul>exit");
+    expect(await Nostache("<ul><{ if (false) return 'exit' }></ul>")()).toBe("<ul></ul>");
+    expect(await Nostache("<ul><{ if (true) return new Promise(r => r('exit')) }></ul>")()).toBe("<ul>exit");
+    expect(await Nostache("<ul><{ if (false) return new Promise(r => r('exit')) }></ul>")()).toBe("<ul></ul>");
+});
