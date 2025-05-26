@@ -201,7 +201,7 @@ Nostache(`<p>{= this.myDream() =}</p>`, {
 ## Template Imports
 
 One is never satisfied with just a few independent template files. Sooner or later the need arise to import one template file inside another. Nostache has no problem with that, use `{@ name "file" @}`
-block to import a `file` and put it to a template function called `name`. Note that `file` can be any JS expression, but it must start with a string delimiter symbol `" '`.
+block to import a `file` and put it to a template function called `name`. Note that `file` can be any JS expression.
 
 ```javascript
 // inner.htm: <p>{= this[0] =}</p>
