@@ -298,12 +298,7 @@ const parseTemplate = (template, options) => {
                 firstChar = c;
                 if (c === 40) {
                     index++;
-                    parseTemplateDeclaration();
-                    break;
-                }
-                else if (c === 39 || c === 34 || c === 96) {
-                    index++;
-                    parseImportDeclaration();
+                    parseFunctionDeclaration();
                     break;
                 }
                 else if (isAlphabetic(firstChar)) {
@@ -315,8 +310,12 @@ const parseTemplate = (template, options) => {
                     startIndex = index;
                     return;
                 }
-                else {
+                else if (c === 123 || c === 91 || c === 46 || c === 44) {
                     parseParametersDeclaration();
+                    break;
+                }
+                else {
+                    parseImportDeclaration();
                     break;
                 }
             }
@@ -331,22 +330,21 @@ const parseTemplate = (template, options) => {
                 }
                 if (c === 40) {
                     index++;
-                    parseTemplateDeclaration(name);
+                    parseFunctionDeclaration(name);
                     break;
                 }
-                else if (c === 39 || c === 34 || c === 96) {
-                    startIndex = index;
-                    index++;
-                    parseImportDeclaration(name);
+                else if (c === 44 || (c === 64 && charAt(index + 1) === 125)) {
+                    parseParametersDeclaration();
                     break;
                 }
                 else {
-                    parseParametersDeclaration();
+                    startIndex = index;
+                    parseImportDeclaration(name);
                     break;
                 }
             }
             else {
-                parseParametersDeclaration();
+                parseImportDeclaration();
                 break;
             }
         }
@@ -383,7 +381,7 @@ const parseTemplate = (template, options) => {
         }
         throwEndOfDeclarationBlockExpected();
     };
-    const parseTemplateDeclaration = (name) => {
+    const parseFunctionDeclaration = (name) => {
         startIndex = index;
         let parameters = "";
         let parentheses = 0;
@@ -475,7 +473,8 @@ const Nostache = ((template, options) => {
             (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
     const importFunc = (value) => (...args) => {
-        return Nostache(new Promise((res, rej) => {
+        return Nostache(new Promise(r => r(value)).then(value => new Promise((res, rej) => {
+            value = String(value);
             const cachedTemplate = isImportCache ? Nostache.cache.get(value, IMPORT) : undefined;
             if (cachedTemplate !== undefined) {
                 res(cachedTemplate);
@@ -503,7 +502,7 @@ const Nostache = ((template, options) => {
                     rej(e);
                 }
             }
-        }), options)(...args);
+        })), options)(...args);
     };
     const returnFunc = (...args) => new Promise(r => r(template))
         .then((templateString) => {

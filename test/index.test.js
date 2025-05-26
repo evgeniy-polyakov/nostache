@@ -728,7 +728,7 @@ test("Parameters declaration", async () => {
     expect(await Nostache("{@ _, _9 @}  {= _ =}{= _9 =}")(10, 11)).toBe("1011");
     expect(await Nostache("{@ _0, _ @}  {= _0 =}{= _ =}")(10, 11)).toBe("1011");
     expect(await Nostache("{@ _9, _ @}  {= _9 =}{= _ =}")(10, 11)).toBe("1011");
-    await (expect(Nostache("{@ 0, _ @}  {= 0 =}{= _ =}")(10, 11))).rejects.toBeInstanceOf(SyntaxError);
+    await (expect(Nostache("{@ 0, _ @}  {= 0 =}{= _ =}")(10, 11))).rejects.toBeInstanceOf(ReferenceError);
     expect(await Nostache("<{ {@ a, b @} let c = 12; }>{= a =}{= b =}{= c =}")(10, 11)).toBe("101112");
     expect(await Nostache("<{ let c = 12; {@ a, b @} }>{= a =}{= b =}{= c =}")(10, 11)).toBe("101112");
     expect(await Nostache("<{ let c = 12; {@ a, b @} let d = 13; }>{= a =}{= b =}{= c =}{= d =}")(10, 11)).toBe("10111213");
@@ -753,6 +753,25 @@ test("Import declaration", async () => {
     expect(await Nostache("<ul>{@ _0 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ _0(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
     expect(await Nostache("<ul>{@ _9 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ _9(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
     await (expect(Nostache("<ul>{@ 0 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ 0(i) ~} }></ul>")(1))).rejects.toBeInstanceOf(SyntaxError);
+
+    expect(await Nostache("<ul>{@ a new Promise(r => r('partials/li.htm')) @}<{for (let i = 0; i < this[0]; i++) {~ a(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ z new Promise(r => r('partials/li.htm')) @}<{for (let i = 0; i < this[0]; i++) {~ z(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ A new Promise(r => r('partials/li.htm')) @}<{for (let i = 0; i < this[0]; i++) {~ A(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ Z new Promise(r => r('partials/li.htm')) @}<{for (let i = 0; i < this[0]; i++) {~ Z(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ _ new Promise(r => r('partials/li.htm')) @}<{for (let i = 0; i < this[0]; i++) {~ _(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ _0 new Promise(r => r('partials/li.htm')) @}<{for (let i = 0; i < this[0]; i++) {~ _0(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul>{@ _9 new Promise(r => r('partials/li.htm')) @}<{for (let i = 0; i < this[0]; i++) {~ _9(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    await (expect(Nostache("<ul>{@ 0 new Promise(r => r('partials/li.htm')) @}<{for (let i = 0; i < this[0]; i++) {~ 0(i) ~} }></ul>")(1))).rejects.toBeInstanceOf(SyntaxError);
+
+    expect(await Nostache("<ul><{const t = 'partials/li.htm'; }>{@ a t @}<{for (let i = 0; i < this[0]; i++) {~ a(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{const t = 'partials/'; }>{@ z t + 'li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ z(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{const t = 'partials/', p = 'li.htm'; }>{@ A t + p @}<{for (let i = 0; i < this[0]; i++) {~ A(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{const t = () => 'partials/li.htm'; }>{@ Z t() @}<{for (let i = 0; i < this[0]; i++) {~ Z(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{const t = () => new Promise(r => r('partials/li.htm')); }>{@ _ t() @}<{for (let i = 0; i < this[0]; i++) {~ _(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{const t = new Promise(r => r('partials/li.htm')); }>{@ _0 t @}<{for (let i = 0; i < this[0]; i++) {~ _0(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{const t = 'partials/li.htm'; }>{@ _9 [t][0] @}<{for (let i = 0; i < this[0]; i++) {~ _9(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    expect(await Nostache("<ul><{const t = 'partials/li.htm'; }>{@ _9 {a: t}.a @}<{for (let i = 0; i < this[0]; i++) {~ _9(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
+    await (expect(Nostache("<ul><{const t = 'partials/li.htm'; }>{@ 0 t @}<{for (let i = 0; i < this[0]; i++) {~ 0(i) ~} }></ul>")(1))).rejects.toBeInstanceOf(SyntaxError);
 
     expect(await Nostache("<ul>{@ li 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {= li(i) =} }></ul>")(1)).toBe("<ul>&#60;li&#62;1&#60;/li&#62;</ul>");
     expect(await Nostache("<ul>{@ li 'partials/li.htm' @}<{for (let i = 0; i < this[0]; i++) {~ li(i) ~} }></ul>")(1)).toBe("<ul><li>1</li></ul>");
@@ -814,6 +833,8 @@ test("Import declaration", async () => {
     expect(await Nostache('<ul><{for (let i = 0; i < this[0]; i++) {let li = {@ `partials/li.htm` @}(i); {~ li ~}} }></ul>')(3)).toBe("<ul><li>1</li><li>2</li><li>3</li></ul>");
     expect(await Nostache('<ul><{for (let i = 0; i < this[0]; i++) {const li = {@ `partials/${"li"}.htm` @}(i); {~ li ~}} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
     expect(await Nostache("<ul><{for (let i = 0; i < this[0]; i++) {let li = {@ 'partials/' + 'li.htm' @}(i); {~ li ~}} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");
+
+
     delete Nostache.options.import;
 });
 
@@ -895,6 +916,39 @@ test("To string", async () => {
     expect(template.toString()).not.toMatch(re);
     await template();
     expect(template.toString()).toMatch(re);
+});
+
+test("Data type conversion", async () => {
+    Nostache.options.cache = "function";
+    expect(await Nostache("<a>{~ this.import(0)() ~}{~ this.escape(0) ~}</a>", {
+        import: a => a === '0' ? 'a' : '',
+        escape: b => b === 0 ? 'b' : '',
+    })()).toBe("<a>ab</a>");
+    expect(await Nostache("<a>{~ this.import(1)() ~}{~ this.escape(1) ~}</a>", {
+        import: a => a === '1' ? 'a' : '',
+        escape: b => b === 1 ? 'b' : '',
+    })()).toBe("<a>ab</a>");
+    expect(await Nostache("<a>{~ this.import('')() ~}{~ this.escape('') ~}</a>", {
+        import: a => a === '' ? 'a' : '',
+        escape: b => b === '' ? 'b' : '',
+    })()).toBe("<a>ab</a>");
+    expect(await Nostache("<a>{~ this.import(true)() ~}{~ this.escape(true) ~}</a>", {
+        import: a => a === 'true' ? 'a' : '',
+        escape: b => b === true ? 'b' : '',
+    })()).toBe("<a>ab</a>");
+    expect(await Nostache("<a>{~ this.import(undefined)() ~}{~ this.escape(undefined) ~}</a>", {
+        import: a => a === 'undefined' ? 'a' : '',
+        escape: b => b === undefined ? 'b' : '',
+    })()).toBe("<a>ab</a>");
+    expect(await Nostache("<a>{~ this.import(null)() ~}{~ this.escape(null) ~}</a>", {
+        import: a => a === 'null' ? 'a' : '',
+        escape: b => b === null ? 'b' : '',
+    })()).toBe("<a>ab</a>");
+
+    delete Nostache.options.import;
+    delete Nostache.options.escape;
+    delete Nostache.options.cache;
+    Nostache.cache.clear();
 });
 
 test("Explicit options", async () => {

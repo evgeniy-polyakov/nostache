@@ -3,7 +3,7 @@ export type ContextFunction<TArgument, TExtensions extends Record<string, unknow
     [arg: number]: TArgument,
 } & Iterable<TArgument> & {
     escape(value: unknown): Promise<string>,
-    import(value: string): TemplateFunction;
+    import(value: string | Promise<string>): TemplateFunction;
 } & {
     [name in TExtensionName]: TExtensions[TExtensionName];
 };
@@ -52,6 +52,8 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     const CLOSE_BRACE = "}".charCodeAt(0);
     const OPEN_PARENTHESES = "(".charCodeAt(0);
     const CLOSE_PARENTHESES = ")".charCodeAt(0);
+    const OPEN_BRACKET = "[".charCodeAt(0);
+    const CLOSE_BRACKET = "]".charCodeAt(0);
     const ASSIGN = "=".charCodeAt(0);
     const TILDE = "~".charCodeAt(0);
     const SLASH = "/".charCodeAt(0);
@@ -62,6 +64,8 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     const BACKTICK = "`".charCodeAt(0);
     const DOLLAR = "$".charCodeAt(0);
     const AT_SIGN = "@".charCodeAt(0);
+    const COMMA = ",".charCodeAt(0);
+    const PERIOD = ".".charCodeAt(0);
     const isWhitespace = (c: number) => c === WHITESPACE || c === TAB || c === RETURN || c === NEWLINE;
     const isAlphabetic = (c: number) => c === UNDERSCORE || (c >= LOWERCASE_A && c <= LOWERCASE_Z) || (c >= UPPERCASE_A && c <= UPPERCASE_Z);
     const isAlphanumeric = (c: number) => isAlphabetic(c) || (c >= NUMBER_0 && c <= NUMBER_9);
@@ -338,11 +342,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 firstChar = c;
                 if (c === OPEN_PARENTHESES) {
                     index++;
-                    parseTemplateDeclaration();
-                    break;
-                } else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
-                    index++;
-                    parseImportDeclaration();
+                    parseFunctionDeclaration();
                     break;
                 } else if (isAlphabetic(firstChar)) {
                     index++;
@@ -351,8 +351,11 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                     index += 2;
                     startIndex = index;
                     return;
-                } else {
+                } else if (c === OPEN_BRACE || c === OPEN_BRACKET || c === PERIOD || c === COMMA) {
                     parseParametersDeclaration();
+                    break;
+                } else {
+                    parseImportDeclaration();
                     break;
                 }
             } else if (potentialName && isAlphanumeric(c)) {
@@ -365,19 +368,18 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
                 }
                 if (c === OPEN_PARENTHESES) {
                     index++;
-                    parseTemplateDeclaration(name);
+                    parseFunctionDeclaration(name);
                     break;
-                } else if (c === APOSTROPHE || c === QUOTE || c === BACKTICK) {
-                    startIndex = index;
-                    index++;
-                    parseImportDeclaration(name);
+                } else if (c === COMMA || (c === AT_SIGN && charAt(index + 1) === CLOSE_BRACE)) {
+                    parseParametersDeclaration();
                     break;
                 } else {
-                    parseParametersDeclaration();
+                    startIndex = index;
+                    parseImportDeclaration(name);
                     break;
                 }
             } else {
-                parseParametersDeclaration();
+                parseImportDeclaration();
                 break;
             }
         }
@@ -416,7 +418,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         throwEndOfDeclarationBlockExpected();
     };
 
-    const parseTemplateDeclaration = (name?: string) => {
+    const parseFunctionDeclaration = (name?: string) => {
         startIndex = index;
         let parameters = "";
         let parentheses = 0;
@@ -521,32 +523,34 @@ const Nostache: {
             isFunction(options.escape) ? options.escape :
                 (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
-    const importFunc = (value: string) => (...args: unknown[]): Promise<string> => {
-        return Nostache(new Promise<string>((res, rej) => {
-            const cachedTemplate = isImportCache ? Nostache.cache.get(value, IMPORT) : undefined;
-            if (cachedTemplate !== undefined) {
-                res(cachedTemplate);
-            } else {
-                const cacheAndResolve = (template: string) => {
-                    if (isImportCache) {
-                        Nostache.cache.set(value, template);
+    const importFunc = (value: string | Promise<string>) => (...args: unknown[]): Promise<string> => {
+        return Nostache(new Promise<string>(r => r(value)).then(
+            value => new Promise<string>((res, rej) => {
+                value = String(value);
+                const cachedTemplate = isImportCache ? Nostache.cache.get(value, IMPORT) : undefined;
+                if (cachedTemplate !== undefined) {
+                    res(cachedTemplate);
+                } else {
+                    const cacheAndResolve = (template: string) => {
+                        if (isImportCache) {
+                            Nostache.cache.set(value, template);
+                        }
+                        res(template);
+                    };
+                    try {
+                        const optionsImport = options.import;
+                        if (isFunction(optionsImport)) {
+                            new Promise<string>(r => r(optionsImport(value))).then(cacheAndResolve);
+                        } else if (isBrowser) {
+                            fetch(value).then(response => response.status === 200 ? response.text().then(cacheAndResolve) : rej(new Error(`${response.status} ${response.url}`)));
+                        } else {
+                            require("fs").readFile(value, "utf8", (error: any, data: string) => error ? rej(error) : cacheAndResolve(data));
+                        }
+                    } catch (e) {
+                        rej(e);
                     }
-                    res(template);
-                };
-                try {
-                    const optionsImport = options.import;
-                    if (isFunction(optionsImport)) {
-                        new Promise<string>(r => r(optionsImport(value))).then(cacheAndResolve);
-                    } else if (isBrowser) {
-                        fetch(value).then(response => response.status === 200 ? response.text().then(cacheAndResolve) : rej(new Error(`${response.status} ${response.url}`)));
-                    } else {
-                        require("fs").readFile(value, "utf8", (error: any, data: string) => error ? rej(error) : cacheAndResolve(data));
-                    }
-                } catch (e) {
-                    rej(e);
                 }
-            }
-        }), options)(...args);
+            })), options)(...args);
     };
     const returnFunc = (...args: unknown[]): Promise<string> =>
         new Promise<string>(r => r(template))

@@ -3,7 +3,7 @@ export type ContextFunction<TArgument, TExtensions extends Record<string, unknow
     [arg: number]: TArgument;
 } & Iterable<TArgument> & {
     escape(value: unknown): Promise<string>;
-    import(value: string): TemplateFunction;
+    import(value: string | Promise<string>): TemplateFunction;
 } & {
     [name in TExtensionName]: TExtensions[TExtensionName];
 };
