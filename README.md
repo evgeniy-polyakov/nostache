@@ -278,6 +278,16 @@ Nostache(`{@ tr (row, columns)
 </table>` */
 ```
 
+### Early Return
+
+If for some reason at the middle of your template you decide that enough is enough, and you don't want to output all the stuff below then Nostache can give you a hand with that. Just type `return` in
+logic block and you're out of the template. The return value is attached at the end of the result.
+
+```javascript
+Nostache(`<p><{ if ('stars are aligned') return; }></p>`)() // `<p>`
+Nostache(`<p><{ if ('stars are aligned') return 'exit'; }></p>`)() // `<p>exit`
+```
+
 ### Promises
 
 The engine is very confiding. You can promise anything, and it will be obediently waiting for the outcome before producing the final result. Promises can be used in:
@@ -304,6 +314,11 @@ Nostache(`<code>{~ this.escape("<br>") ~}</code>`, {
 Nostache(`<div>{~ this.import("inner.htm")(1) ~}</div>`, {
     import: file => new Promise(r => r("<p>{= this[0] =}</p>"))
 })() // `<div><p>1</p></div>`
+```
+
+* Early return value
+```javascript
+Nostache(`<p><{ if ('stars are aligned') return new Promise(r => r('exit'); }></p>`)() // `<p>exit`
 ```
 
 * Extensions

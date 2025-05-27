@@ -1445,6 +1445,8 @@ test("Readme examples", async () => {
         import: s => new Promise(r => r("<p>{= this[0] =}</p>"))
     })()).toBe("<div><p>1</p></div>");
     expect(await Nostache(new Promise(r => r("I told {= this[0] =} so!")))("you")).toBe("I told you so!");
+    expect(await Nostache(`<p><{ if ('stars are aligned') return; }></p>`)()).toBe("<p>");
+    expect(await Nostache(`<p><{ if ('stars are aligned') return 'exit'; }></p>`)()).toBe("<p>exit");
     delete Nostache.options.cache;
 });
 
