@@ -278,6 +278,44 @@ Nostache(`{@ tr (row, columns)
 </table>` */
 ```
 
+## Layouts
+There is no limit to human inventiveness and sometimes instead of including a template into another one (so-called partials) we need to wrap a template into another one (so-called layouts). Nostache utilizes inner templates for that. Since inner templates are just functions with arguments we can pass them to each other in any combination.
+* layout.html:
+```html
+{@ title, body @}
+<html>
+<head>
+    <title>{= title =}</title>    
+</head>
+<body>
+{~ body(title) ~}
+</body>
+</html>
+```
+* page.html:
+```html
+{@ page (title)
+<main>
+    <h1>{= title =}</h1>
+</main>
+@}
+{@ layout "layout.html" @}
+{~ layout("My Page Title", page) ~}
+```
+* page.html render:
+```html
+<html>
+<head>
+    <title>My Page Title</title>    
+</head>
+<body>
+<main>
+    <h1>My Page Title</h1>
+</main>
+</body>
+</html>
+```
+
 ### Early Return
 
 If for some reason at the middle of your template you decide that enough is enough, and you don't want to output all the stuff below then Nostache can give you a hand with that. Just type `return` in
