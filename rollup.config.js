@@ -1,6 +1,9 @@
 import typescript from '@rollup/plugin-typescript';
 import terser from "@rollup/plugin-terser";
 import replace from "@rollup/plugin-replace";
+import project from "./package.json" with {type: "json"};
+
+const banner = `// nostache.js@${project.version}`;
 
 const replacements = {
     WHITESPACE: " ".charCodeAt(0),
@@ -44,6 +47,7 @@ export default {
             format: 'es',
             compact: true,
             sourcemap: true,
+            banner,
         },
         {
             name: 'Nostache',
@@ -51,6 +55,7 @@ export default {
             format: 'umd',
             compact: true,
             sourcemap: true,
+            banner,
         },
         {
             name: 'Nostache',
@@ -58,7 +63,12 @@ export default {
             format: 'umd',
             compact: true,
             sourcemap: true,
-            plugins: [terser()],
+            plugins: [
+                terser({
+                    format: {preamble: banner}
+                })
+            ],
+            banner,
         }
     ],
     plugins: [
