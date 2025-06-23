@@ -502,8 +502,11 @@ const Nostache = ((template, options) => {
                     else if (isBrowser) {
                         fetch(value).then(response => response.status === 200 ? response.text().then(cacheAndResolve) : rej(new Error(`${response.status} ${response.url}`)));
                     }
-                    else {
+                    else if (typeof require === FUNCTION) {
                         require("fs").readFile(value, "utf8", (error, data) => error ? rej(error) : cacheAndResolve(data));
+                    }
+                    else {
+                        import('fs').then(fs => fs.readFile(value, "utf8", (error, data) => error ? rej(error) : cacheAndResolve(data)));
                     }
                 }
                 catch (e) {

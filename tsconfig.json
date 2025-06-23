@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "strict": true,
-    "module": "ES2015",
+    "module": "ES2020",
     "outDir": "dist",
     "target": "ES2015",
     "rootDir": "src",
