@@ -1,3 +1,4 @@
+// nostache.js@1.2.2
 (function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const ASYNC = "async";
 const IMPORT = "import";
 const FUNCTION = "function";
