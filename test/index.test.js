@@ -1420,6 +1420,13 @@ test("Readme examples", async () => {
     expect(await Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
         import: s => new Promise(r => r(`<b>{= this[0] =}</b>`))
     })()).toBe("<div><b>1</b><b>2</b></div>");
+    expect(await Nostache(`<div>{~ this.import("inner.htm") ~}</div>`, {
+        import: s => `<p>Not a template</p>`
+    })()).toBe("<div><p>Not a template</p></div>");
+    expect(await Nostache(`<div>{@ inner "inner.htm" @}
+{~ inner ~}</div>`, {
+        import: s => `<p>Not a template</p>`
+    })()).toBe("<div><p>Not a template</p></div>");
     expect(await Nostache(`<p>{= this.myDream() =}</p>`, {
         extensions: {
             myDream: () => "Pineapple Pizza"

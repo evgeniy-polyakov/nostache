@@ -212,7 +212,6 @@ Nostache(`<div>{@ inner "inner.htm" @}
 Nostache(`<div><{ const inner = {@ "inner.htm" @}
 }>{~ inner(1) ~}{~ inner(2) ~}</div>`)() // `<div><p>1</p><p>2</p></div>`
 ```
-
 Under the hood [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) is used in browser environment
 and [fs.readFile](https://nodejs.org/docs/latest-v20.x/api/fs.html#fsreadfilepath-options-callback) in Node.js, path to file is relative to the executing script. You can override the import function
 to gain more control of what's going on.
@@ -226,6 +225,16 @@ Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
 Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
     import: file => new Promise(r => r(`<b>{= this[0] =}</b>`))
 })() // `<div><b>1</b><b>2</b></div>`
+```
+
+If there is no need to process the imported file as a Nostache template, then the import function can be used in the output block directly without arguments.
+```javascript
+// inner.html: <p>Not a template</p>
+Nostache(`<div>{~ this.import("inner.htm") ~}</div>`)() // `<div><p>Not a template</p></div>`
+
+// Or alternatively with separate declaration
+Nostache(`<div>{@ inner "inner.htm" @}
+{~ inner ~}</div>`)() // `<div><p>Not a template</p></div>`
 ```
 
 ## Inner Templates
