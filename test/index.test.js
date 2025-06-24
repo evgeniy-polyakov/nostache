@@ -834,7 +834,6 @@ test("Import declaration", async () => {
     expect(await Nostache('<ul><{for (let i = 0; i < this[0]; i++) {const li = {@ `partials/${"li"}.htm` @}(i); {~ li ~}} }></ul>')(1)).toBe("<ul><li>1</li></ul>");
     expect(await Nostache("<ul><{for (let i = 0; i < this[0]; i++) {let li = {@ 'partials/' + 'li.htm' @}(i); {~ li ~}} }></ul>")(2)).toBe("<ul><li>1</li><li>2</li></ul>");
 
-
     delete Nostache.options.import;
 });
 
@@ -1481,4 +1480,34 @@ test("Early return", async () => {
     expect(await Nostache("<ul><{ if (false) return 'exit' }></ul>")()).toBe("<ul></ul>");
     expect(await Nostache("<ul><{ if (true) return new Promise(r => r('exit')) }></ul>")()).toBe("<ul>exit");
     expect(await Nostache("<ul><{ if (false) return new Promise(r => r('exit')) }></ul>")()).toBe("<ul></ul>");
+});
+
+test("Direct import", async () => {
+    let importCalled = 0;
+    const options = {
+        import: v => {
+            importCalled++;
+            return v === 'partials/li.htm' ? "<li>{~ this[0] + 1 ~}</li>" : "";
+        },
+        cache: false,
+    };
+    await Nostache("<{ const p = this.import('partials/li.htm') }>", options)();
+    await Nostache("<{ {@ p 'partials/li.htm' @} }>", options)();
+    await Nostache("{@ p 'partials/li.htm' @}", options)();
+    expect(importCalled).toBe(0);
+    expect(await Nostache("{~ this.import('partials/li.htm') ~}", options)()).toBe("<li>{~ this[0] + 1 ~}</li>");
+    await expect(Nostache("{~ {@ 'partials/li.htm' @} ~}", options)()).rejects.toBeInstanceOf(SyntaxError);
+    expect(importCalled).toBe(1);
+    expect(await Nostache("<{ const p = this.import('partials/li.htm') }>{~ p ~}", options)()).toBe("<li>{~ this[0] + 1 ~}</li>");
+    expect(importCalled).toBe(2);
+    expect(await Nostache("{@ p 'partials/li.htm' @}{~ p ~}", options)()).toBe("<li>{~ this[0] + 1 ~}</li>");
+    expect(importCalled).toBe(3);
+
+    expect(await Nostache("{= this.import('partials/li.htm') =}", options)()).toBe("&#60;li&#62;{~ this[0] + 1 ~}&#60;/li&#62;");
+    await expect(Nostache("{= {@ 'partials/li.htm' @} =}", options)()).rejects.toBeInstanceOf(SyntaxError);
+    expect(importCalled).toBe(4);
+    expect(await Nostache("<{ const p = this.import('partials/li.htm') }>{= p =}", options)()).toBe("&#60;li&#62;{~ this[0] + 1 ~}&#60;/li&#62;");
+    expect(importCalled).toBe(5);
+    expect(await Nostache("{@ p 'partials/li.htm' @}{= p =}", options)()).toBe("&#60;li&#62;{~ this[0] + 1 ~}&#60;/li&#62;");
+    expect(importCalled).toBe(6);
 });

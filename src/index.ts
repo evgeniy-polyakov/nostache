@@ -32,6 +32,7 @@ const IMPORT = "import";
 const FUNCTION = "function";
 const isString = (s: unknown): s is string => typeof s === "string";
 const isFunction = (f: unknown): f is { (...args: any): any } => typeof f === FUNCTION;
+const isNostache = Symbol("Nostache");
 
 const parseTemplate = (template: string, options: TemplateOptions) => {
 
@@ -503,6 +504,9 @@ const iterateRecursively = (value: any) => {
         });
         return loop().then(() => result);
     }
+    if (value && value[isNostache]) {
+        return value(isNostache) as Promise<string>;
+    }
     return new Promise<string>(r => r(value));
 };
 
@@ -530,40 +534,46 @@ const Nostache: {
             isFunction(options.escape) ? options.escape :
                 (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
-    const importFunc = (value: string | Promise<string>) => (...args: unknown[]): Promise<string> => {
-        return Nostache(new Promise<string>(r => r(value)).then(
-            value => new Promise<string>((res, rej) => {
-                value = String(value);
-                const cachedTemplate = isImportCache ? Nostache.cache.get(value, IMPORT) : undefined;
-                if (cachedTemplate !== undefined) {
-                    res(cachedTemplate);
-                } else {
-                    const cacheAndResolve = (template: string) => {
-                        if (isImportCache) {
-                            Nostache.cache.set(value, template);
+    const importFunc = (value: string | Promise<string>) => {
+        const deferImport = (...args: unknown[]): Promise<string> => Nostache(
+            new Promise<string>(r => r(value)).then(
+                value => new Promise<string>((res, rej) => {
+                    value = String(value);
+                    const cachedTemplate = isImportCache ? Nostache.cache.get(value, IMPORT) : undefined;
+                    if (cachedTemplate !== undefined) {
+                        res(cachedTemplate);
+                    } else {
+                        const cacheAndResolve = (template: string) => {
+                            if (isImportCache) {
+                                Nostache.cache.set(value, template);
+                            }
+                            res(template);
+                        };
+                        try {
+                            const optionsImport = options.import;
+                            if (isFunction(optionsImport)) {
+                                new Promise<string>(r => r(optionsImport(value))).then(cacheAndResolve);
+                            } else if (isBrowser) {
+                                fetch(value).then(response => response.status === 200 ? response.text().then(cacheAndResolve) : rej(new Error(`${response.status} ${response.url}`)));
+                            } else if (typeof require === FUNCTION) {
+                                require("fs").readFile(value, "utf8", (error: any, data: string) => error ? rej(error) : cacheAndResolve(data));
+                            } else {
+                                import("fs").then(fs => fs.readFile(value, "utf8", (error: any, data: string) => error ? rej(error) : cacheAndResolve(data)));
+                            }
+                        } catch (e) {
+                            rej(e);
                         }
-                        res(template);
-                    };
-                    try {
-                        const optionsImport = options.import;
-                        if (isFunction(optionsImport)) {
-                            new Promise<string>(r => r(optionsImport(value))).then(cacheAndResolve);
-                        } else if (isBrowser) {
-                            fetch(value).then(response => response.status === 200 ? response.text().then(cacheAndResolve) : rej(new Error(`${response.status} ${response.url}`)));
-                        } else if (typeof require === FUNCTION) {
-                            require("fs").readFile(value, "utf8", (error: any, data: string) => error ? rej(error) : cacheAndResolve(data));
-                        } else {
-                            import("fs").then(fs => fs.readFile(value, "utf8", (error: any, data: string) => error ? rej(error) : cacheAndResolve(data)));
-                        }
-                    } catch (e) {
-                        rej(e);
                     }
-                }
-            })), options)(...args);
+                })), options)(...args);
+        deferImport[isNostache] = true;
+        return deferImport;
     };
     const returnFunc = (...args: unknown[]): Promise<string> =>
         new Promise<string>(r => r(template))
             .then((templateString: string) => {
+                if (args[0] === isNostache) {
+                    return templateString;
+                }
                 const cacheOptions = options.async ? ASYNC : undefined;
                 let templateFunc = isFunctionCache ? Nostache.cache.get(templateString, cacheOptions) : undefined;
                 const templateFuncBody = templateFunc ? templateFunc.toString() : parseTemplate(templateString, options);
@@ -605,6 +615,7 @@ const Nostache: {
                     throw error;
                 }
             });
+    returnFunc[isNostache] = true;
     return returnFunc;
 }) as typeof Nostache;
 

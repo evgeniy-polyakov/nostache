@@ -4,6 +4,7 @@ const IMPORT = "import";
 const FUNCTION = "function";
 const isString = (s) => typeof s === "string";
 const isFunction = (f) => typeof f === FUNCTION;
+const isNostache = Symbol("Nostache");
 const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
     const isAlphabetic = (c) => c === 95 || (c >= 97 && c <= 122) || (c >= 65 && c <= 90);
@@ -467,6 +468,9 @@ const iterateRecursively = (value) => {
         });
         return loop().then(() => result);
     }
+    if (value && value[isNostache]) {
+        return value(isNostache);
+    }
     return new Promise(r => r(value));
 };
 const isBrowser = Function("try{return this===window;}catch(e){}")();
@@ -481,8 +485,8 @@ const Nostache = ((template, options) => {
         return iterateRecursively(value).then(isFunction(options.escape) ? options.escape :
             (s => s === undefined || s === null ? "" : String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`)));
     };
-    const importFunc = (value) => (...args) => {
-        return Nostache(new Promise(r => r(value)).then(value => new Promise((res, rej) => {
+    const importFunc = (value) => {
+        const deferImport = (...args) => Nostache(new Promise(r => r(value)).then(value => new Promise((res, rej) => {
             value = String(value);
             const cachedTemplate = isImportCache ? Nostache.cache.get(value, IMPORT) : undefined;
             if (cachedTemplate !== undefined) {
@@ -515,9 +519,14 @@ const Nostache = ((template, options) => {
                 }
             }
         })), options)(...args);
+        deferImport[isNostache] = true;
+        return deferImport;
     };
     const returnFunc = (...args) => new Promise(r => r(template))
         .then((templateString) => {
+        if (args[0] === isNostache) {
+            return templateString;
+        }
         const cacheOptions = options.async ? ASYNC : undefined;
         let templateFunc = isFunctionCache ? Nostache.cache.get(templateString, cacheOptions) : undefined;
         const templateFuncBody = templateFunc ? templateFunc.toString() : parseTemplate(templateString, options);
@@ -559,6 +568,7 @@ const Nostache = ((template, options) => {
             throw error;
         }
     });
+    returnFunc[isNostache] = true;
     return returnFunc;
 });
 Nostache.options = {};
