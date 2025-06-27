@@ -49,16 +49,16 @@ Output:
 
 ## Syntax Cheatsheet
 
-| Block                                   | Type                | Description                                                              | Parent Block         |
-|-----------------------------------------|---------------------|--------------------------------------------------------------------------|----------------------|
-| Logic `<{ }>`                           | JS Statement        | JS code to breathe life into your template                               | Text                 |
-| Html tag `{< >}`                        | Text                | Plain html tag inside JS code                                            | `<{ }>`              |
-| String `{> <}`                          | Text                | Plain string inside JS code                                              | `<{ }>`              |
-| Output `{= =}`                          | JS Expression       | Outputs the html-escaped result of the inner JS expression               | Text or JS Statement |
-| Unsafe `{~ ~}`                          | JS Expression       | Outputs the result of the inner JS expression as is                      | Text or JS Statement |
-| Parameters<br/>`{@ a, b, c @}`          | JS Statement        | Declares the list of template parameters, destructing is supported       | Text or JS Statement |
-| Import template<br/>`{@ name "file" @}` | JS Statement        | Declares a template to import as a function with optional `name`         | Text or JS Statement |
-| Inner template<br/>`{@ name () body @}` | JS Statement + Text | Declares an inner template as a function with optional `name` and `body` | Text or JS Statement |
+| Block                           | Type                | Description                                                              | Parent Block         |
+|---------------------------------|---------------------|--------------------------------------------------------------------------|----------------------|
+| Logic `<{ }>`                   | JS Statement        | JS code to breathe life into your template                               | Text                 |
+| Html tag `{< >}`                | Text                | Plain html tag inside JS code                                            | `<{ }>`              |
+| String `{> <}`                  | Text                | Plain string inside JS code                                              | `<{ }>`              |
+| Output `{= =}`                  | JS Expression       | Outputs the html-escaped result of the inner JS expression               | Text or JS Statement |
+| Unsafe `{~ ~}`                  | JS Expression       | Outputs the result of the inner JS expression as is                      | Text or JS Statement |
+| Parameters<br/>`{@ a, b @}`     | JS Statement        | Declares the list of template parameters, destructing is supported       | Text or JS Statement |
+| Import<br/>`{@ name "file" @}`  | JS Statement        | Declares a template to import as a function with optional `name`         | Text or JS Statement |
+| Inner<br/>`{@ name () body @}`  | JS Statement + Text | Declares an inner template as a function with optional `name` and `body` | Text or JS Statement |
 
 ## Template Logic
 
@@ -89,7 +89,7 @@ Nostache(`<p><{ for (let i = 0; i < 3; i++) {> Br<} }> </p>`)()
 Use `{= =}` for html-escaped output and `{~ ~}` for unescaped one.
 
 ```javascript
-Nostache(`<p>{= "Safe & Unsafe" =}</p>`)() // `<p>Safe &#38;#38; Unsafe</p>`
+Nostache(`<p>{= "Safe & Unsafe" =}</p>`)() // `<p>Safe &#38; Unsafe</p>`
 Nostache(`<p>{~ "Safe & Unsafe" ~}</p>`)() // `<p>Safe & Unsafe</p>`
 ```
 
@@ -325,7 +325,7 @@ There is no limit to human inventiveness and sometimes instead of including a te
 </html>
 ```
 
-### Early Return
+## Early Return
 
 If for some reason at the middle of your template you decide that enough is enough, and you don't want to output all the stuff below then Nostache can give you a hand with that. Just type `return` in
 logic block and you're out of the template. The return value is attached at the end of the result.
@@ -335,7 +335,7 @@ Nostache(`<p><{ if ('stars are aligned') return; }></p>`)() // `<p>`
 Nostache(`<p><{ if ('stars are aligned') return 'exit'; }></p>`)() // `<p>exit`
 ```
 
-### Promises
+## Promises
 
 The engine is very confiding. You can promise anything, and it will be obediently waiting for the outcome before producing the final result. Promises can be used in:
 
