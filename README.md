@@ -2,6 +2,23 @@
 
 Embedded JavaScript templates with minimalistic syntax.
 
+* [Features](#features)
+* [Use](#use)
+* [Syntax Cheatsheet](#syntax-cheatsheet)
+* [Template Logic](#template-logic)
+* [Safe and Unsafe](#safe-and-unsafe)
+* [Template Parameters](#template-parameters)
+* [Strings and Comments](#strings-and-comments)
+* [Whitespace Control](#whitespace-control)
+* [Mighty `this`](#mighty-this)
+* [Template Imports](#template-imports)
+* [Inner Templates](#inner-templates)
+* [Layouts](#layouts)
+* [Early Return](#early-return)
+* [Promises](#promises)
+* [Cache](#cache)
+* [Options](#options)
+
 ## Features
 
 * Full JavaScript support, no fancy invented language.
