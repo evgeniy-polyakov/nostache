@@ -19,4 +19,4 @@
 <b>{= b =}</b>
 }(1,2) ~}
 ```
-- [ ] **v2.1.0**: Shortcut `@\w+` for `this\.\w+`
+- [ ] **v2.1.0**: Shortcut `@\w+` for `this\.\w+`. Shortcut `@` for `this`.
