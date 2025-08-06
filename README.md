@@ -246,7 +246,7 @@ Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
 
 If there is no need to process the imported file as a Nostache template, then the import function can be used in the output block directly without arguments.
 ```javascript
-// inner.html: <p>Not a template</p>
+// inner.htm: <p>Not a template</p>
 Nostache(`<div>{~ this.import("inner.htm") ~}</div>`)() // `<div><p>Not a template</p></div>`
 
 // Or alternatively with separate declaration
