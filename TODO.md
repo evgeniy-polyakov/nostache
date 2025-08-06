@@ -1,3 +1,4 @@
+- [ ] **v1.4.0**: Shortcut `@\w+` for `this\.\w+`. Shortcut `@` for `this`
 - [ ] **v2.0.0**: Replace import and template declarations with `@import` and `@function`:
 ```
 {@import name ("file.html") @}
@@ -22,4 +23,4 @@
 <b>{= b =}</b>
 @}(1,2) ~}
 ```
-- [ ] **v2.1.0**: Shortcut `@\w+` for `this\.\w+`. Shortcut `@` for `this`.
+- [ ] **v2.0.1**: Allow immediate start of text or html block `<{ >text< }>`, `<{ <html> }>`
