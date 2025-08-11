@@ -1,4 +1,4 @@
-// nostache.js@1.3.0
+// nostache.js@1.3.1
 const ASYNC = "async";
 const IMPORT = "import";
 const FUNCTION = "function";
@@ -20,16 +20,17 @@ const parseTemplate = (template, options) => {
             funcBody += `yield \`${template.slice(startIndex, endIndex)}${extra}\`;\n`;
         }
     };
-    const appendOutput = (unsafe) => {
+    const appendOutput = (unsafe, state) => {
         if (index > startIndex) {
-            funcBody += unsafe ?
-                `yield (${template.slice(startIndex, index)});\n` :
-                `yield this.escape(${template.slice(startIndex, index)});\n`;
+            if (state === 0) {
+                funcBody += `yield ${unsafe ? "" : "this.escape"}(`;
+            }
+            funcBody += template.slice(startIndex, index);
         }
     };
-    const appendLogic = () => {
+    const appendLogic = (newline = true) => {
         if (index > startIndex) {
-            funcBody += `${template.slice(startIndex, index)}\n`;
+            funcBody += `${template.slice(startIndex, index)}${newline ? "\n" : ""}`;
         }
     };
     const throwEndOfBlockExpected = (block) => {
@@ -138,6 +139,11 @@ const parseTemplate = (template, options) => {
                 startIndex = index;
                 return;
             }
+            else if (c === 64) {
+                appendLogic(false);
+                parseAtSign();
+                isPotentialHtml = false;
+            }
             else {
                 index++;
                 isPotentialHtml = false;
@@ -205,6 +211,7 @@ const parseTemplate = (template, options) => {
         const closeChar = unsafe ? 126 : 61;
         let hasMeaningfulSymbol = false;
         let hasOnlyComment = false;
+        let outputState = 0;
         while (index < length) {
             const sc = parseStringOrComment();
             if (sc === 1) {
@@ -221,7 +228,8 @@ const parseTemplate = (template, options) => {
             }
             else if (c === closeChar && charAt(index + 1) === 125) {
                 if (hasMeaningfulSymbol) {
-                    appendOutput(unsafe);
+                    appendOutput(unsafe, outputState);
+                    funcBody += `);\n`;
                 }
                 else if (!hasOnlyComment) {
                     funcBody += `yield \`${template.slice(startIndex, index)}\`;`;
@@ -229,6 +237,12 @@ const parseTemplate = (template, options) => {
                 index += 2;
                 startIndex = index;
                 return;
+            }
+            else if (c === 64) {
+                appendOutput(unsafe, outputState);
+                outputState = 1;
+                parseAtSign();
+                hasMeaningfulSymbol = true;
             }
             else {
                 index++;
@@ -443,6 +457,14 @@ const parseTemplate = (template, options) => {
             c = charAt(index);
         }
         return c;
+    };
+    const parseAtSign = () => {
+        index++;
+        const c = charAt(index);
+        if (c !== 64) {
+            funcBody += `this${isAlphabetic(c) ? "." : ""}`;
+        }
+        startIndex = index;
     };
     while (index < length) {
         const c = charAt(index);

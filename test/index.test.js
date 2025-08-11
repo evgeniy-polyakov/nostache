@@ -1518,3 +1518,15 @@ test("Direct import", async () => {
     expect(await Nostache("{@ p 'partials/li.htm' @}{= p =}", options)()).toBe("&#60;li&#62;{~ this[0] + 1 ~}&#60;/li&#62;");
     expect(importCalled).toBe(6);
 });
+
+test("At sign", async () => {
+    expect(await Nostache("<p><{ const a = @[0], b = @[1]; }>{= a =}{= b =}</p>")(0, 1)).toBe("<p>01</p>");
+    expect(await Nostache("<p><{ const [a, b] = @; }>{= a =}{= b =}</p>")(0, 1)).toBe("<p>01</p>");
+    expect(await Nostache("<p>{= @[0] =}{= @[1] =}</p>")(0, 1)).toBe("<p>01</p>");
+    expect(await Nostache("<p>{= @[0] + @[1] =}</p>")(1, 2)).toBe("<p>3</p>");
+    expect(await Nostache("<p>{= @add(@[0], @[1]) =}</p>", {extensions: {add: (a, b) => a + b}})(1, 2)).toBe("<p>3</p>");
+    expect(await Nostache("<p>{~ @import('a') ~}</p>", {import: a => a === "a" ? "<a>0</a>" : "", cache: false})(1, 2)).toBe("<p><a>0</a></p>");
+    expect(await Nostache("<p><{const i = @import('a'); }>{~ i ~}</p>", {import: a => a === "a" ? "<a>0</a>" : "", cache: false})(1, 2)).toBe("<p><a>0</a></p>");
+    expect(await Nostache("<p><{const i = @import('a'); }>{~ i(1) ~}</p>", {import: a => a === "a" ? "<a>{= @[0] =}</a>" : "", cache: false})(1, 2)).toBe("<p><a>1</a></p>");
+    expect(await Nostache("<p><{const i = @import('a'), [a, b] = @; }>{~ i(a + b) ~}</p>", {import: a => a === "a" ? "<a>{= @[0] =}</a>" : "", cache: false})(1, 2)).toBe("<p><a>3</a></p>");
+});
