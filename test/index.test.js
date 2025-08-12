@@ -1525,6 +1525,7 @@ test("At sign", async () => {
     expect(await Nostache("<p>{= @[0] =}{= @[1] =}</p>")(0, 1)).toBe("<p>01</p>");
     expect(await Nostache("<p>{= @[0] + @[1] =}</p>")(1, 2)).toBe("<p>3</p>");
     expect(await Nostache("<p>{= @add(@[0], @[1]) =}</p>", {extensions: {add: (a, b) => a + b}})(1, 2)).toBe("<p>3</p>");
+    expect(await Nostache("<p>{= @add(@[0], @[1]) + @add(@[0], @[1]) =}</p>", {extensions: {add: (a, b) => a + b}})(1, 2)).toBe("<p>6</p>");
     expect(await Nostache("<p>{~ @import('a') ~}</p>", {import: a => a === "a" ? "<a>0</a>" : "", cache: false})(1, 2)).toBe("<p><a>0</a></p>");
     expect(await Nostache("<p><{const i = @import('a'); }>{~ i ~}</p>", {import: a => a === "a" ? "<a>0</a>" : "", cache: false})(1, 2)).toBe("<p><a>0</a></p>");
     expect(await Nostache("<p><{const i = @import('a'); }>{~ i(1) ~}</p>", {import: a => a === "a" ? "<a>{= @[0] =}</a>" : "", cache: false})(1, 2)).toBe("<p><a>1</a></p>");
