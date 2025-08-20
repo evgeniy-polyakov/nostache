@@ -66,16 +66,16 @@ Output:
 
 ## Syntax Cheatsheet
 
-| Block                           | Type                | Description                                                              | Parent Block         |
-|---------------------------------|---------------------|--------------------------------------------------------------------------|----------------------|
-| Logic `<{ }>`                   | JS Statement        | JS code to breathe life into your template                               | Text                 |
-| Html tag `{< >}`                | Text                | Plain html tag inside JS code                                            | `<{ }>`              |
-| String `{> <}`                  | Text                | Plain string inside JS code                                              | `<{ }>`              |
-| Output `{= =}`                  | JS Expression       | Outputs the html-escaped result of the inner JS expression               | Text or JS Statement |
-| Unsafe `{~ ~}`                  | JS Expression       | Outputs the result of the inner JS expression as is                      | Text or JS Statement |
-| Parameters<br/>`{@ a, b @}`     | JS Statement        | Declares the list of template parameters, destructing is supported       | Text or JS Statement |
-| Import<br/>`{@ name "file" @}`  | JS Statement        | Declares a template to import as a function with optional `name`         | Text or JS Statement |
-| Inner<br/>`{@ name () body @}`  | JS Statement + Text | Declares an inner template as a function with optional `name` and `body` | Text or JS Statement |
+| Block                          | Type                | Description                                                              | Parent Block         |
+|--------------------------------|---------------------|--------------------------------------------------------------------------|----------------------|
+| Logic `<{ }>`                  | JS Statement        | JS code to breathe life into your template                               | Text                 |
+| Html tag `{< >}`               | Text                | Plain html tag inside JS code                                            | `<{ }>`              |
+| String `{> <}`                 | Text                | Plain string inside JS code                                              | `<{ }>`              |
+| Output `{= =}`                 | JS Expression       | Outputs the html-escaped result of the inner JS expression               | Text or JS Statement |
+| Unsafe `{~ ~}`                 | JS Expression       | Outputs the result of the inner JS expression as is                      | Text or JS Statement |
+| Parameters<br/>`{@ a, b @}`    | JS Statement        | Declares the list of template parameters, destructing is supported       | Text or JS Statement |
+| Import<br/>`{@ name "file" @}` | JS Statement        | Declares a template to import as a function with optional `name`         | Text or JS Statement |
+| Inner<br/>`{@ name () body @}` | JS Statement + Text | Declares an inner template as a function with optional `name` and `body` | Text or JS Statement |
 
 ## Template Logic
 
@@ -215,6 +215,13 @@ Nostache(`<p>{= this.myDream() =}</p>`, {
 })() // <p>Pineapple Pizza</p>
 ```
 
+* `@` as shortcut to `this`, dot symbol can be omitted
+
+```javascript
+// inner.htm: <p>{= @[0] =}</p>
+Nostache(`<div>{~ @import("inner.htm")(1) ~}</div>`)() // `<div><p>1</p>/div>`
+``` 
+
 ## Template Imports
 
 One is never satisfied with just a few independent template files. Sooner or later the need arise to import one template file into another. Nostache has no problem with that, use `{@ name "file" @}`
@@ -229,6 +236,7 @@ Nostache(`<div>{@ inner "inner.htm" @}
 Nostache(`<div><{ const inner = {@ "inner.htm" @}
 }>{~ inner(1) ~}{~ inner(2) ~}</div>`)() // `<div><p>1</p><p>2</p></div>`
 ```
+
 Under the hood [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Window/fetch) is used in browser environment
 and [fs.readFile](https://nodejs.org/docs/latest-v20.x/api/fs.html#fsreadfilepath-options-callback) in Node.js, path to file is relative to the executing script. You can override the import function
 to gain more control of what's going on.
@@ -245,9 +253,10 @@ Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
 ```
 
 If there is no need to process the imported file as a Nostache template, then the import function can be used in the output block directly without arguments.
+
 ```javascript
 // inner.htm: <p>Not a template</p>
-Nostache(`<div>{~ this.import("inner.htm") ~}</div>`)() // `<div><p>Not a template</p></div>`
+Nostache(`<div>{~ @import("inner.htm") ~}</div>`)() // `<div><p>Not a template</p></div>`
 
 // Or alternatively with separate declaration
 Nostache(`<div>{@ inner "inner.htm" @}
@@ -305,20 +314,26 @@ Nostache(`{@ tr (row, columns)
 ```
 
 ## Layouts
-There is no limit to human inventiveness and sometimes instead of including a template into another one (so-called partials) we need to wrap a template into another one (so-called layouts). Nostache utilizes inner templates for that. Since inner templates are just functions with arguments we can pass them to each other in any combination.
+
+There is no limit to human inventiveness and sometimes instead of including a template into another one (so-called partials) we need to wrap a template into another one (so-called layouts). Nostache
+utilizes inner templates for that. Since inner templates are just functions with arguments we can pass them to each other in any combination.
+
 * layout.html:
+
 ```html
 {@ title, body @}
 <html>
 <head>
-    <title>{= title =}</title>    
+    <title>{= title =}</title>
 </head>
 <body>
 {~ body(title) ~}
 </body>
 </html>
 ```
+
 * page.html:
+
 ```html
 {@ page (title)
 <main>
@@ -328,11 +343,14 @@ There is no limit to human inventiveness and sometimes instead of including a te
 {@ layout "layout.html" @}
 {~ layout("My Page Title", page) ~}
 ```
+
 * page.html render:
+
 ```html
+
 <html>
 <head>
-    <title>My Page Title</title>    
+    <title>My Page Title</title>
 </head>
 <body>
 <main>
@@ -372,15 +390,16 @@ Nostache(new Promise(r => r("I told {= this[0] =} so!")))("you") // `I told you 
 * Return value of `escape` and `import`
 
 ```javascript
-Nostache(`<code>{~ this.escape("<br>") ~}</code>`, {
+Nostache(`<code>{~ @escape("<br>") ~}</code>`, {
     escape: text => new Promise(r => r(text.toUpperCase()))
 })() // `<code><BR></code>`
-Nostache(`<div>{~ this.import("inner.htm")(1) ~}</div>`, {
+Nostache(`<div>{~ @import("inner.htm")(1) ~}</div>`, {
     import: file => new Promise(r => r("<p>{= this[0] =}</p>"))
 })() // `<div><p>1</p></div>`
 ```
 
 * Early return value
+
 ```javascript
 Nostache(`<p><{ if ('stars are aligned') return new Promise(r => r('exit'); }></p>`)() // `<p>exit`
 ```
@@ -388,7 +407,7 @@ Nostache(`<p><{ if ('stars are aligned') return new Promise(r => r('exit'); }></
 * Extensions
 
 ```javascript
-Nostache(`<p>{= this.myDream() =}</p>`, {
+Nostache(`<p>{= @myDream() =}</p>`, {
     extensions: {
         myDream: () => new Promise(r => r("Pineapple Pizza"))
     }

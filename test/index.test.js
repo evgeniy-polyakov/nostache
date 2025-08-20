@@ -1437,6 +1437,9 @@ test("Readme examples", async () => {
             myDream: () => new Promise(r => r("Pineapple Pizza"))
         }
     })()).toBe("<p>Pineapple Pizza</p>");
+    expect(await Nostache(`<div>{~ @import("inner.htm")(1) ~}</div>`, {
+        import: s => new Promise(r => r(`<p>{= @[0] =}</p>`))
+    })()).toBe("<div><p>1</p></div>");
     expect(await Nostache(`{~ "<{{={~{@ @}~}=}}>" ~}`)()).toBe("<{{={~{@ @}~}=}}>");
     expect(await Nostache(`<{let s = "<{{={~{@ @}~}=}}>" }>{~ s ~}`)()).toBe("<{{={~{@ @}~}=}}>");
     expect(await Nostache(`{~ /* <{{={~{@ @}~}=}}> */ ~}`)()).toBe("");
@@ -1526,6 +1529,7 @@ test("At sign", async () => {
     expect(await Nostache("<p>{= @[0] + @[1] =}</p>")(1, 2)).toBe("<p>3</p>");
     expect(await Nostache("<p>{= @add(@[0], @[1]) =}</p>", {extensions: {add: (a, b) => a + b}})(1, 2)).toBe("<p>3</p>");
     expect(await Nostache("<p>{= @add(@[0], @[1]) + @add(@[0], @[1]) =}</p>", {extensions: {add: (a, b) => a + b}})(1, 2)).toBe("<p>6</p>");
+    expect(await Nostache("<p>{~ @escape('<>') ~}</p>", {cache: false})()).toBe("<p>&#60;&#62;</p>");
     expect(await Nostache("<p>{~ @import('a') ~}</p>", {import: a => a === "a" ? "<a>0</a>" : "", cache: false})(1, 2)).toBe("<p><a>0</a></p>");
     expect(await Nostache("<p><{const i = @import('a'); }>{~ i ~}</p>", {import: a => a === "a" ? "<a>0</a>" : "", cache: false})(1, 2)).toBe("<p><a>0</a></p>");
     expect(await Nostache("<p><{const i = @import('a'); }>{~ i(1) ~}</p>", {import: a => a === "a" ? "<a>{= @[0] =}</a>" : "", cache: false})(1, 2)).toBe("<p><a>1</a></p>");
