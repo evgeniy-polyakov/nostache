@@ -18,6 +18,7 @@ Embedded JavaScript templates with minimalistic syntax.
 * [Promises](#promises)
 * [Cache](#cache)
 * [Options](#options)
+* [Version History](#version-history)
 
 ## Features
 
@@ -215,11 +216,11 @@ Nostache(`<p>{= this.myDream() =}</p>`, {
 })() // <p>Pineapple Pizza</p>
 ```
 
-* `@` as shortcut to `this`, dot symbol can be omitted
+* `@` as shortcut to `this`, dot symbol can be omitted. A grand gesture for lazybones.
 
 ```javascript
 // inner.htm: <p>{= @[0] =}</p>
-Nostache(`<div>{~ @import("inner.htm")(1) ~}</div>`)() // `<div><p>1</p>/div>`
+Nostache(`<div>{~ @import("inner.htm")(1) ~}</div>`)() // `<div><p>1</p></div>`
 ``` 
 
 ## Template Imports
@@ -452,3 +453,11 @@ Nostache.cache.extensions = {
     canLickOwnElbow: (person) => "no",
 }; // Now everyone knows that
 ```
+
+## Version History
+
+* 1.4.0 Support of `@` symbol as shortcut to `this`
+* 1.3.0 Support of direct import without template parsing `{~ this.import('file.svg') ~}`
+* 1.2.0 Allow complex expressions in import blocks `{@ name 'file' @}`. Support of early return.
+* 1.1.0 Preserve whitespace inside string blocks `{> <}`
+* 1.0.0 Initial release
