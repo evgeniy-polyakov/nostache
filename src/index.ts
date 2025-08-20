@@ -278,7 +278,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             } else if (c === closeChar && charAt(index + 1) === CLOSE_BRACE) {
                 if (hasMeaningfulSymbol) {
                     appendOutput(unsafe, outputState);
-                    funcBody += `);\n`;
+                    funcBody += ");\n";
                 } else if (!hasOnlyComment) {
                     funcBody += `yield \`${template.slice(startIndex, index)}\`;`;
                 }
