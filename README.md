@@ -456,8 +456,8 @@ Nostache.cache.extensions = {
 
 ## Version History
 
-* 1.4.0 Support of `@` symbol as shortcut to `this`
-* 1.3.0 Support of direct import without template parsing `{~ this.import('file.svg') ~}`
-* 1.2.0 Allow complex expressions in import blocks `{@ name 'file' @}`. Support of early return.
-* 1.1.0 Preserve whitespace inside string blocks `{> <}`
-* 1.0.0 Initial release
+* `1.4.0` Support of `@` symbol as shortcut to `this`
+* `1.3.0` Support of direct import without template parsing `{~ this.import('file.svg') ~}`
+* `1.2.0` Allow complex expressions in import blocks `{@ name 'file' @}`. Support of early return.
+* `1.1.0` Preserve whitespace inside string blocks `{> <}`
+* `1.0.0` Initial release
