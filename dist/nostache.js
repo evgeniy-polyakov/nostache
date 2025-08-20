@@ -1,4 +1,4 @@
-// nostache.js@1.3.1
+// nostache.js@1.4.0
 (function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const ASYNC = "async";
 const IMPORT = "import";
 const FUNCTION = "function";
@@ -229,7 +229,7 @@ const parseTemplate = (template, options) => {
             else if (c === closeChar && charAt(index + 1) === 125) {
                 if (hasMeaningfulSymbol) {
                     appendOutput(unsafe, outputState);
-                    funcBody += `);\n`;
+                    funcBody += ");\n";
                 }
                 else if (!hasOnlyComment) {
                     funcBody += `yield \`${template.slice(startIndex, index)}\`;`;
