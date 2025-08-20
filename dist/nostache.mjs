@@ -1,4 +1,4 @@
-// nostache.js@1.4.0
+// nostache.js@1.4.1
 const ASYNC = "async";
 const IMPORT = "import";
 const FUNCTION = "function";
