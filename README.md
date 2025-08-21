@@ -67,16 +67,17 @@ Output:
 
 ## Syntax Cheatsheet
 
-| Block                          | Type                | Description                                                              | Parent Block         |
-|--------------------------------|---------------------|--------------------------------------------------------------------------|----------------------|
-| Logic `<{ }>`                  | JS Statement        | JS code to breathe life into your template                               | Text                 |
-| Html tag `{< >}`               | Text                | Plain html tag inside JS code                                            | `<{ }>`              |
-| String `{> <}`                 | Text                | Plain string inside JS code                                              | `<{ }>`              |
-| Output `{= =}`                 | JS Expression       | Outputs the html-escaped result of the inner JS expression               | Text or JS Statement |
-| Unsafe `{~ ~}`                 | JS Expression       | Outputs the result of the inner JS expression as is                      | Text or JS Statement |
-| Parameters<br/>`{@ a, b @}`    | JS Statement        | Declares the list of template parameters, destructing is supported       | Text or JS Statement |
-| Import<br/>`{@ name "file" @}` | JS Statement        | Declares a template to import as a function with optional `name`         | Text or JS Statement |
-| Inner<br/>`{@ name () body @}` | JS Statement + Text | Declares an inner template as a function with optional `name` and `body` | Text or JS Statement |
+| Block                          | Type                | Description                                                                 | Parent Block               |
+|--------------------------------|---------------------|-----------------------------------------------------------------------------|----------------------------|
+| Logic `<{ }>`                  | JS Statement        | JS code to breathe life into your template                                  | Text                       |
+| Html tag `{< >}`               | Text                | Plain html tag inside JS code                                               | `<{ }>`                    |
+| String `{> <}`                 | Text                | Plain string inside JS code                                                 | `<{ }>`                    |
+| Output `{= =}`                 | JS Expression       | Outputs the html-escaped result of the inner JS expression                  | Text or JS Statement       |
+| Unsafe `{~ ~}`                 | JS Expression       | Outputs the result of the inner JS expression as is                         | Text or JS Statement       |
+| Parameters<br/>`{@ a, b @}`    | JS Statement        | Declares the list of template parameters, destructing is supported          | Text or JS Statement       |
+| Import<br/>`{@ name "file" @}` | JS Statement        | Declares a template to import as a function with optional `name`            | Text or JS Statement       |
+| Inner<br/>`{@ name () body @}` | JS Statement + Text | Declares an inner template as a function with optional `name` and `body`    | Text or JS Statement       |
+| `@` as shortcut for `this`     | JS Statement        | Use `@` as shortcut for `this`. The following period symbol can be omitted. | JS Statement or Expression |
 
 ## Template Logic
 
@@ -216,7 +217,7 @@ Nostache(`<p>{= this.myDream() =}</p>`, {
 })() // <p>Pineapple Pizza</p>
 ```
 
-* `@` as shortcut to `this`, dot symbol can be omitted. A grand gesture for lazybones.
+* `@` as shortcut to `this`, the following period symbol can be omitted. A grand gesture for lazybones.
 
 ```javascript
 // inner.htm: <p>{= @[0] =}</p>
