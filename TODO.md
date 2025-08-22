@@ -23,4 +23,4 @@
 <b>{= b =}</b>
 @}(1,2) ~}
 ```
-- [ ] **v2.0.1**: Allow immediate start of text or html block `<{ >text< }>`, `<{ <html> }>`
+- [ ] **v2.1.0**: Allow immediate start of text or html block `<{ >text< }>`, `<{ <html> }>`
