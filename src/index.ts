@@ -361,8 +361,7 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     };
 
     const parseDeclarationName = () => {
-        parseStringOrComment(true);
-        skipWhitespace();
+        skipWhitespaceOrComment();
         startIndex = index;
         if (isAlphabetic(charAt(index))) {
             index++;
@@ -375,29 +374,31 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     };
 
     const parseDeclarationParameters = () => {
-        let parentheses = 0;
-        while (index < length) {
-            const c = charAt(index);
-            if (c === OPEN_PARENTHESES) {
-                index++;
-                if (!parentheses) {
-                    startIndex = index;
-                }
-                parentheses++;
-            } else if (c === CLOSE_PARENTHESES) {
-                parentheses--;
-                if (parentheses) {
+        skipWhitespaceOrComment();
+        if (charAt(index) === OPEN_PARENTHESES) {
+            index++;
+            startIndex = index;
+            let parentheses = 1;
+            while (index < length) {
+                const c = charAt(index);
+                if (c === OPEN_PARENTHESES) {
                     index++;
+                    parentheses++;
+                } else if (c === CLOSE_PARENTHESES) {
+                    parentheses--;
+                    if (parentheses) {
+                        index++;
+                    } else {
+                        const parameters = template.slice(startIndex, index);
+                        index++;
+                        skipWhitespace();
+                        return parameters;
+                    }
+                } else if (c === AT_SIGN && charAt(index + 1) === CLOSE_BRACE) {
+                    break;
                 } else {
-                    const parameters = template.slice(startIndex, index);
                     index++;
-                    skipWhitespace();
-                    return parameters;
                 }
-            } else if (c === AT_SIGN && charAt(index + 1) === CLOSE_BRACE) {
-                break;
-            } else {
-                index++;
             }
         }
         throw new SyntaxError(`Declaration parameters expected at\n${template}`);
@@ -471,6 +472,13 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
             c = charAt(index);
         }
         return c;
+    };
+
+    const skipWhitespaceOrComment = () => {
+        skipWhitespace();
+        while (parseStringOrComment(true)) {
+            skipWhitespace();
+        }
     };
 
     const parseAtSign = () => {
