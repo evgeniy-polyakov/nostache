@@ -67,17 +67,17 @@ Output:
 
 ## Syntax Cheatsheet
 
-| Block                          | Type                | Description                                                                 | Parent Block               |
-|--------------------------------|---------------------|-----------------------------------------------------------------------------|----------------------------|
-| Logic `<{ }>`                  | JS Statement        | JS code to breathe life into your template                                  | Text                       |
-| Html tag `{< >}`               | Text                | Plain html tag inside JS code                                               | `<{ }>`                    |
-| String `{> <}`                 | Text                | Plain string inside JS code                                                 | `<{ }>`                    |
-| Output `{= =}`                 | JS Expression       | Outputs the html-escaped result of the inner JS expression                  | Text or JS Statement       |
-| Unsafe `{~ ~}`                 | JS Expression       | Outputs the result of the inner JS expression as is                         | Text or JS Statement       |
-| Parameters<br/>`{@ a, b @}`    | JS Statement        | Declares the list of template parameters, destructing is supported          | Text or JS Statement       |
-| Import<br/>`{@ name "file" @}` | JS Statement        | Declares a template to import as a function with optional `name`            | Text or JS Statement       |
-| Inner<br/>`{@ name () body @}` | JS Statement + Text | Declares an inner template as a function with optional `name` and `body`    | Text or JS Statement       |
-| `@` as shortcut for `this`     | JS Statement        | Use `@` as shortcut for `this`. The following period symbol can be omitted. | JS Statement or Expression |
+| Block                                  | Type                | Description                                                                 | Parent Block               |
+|----------------------------------------|---------------------|-----------------------------------------------------------------------------|----------------------------|
+| Logic `<{ }>`                          | JS Statement        | JS code to breathe life into your template                                  | Text                       |
+| Html tag `{< >}`                       | Text                | Plain html tag inside JS code                                               | `<{ }>`                    |
+| String `{> <}`                         | Text                | Plain string inside JS code                                                 | `<{ }>`                    |
+| Output `{= =}`                         | JS Expression       | Outputs the html-escaped result of the inner JS expression                  | Text or JS Statement       |
+| Unsafe `{~ ~}`                         | JS Expression       | Outputs the result of the inner JS expression as is                         | Text or JS Statement       |
+| Parameters<br/>`{@ a, b @}`            | JS Statement        | Declares the list of template parameters, destructing is supported          | Text or JS Statement       |
+| Import<br/>`{@import name (file) @}`   | JS Statement        | Declares a template to import as a function with optional `name`            | Text or JS Statement       |
+| Inner<br/>`{@function name () body @}` | JS Statement + Text | Declares an inner template as a function with optional `name` and `body`    | Text or JS Statement       |
+| `@` as shortcut for `this`             | JS Statement        | Use `@` as shortcut for `this`. The following period symbol can be omitted. | JS Statement or Expression |
 
 ## Template Logic
 
@@ -203,7 +203,7 @@ Nostache(`<code>{= "<br>" =}</code>`)() // `<code>&#38;#60;br&#38;#62;</code>`
 Nostache(`<div><{ const inner = this.import("inner.htm")
 }>{~ inner(1) ~}{~ inner(2) ~}</div>`)() // `<div><p>1</p><p>2</p></div>`
 // Shorter form:
-Nostache(`<div>{@ inner "inner.htm" @}
+Nostache(`<div>{@import inner ("inner.htm") @}
 {~ inner(1) ~}{~ inner(2) ~}</div>`)() // `<div><p>1</p><p>2</p></div>`
 ```
 
@@ -226,16 +226,20 @@ Nostache(`<div>{~ @import("inner.htm")(1) ~}</div>`)() // `<div><p>1</p></div>`
 
 ## Template Imports
 
-One is never satisfied with just a few independent template files. Sooner or later the need arise to import one template file into another. Nostache has no problem with that, use `{@ name "file" @}`
+One is never satisfied with just a few independent template files. Sooner or later the need arise to import one template file into another. Nostache has no problem with that, use `{@import name (file) @}`
 block to import a `file` and put it to a template function called `name`. Note that `file` can be any JS expression.
 
 ```javascript
 // inner.htm: <p>{= this[0] =}</p>
-Nostache(`<div>{@ inner "inner.htm" @}
+Nostache(`<div>{@import inner ("inner.htm") @}
 {~ inner(1) ~}{~ inner(2) ~}</div>`)() // `<div><p>1</p><p>2</p></div>`
 
 // Name is optional you can pass the function wherever you like
-Nostache(`<div><{ const inner = {@ "inner.htm" @}
+Nostache(`<div><{ const inner = {@import ("inner.htm") @}
+}>{~ inner(1) ~}{~ inner(2) ~}</div>`)() // `<div><p>1</p><p>2</p></div>`
+
+// If declaration block is used inside code block then import function is better option 
+Nostache(`<div><{ const inner = @import("inner.htm")
 }>{~ inner(1) ~}{~ inner(2) ~}</div>`)() // `<div><p>1</p><p>2</p></div>`
 ```
 
@@ -244,12 +248,12 @@ and [fs.readFile](https://nodejs.org/docs/latest-v20.x/api/fs.html#fsreadfilepat
 to gain more control of what's going on.
 
 ```javascript
-Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
+Nostache(`<div>{@import inner ("inner.htm") @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
     import: file => `<b>{= this[0] =}</b>`
 })() // `<div><b>1</b><b>2</b></div>`
 
 // In most cases in will be a promise
-Nostache(`<div>{@ inner "inner.htm" @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
+Nostache(`<div>{@import inner ("inner.htm") @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
     import: file => new Promise(r => r(`<b>{= this[0] =}</b>`))
 })() // `<div><b>1</b><b>2</b></div>`
 ```
@@ -261,17 +265,17 @@ If there is no need to process the imported file as a Nostache template, then th
 Nostache(`<div>{~ @import("inner.htm") ~}</div>`)() // `<div><p>Not a template</p></div>`
 
 // Or alternatively with separate declaration
-Nostache(`<div>{@ inner "inner.htm" @}
+Nostache(`<div>{@import inner ("inner.htm") @}
 {~ inner ~}</div>`)() // `<div><p>Not a template</p></div>`
 ```
 
 ## Inner Templates
 
-Inner templates is the most powerful feature of Nostache. You can mark some block of code as an inner function and then call it in the template. Use `{@ name () body @}` to define a function called
+Inner templates is the most powerful feature of Nostache. You can mark some block of code as an inner function and then call it in the template. Use `{@function name () body @}` to define a function called
 `name` with `body`. Whitespace after the block and around the function body are ignored. Comments are allowed before the function body.
 
 ```javascript
-Nostache(`{@ /* Meet inner templates! */ li (i) <li>{= i =}</li> @}
+Nostache(`{@function /* Meet inner templates! */ li (i) <li>{= i =}</li> @}
 <ul>
     {~ li(1) ~}
     {~ li(2) ~}
@@ -280,7 +284,7 @@ Nostache(`{@ /* Meet inner templates! */ li (i) <li>{= i =}</li> @}
     <li>2</li>
 </ul>` */
 // Name is optional, you can pass the function wherever you like
-Nostache(`<{ const li = {@ (i) <li>{= i =}</li> @} }><ul>
+Nostache(`<{ const li = {@function (i) <li>{= i =}</li> @} }><ul>
     {~ li(1) ~}
     {~ li(2) ~}
 </ul>`)() /* `<ul>
@@ -288,7 +292,7 @@ Nostache(`<{ const li = {@ (i) <li>{= i =}</li> @} }><ul>
     <li>2</li>
 </ul>` */
 // `this` is still pointing to the parent template
-Nostache(`{@ li (i) <li>{= this[0] =} #{= i =}</li> @}
+Nostache(`{@function li (i) <li>{= this[0] =} #{= i =}</li> @}
 <ul>
     {~ li(1) ~}
     {~ li(2) ~}
@@ -301,8 +305,8 @@ Nostache(`{@ li (i) <li>{= this[0] =} #{= i =}</li> @}
 Some evil voodoo magic with nested inner templates:
 
 ```javascript
-Nostache(`{@ tr (row, columns)
-    <tr>{@ td (column) <td>{= row + 1 =} {= column + 1 =}</td> @}
+Nostache(`{@function tr (row, columns)
+    <tr>{@function td (column) <td>{= row + 1 =} {= column + 1 =}</td> @}
         <{ for (let i = 0; i < columns; i++) {~ td(i) ~} }></tr> @}
 <table>
     {~ tr(0, 3) ~}
@@ -337,12 +341,12 @@ utilizes inner templates for that. Since inner templates are just functions with
 * page.html:
 
 ```html
-{@ page (title)
+{@function page (title)
 <main>
     <h1>{= title =}</h1>
 </main>
 @}
-{@ layout "layout.html" @}
+{@import layout ("layout.html") @}
 {~ layout("My Page Title", page) ~}
 ```
 
@@ -457,6 +461,7 @@ Nostache.cache.extensions = {
 
 ## Version History
 
+* `2.0.0` `{@import @}` and `{@function @}` blocks
 * `1.4.0` Support of `@` symbol as shortcut to `this`
 * `1.3.0` Support of direct import without template parsing `{~ this.import('file.svg') ~}`
 * `1.2.0` Allow complex expressions in import blocks `{@ name 'file' @}`. Support of early return.

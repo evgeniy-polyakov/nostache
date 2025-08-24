@@ -1424,6 +1424,9 @@ test("Readme examples", async () => {
     expect(await Nostache(`<div><{ const inner = {@import ("inner.htm") @} }>{~ inner(1) ~}{~ inner(2) ~}</div>`, {
         import: s => `<b>{= this[0] =}</b>`
     })()).toBe("<div><b>1</b><b>2</b></div>");
+    expect(await Nostache(`<div><{ const inner = @import("inner.htm") }>{~ inner(1) ~}{~ inner(2) ~}</div>`, {
+        import: s => `<b>{= this[0] =}</b>`
+    })()).toBe("<div><b>1</b><b>2</b></div>");
     expect(await Nostache(`<div>{@import inner ("inner.htm") @}{~ inner(1) ~}{~ inner(2) ~}</div>`, {
         import: s => new Promise(r => r(`<b>{= this[0] =}</b>`))
     })()).toBe("<div><b>1</b><b>2</b></div>");
