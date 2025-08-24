@@ -23,8 +23,6 @@ const replacements = {
     CLOSE_BRACE: "}".charCodeAt(0),
     OPEN_PARENTHESES: "(".charCodeAt(0),
     CLOSE_PARENTHESES: ")".charCodeAt(0),
-    OPEN_BRACKET: "[".charCodeAt(0),
-    CLOSE_BRACKET: "]".charCodeAt(0),
     ASSIGN: "=".charCodeAt(0),
     TILDE: "~".charCodeAt(0),
     SLASH: "/".charCodeAt(0),
@@ -35,8 +33,16 @@ const replacements = {
     BACKTICK: "`".charCodeAt(0),
     DOLLAR: "$".charCodeAt(0),
     AT_SIGN: "@".charCodeAt(0),
-    COMMA: ",".charCodeAt(0),
-    PERIOD: ".".charCodeAt(0),
+    F: "f".charCodeAt(0),
+    U: "u".charCodeAt(0),
+    N: "n".charCodeAt(0),
+    C: "c".charCodeAt(0),
+    T: "t".charCodeAt(0),
+    I: "i".charCodeAt(0),
+    O: "o".charCodeAt(0),
+    M: "m".charCodeAt(0),
+    P: "p".charCodeAt(0),
+    R: "r".charCodeAt(0),
 };
 
 export default {

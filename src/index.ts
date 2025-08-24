@@ -53,8 +53,6 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     const CLOSE_BRACE = "}".charCodeAt(0);
     const OPEN_PARENTHESES = "(".charCodeAt(0);
     const CLOSE_PARENTHESES = ")".charCodeAt(0);
-    const OPEN_BRACKET = "[".charCodeAt(0);
-    const CLOSE_BRACKET = "]".charCodeAt(0);
     const ASSIGN = "=".charCodeAt(0);
     const TILDE = "~".charCodeAt(0);
     const SLASH = "/".charCodeAt(0);
@@ -65,11 +63,20 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     const BACKTICK = "`".charCodeAt(0);
     const DOLLAR = "$".charCodeAt(0);
     const AT_SIGN = "@".charCodeAt(0);
-    const COMMA = ",".charCodeAt(0);
-    const PERIOD = ".".charCodeAt(0);
+    const F = "f".charCodeAt(0);
+    const U = "u".charCodeAt(0);
+    const N = "n".charCodeAt(0);
+    const C = "c".charCodeAt(0);
+    const T = "t".charCodeAt(0);
+    const I = "i".charCodeAt(0);
+    const O = "o".charCodeAt(0);
+    const M = "m".charCodeAt(0);
+    const P = "p".charCodeAt(0);
+    const R = "r".charCodeAt(0);
     const isWhitespace = (c: number) => c === WHITESPACE || c === TAB || c === RETURN || c === NEWLINE;
     const isAlphabetic = (c: number) => c === UNDERSCORE || (c >= LOWERCASE_A && c <= LOWERCASE_Z) || (c >= UPPERCASE_A && c <= UPPERCASE_Z);
     const isAlphanumeric = (c: number) => isAlphabetic(c) || (c >= NUMBER_0 && c <= NUMBER_9);
+    const isWordAt = (index: number, ...chars: number[]) => chars.every((it, i) => it === charAt(i + index));
     const asyncModifier = options.async ? "async " : "";
     const charAt = (i: number) => template.charCodeAt(i);
 
@@ -340,71 +347,66 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     };
 
     const parseDeclaration = () => {
-        startIndex = index;
-        let firstChar = 0;
-        let potentialName = false;
-        let name = "";
-        while (index < length) {
-            let c = charAt(index);
-            if (!firstChar) {
-                c = skipWhitespace();
-                if (parseStringOrComment(true)) {
-                    c = skipWhitespace();
-                }
-                startIndex = index;
-                firstChar = c;
-                if (c === OPEN_PARENTHESES) {
-                    index++;
-                    parseFunctionDeclaration();
-                    break;
-                } else if (isAlphabetic(firstChar)) {
-                    index++;
-                    potentialName = true;
-                } else if (c === AT_SIGN && charAt(index + 1) === CLOSE_BRACE) {
-                    index += 2;
-                    startIndex = index;
-                    return;
-                } else if (c === OPEN_BRACE || c === OPEN_BRACKET || c === PERIOD || c === COMMA) {
-                    parseParametersDeclaration();
-                    break;
-                } else {
-                    parseImportDeclaration();
-                    break;
-                }
-            } else if (potentialName && isAlphanumeric(c)) {
-                index++;
-            } else if (potentialName && !isAlphanumeric(c)) {
-                name = template.slice(startIndex, index);
-                c = skipWhitespace();
-                if (parseStringOrComment(true)) {
-                    c = skipWhitespace();
-                }
-                if (c === OPEN_PARENTHESES) {
-                    index++;
-                    parseFunctionDeclaration(name);
-                    break;
-                } else if (c === COMMA || (c === AT_SIGN && charAt(index + 1) === CLOSE_BRACE)) {
-                    parseParametersDeclaration();
-                    break;
-                } else {
-                    startIndex = index;
-                    parseImportDeclaration(name);
-                    break;
-                }
-            } else {
-                parseImportDeclaration();
-                break;
-            }
+        if (isWordAt(index, F, U, N, C, T, I, O, N) && isWhitespace(charAt(index + 8))) {
+            index += 9;
+            parseFunctionDeclaration();
+        } else if (isWordAt(index, I, M, P, O, R, T) && isWhitespace(charAt(index + 6))) {
+            index += 7;
+            parseImportDeclaration();
+        } else {
+            parseParametersDeclaration();
         }
         skipWhitespace();
         startIndex = index;
     };
 
-    const parseParametersDeclaration = () => {
+    const parseDeclarationName = () => {
+        parseStringOrComment(true);
+        skipWhitespace();
+        startIndex = index;
+        if (isAlphabetic(charAt(index))) {
+            index++;
+            while (index < length && isAlphanumeric(charAt(index))) {
+                index++;
+            }
+            return template.slice(startIndex, index);
+        }
+        return "";
+    };
+
+    const parseDeclarationParameters = () => {
+        let parentheses = 0;
         while (index < length) {
-            if (parseStringOrComment(true)) {
-                // continue
-            } else if (charAt(index) === AT_SIGN && charAt(index + 1) === CLOSE_BRACE && index > startIndex) {
+            const c = charAt(index);
+            if (c === OPEN_PARENTHESES) {
+                index++;
+                if (!parentheses) {
+                    startIndex = index;
+                }
+                parentheses++;
+            } else if (c === CLOSE_PARENTHESES) {
+                parentheses--;
+                if (parentheses) {
+                    index++;
+                } else {
+                    const parameters = template.slice(startIndex, index);
+                    index++;
+                    skipWhitespace();
+                    return parameters;
+                }
+            } else if (c === AT_SIGN && charAt(index + 1) === CLOSE_BRACE) {
+                break;
+            } else {
+                index++;
+            }
+        }
+        throw new SyntaxError(`Declaration parameters expected at\n${template}`);
+    };
+
+    const parseParametersDeclaration = () => {
+        startIndex = index;
+        while (index < length) {
+            if (charAt(index) === AT_SIGN && charAt(index + 1) === CLOSE_BRACE && index > startIndex) {
                 funcBody += `let[${template.slice(startIndex, index)}]=this;\n`;
                 index += 2;
                 return;
@@ -415,13 +417,13 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         throwEndOfDeclarationBlockExpected();
     };
 
-    const parseImportDeclaration = (name?: string) => {
+    const parseImportDeclaration = () => {
+        const name = parseDeclarationName();
+        const parameters = parseDeclarationParameters();
         while (index < length) {
-            if (parseStringOrComment(true)) {
-                // continue
-            } else if (charAt(index) === AT_SIGN && charAt(index + 1) === CLOSE_BRACE && index > startIndex) {
+            if (charAt(index) === AT_SIGN && charAt(index + 1) === CLOSE_BRACE && index > startIndex) {
                 if (name) funcBody += `let ${name}=`;
-                funcBody += `this.import(${template.slice(startIndex, index)})\n`;
+                funcBody += `this.import(${parameters})\n`;
                 index += 2;
                 return;
             } else {
@@ -431,32 +433,13 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
         throwEndOfDeclarationBlockExpected();
     };
 
-    const parseFunctionDeclaration = (name?: string) => {
-        startIndex = index;
-        let parameters = "";
-        let parentheses = 0;
-        while (index < length) {
-            const c = charAt(index);
-            if (c === OPEN_PARENTHESES) {
-                parentheses++;
-            } else if (c === CLOSE_PARENTHESES) {
-                if (parentheses) {
-                    parentheses--;
-                    index++;
-                } else {
-                    parameters = template.slice(startIndex, index);
-                    index++;
-                    skipWhitespace();
-                    startIndex = index;
-                    break;
-                }
-            } else {
-                index++;
-            }
-        }
+    const parseFunctionDeclaration = () => {
+        const name = parseDeclarationName();
+        const parameters = parseDeclarationParameters();
         const tempFuncBody = funcBody;
         let lastWhitespace = -1;
         funcBody = "";
+        startIndex = index;
         while (index < length) {
             const c = charAt(index);
             if (isWhitespace(c)) {
