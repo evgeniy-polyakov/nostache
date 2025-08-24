@@ -407,8 +407,12 @@ const parseTemplate = (template: string, options: TemplateOptions) => {
     const parseParametersDeclaration = () => {
         startIndex = index;
         while (index < length) {
-            if (charAt(index) === AT_SIGN && charAt(index + 1) === CLOSE_BRACE && index > startIndex) {
-                funcBody += `let[${template.slice(startIndex, index)}]=this;\n`;
+            if (parseStringOrComment(true)) {
+                // continue
+            } else if (charAt(index) === AT_SIGN && charAt(index + 1) === CLOSE_BRACE) {
+                if (index > startIndex) {
+                    funcBody += `let[${template.slice(startIndex, index)}]=this;\n`;
+                }
                 index += 2;
                 return;
             } else {
