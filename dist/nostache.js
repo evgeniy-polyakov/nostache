@@ -1,4 +1,4 @@
-// nostache.js@1.4.2
+// nostache.js@2.0.0
 (function(g,f){typeof exports==='object'&&typeof module!=='undefined'?module.exports=f():typeof define==='function'&&define.amd?define(f):(g=typeof globalThis!=='undefined'?globalThis:g||self,g.Nostache=f());})(this,(function(){'use strict';const ASYNC = "async";
 const IMPORT = "import";
 const FUNCTION = "function";
@@ -9,6 +9,7 @@ const parseTemplate = (template, options) => {
     const isWhitespace = (c) => c === 32 || c === 9 || c === 13 || c === 10;
     const isAlphabetic = (c) => c === 95 || (c >= 97 && c <= 122) || (c >= 65 && c <= 90);
     const isAlphanumeric = (c) => isAlphabetic(c) || (c >= 48 && c <= 57);
+    const isWordAt = (index, ...chars) => chars.every((it, i) => it === charAt(i + index));
     const asyncModifier = options.async ? "async " : "";
     const charAt = (i) => template.charCodeAt(i);
     let index = 0;
@@ -299,133 +300,107 @@ const parseTemplate = (template, options) => {
         return result;
     };
     const parseDeclaration = () => {
-        startIndex = index;
-        let firstChar = 0;
-        let potentialName = false;
-        let name = "";
-        while (index < length) {
-            let c = charAt(index);
-            if (!firstChar) {
-                c = skipWhitespace();
-                if (parseStringOrComment(true)) {
-                    c = skipWhitespace();
-                }
-                startIndex = index;
-                firstChar = c;
-                if (c === 40) {
-                    index++;
-                    parseFunctionDeclaration();
-                    break;
-                }
-                else if (isAlphabetic(firstChar)) {
-                    index++;
-                    potentialName = true;
-                }
-                else if (c === 64 && charAt(index + 1) === 125) {
-                    index += 2;
-                    startIndex = index;
-                    return;
-                }
-                else if (c === 123 || c === 91 || c === 46 || c === 44) {
-                    parseParametersDeclaration();
-                    break;
-                }
-                else {
-                    parseImportDeclaration();
-                    break;
-                }
-            }
-            else if (potentialName && isAlphanumeric(c)) {
-                index++;
-            }
-            else if (potentialName && !isAlphanumeric(c)) {
-                name = template.slice(startIndex, index);
-                c = skipWhitespace();
-                if (parseStringOrComment(true)) {
-                    c = skipWhitespace();
-                }
-                if (c === 40) {
-                    index++;
-                    parseFunctionDeclaration(name);
-                    break;
-                }
-                else if (c === 44 || (c === 64 && charAt(index + 1) === 125)) {
-                    parseParametersDeclaration();
-                    break;
-                }
-                else {
-                    startIndex = index;
-                    parseImportDeclaration(name);
-                    break;
-                }
-            }
-            else {
-                parseImportDeclaration();
-                break;
-            }
+        if (isWordAt(index, 102, 117, 110, 99, 116, 105, 111, 110) && isWhitespace(charAt(index + 8))) {
+            index += 9;
+            parseFunctionDeclaration();
+        }
+        else if (isWordAt(index, 105, 109, 112, 111, 114, 116) && isWhitespace(charAt(index + 6))) {
+            index += 7;
+            parseImportDeclaration();
+        }
+        else {
+            parseParametersDeclaration();
         }
         skipWhitespace();
         startIndex = index;
     };
-    const parseParametersDeclaration = () => {
-        while (index < length) {
-            if (parseStringOrComment(true)) ;
-            else if (charAt(index) === 64 && charAt(index + 1) === 125 && index > startIndex) {
-                funcBody += `let[${template.slice(startIndex, index)}]=this;\n`;
-                index += 2;
-                return;
-            }
-            else {
-                index++;
-            }
-        }
-        throwEndOfDeclarationBlockExpected();
-    };
-    const parseImportDeclaration = (name) => {
-        while (index < length) {
-            if (parseStringOrComment(true)) ;
-            else if (charAt(index) === 64 && charAt(index + 1) === 125 && index > startIndex) {
-                if (name)
-                    funcBody += `let ${name}=`;
-                funcBody += `this.import(${template.slice(startIndex, index)})\n`;
-                index += 2;
-                return;
-            }
-            else {
-                index++;
-            }
-        }
-        throwEndOfDeclarationBlockExpected();
-    };
-    const parseFunctionDeclaration = (name) => {
+    const parseDeclarationName = () => {
+        skipWhitespaceOrComment();
         startIndex = index;
-        let parameters = "";
-        let parentheses = 0;
-        while (index < length) {
-            const c = charAt(index);
-            if (c === 40) {
-                parentheses++;
+        if (isAlphabetic(charAt(index))) {
+            index++;
+            while (index < length && isAlphanumeric(charAt(index))) {
+                index++;
             }
-            else if (c === 41) {
-                if (parentheses) {
-                    parentheses--;
+            return template.slice(startIndex, index);
+        }
+        return "";
+    };
+    const parseDeclarationParameters = () => {
+        skipWhitespaceOrComment();
+        if (charAt(index) === 40) {
+            index++;
+            startIndex = index;
+            let parentheses = 1;
+            while (index < length) {
+                const c = charAt(index);
+                if (c === 40) {
                     index++;
+                    parentheses++;
                 }
-                else {
-                    parameters = template.slice(startIndex, index);
-                    index++;
-                    skipWhitespace();
-                    startIndex = index;
+                else if (c === 41) {
+                    parentheses--;
+                    if (parentheses) {
+                        index++;
+                    }
+                    else {
+                        const parameters = template.slice(startIndex, index);
+                        index++;
+                        skipWhitespace();
+                        return parameters;
+                    }
+                }
+                else if (c === 64 && charAt(index + 1) === 125) {
                     break;
                 }
+                else {
+                    index++;
+                }
+            }
+        }
+        throw new SyntaxError(`Declaration parameters expected at\n${template}`);
+    };
+    const parseParametersDeclaration = () => {
+        startIndex = index;
+        while (index < length) {
+            if (parseStringOrComment(true)) ;
+            else if (charAt(index) === 64 && charAt(index + 1) === 125) {
+                if (index > startIndex) {
+                    funcBody += `let[${template.slice(startIndex, index)}]=this;\n`;
+                }
+                index += 2;
+                return;
             }
             else {
                 index++;
             }
         }
+        throwEndOfDeclarationBlockExpected();
+    };
+    const parseImportDeclaration = () => {
+        const name = parseDeclarationName();
+        const parameters = parseDeclarationParameters();
+        while (index < length) {
+            if (charAt(index) === 64 && charAt(index + 1) === 125 && index > startIndex) {
+                if (name)
+                    funcBody += `let ${name}=`;
+                funcBody += `this.import(${parameters})\n`;
+                index += 2;
+                return;
+            }
+            else {
+                index++;
+            }
+        }
+        throwEndOfDeclarationBlockExpected();
+    };
+    const parseFunctionDeclaration = () => {
+        const name = parseDeclarationName();
+        const parameters = parseDeclarationParameters();
         const tempFuncBody = funcBody;
         let lastWhitespace = -1;
         funcBody = "";
+        startIndex = index;
         while (index < length) {
             const c = charAt(index);
             if (isWhitespace(c)) {
@@ -457,6 +432,12 @@ const parseTemplate = (template, options) => {
             c = charAt(index);
         }
         return c;
+    };
+    const skipWhitespaceOrComment = () => {
+        skipWhitespace();
+        while (parseStringOrComment(true)) {
+            skipWhitespace();
+        }
     };
     const parseAtSign = () => {
         index++;
